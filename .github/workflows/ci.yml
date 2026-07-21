@@ -47,6 +47,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      # JDK 17 is required, not optional: AGP 8.13's JdkImageTransform runs
+      # `jlink` on the Gradle JVM and breaks on JDK >=21 (e.g. host default 26)
+      # while building the android JDK image. Do not bump without re-checking
+      # jlink compatibility. (DRE-15)
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
