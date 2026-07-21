@@ -117,19 +117,21 @@ class SafetyGuardedGatewayTest {
 
     @Test
     fun `draft contraindication stubs are inert and do not provision the gateway`() {
-        // DRE-7 boundary: the stubs are documentation slots, never live medical
-        // rules. A gateway provisioned only with DRAFT stubs stays unprovisioned
-        // and blocks everything — they cannot accidentally unblock a candidate.
+        // DRE-7 boundary: a DRAFT stub is a documentation slot, never a live
+        // medical rule. A gateway provisioned only with the still-DRAFT stubs
+        // (loaded flexion/rotation) stays unprovisioned and blocks everything —
+        // they cannot accidentally unblock a candidate. The heavy-axial-loading
+        // stub is now ACTIVE, so it is filtered out here.
         val gateway = SafetyGuardedGateway(
             ctx(allowedExercises = setOf("back_squat"), conditionFlags = setOf("scoliosis_flagged")),
-            rules = ContraindicationStubs.all, // all DRAFT
+            rules = ContraindicationStubs.all.filter { it.status == RuleStatus.DRAFT },
         )
         gateway.isProvisioned shouldBe false
 
         val unsafe = Recommendation(
             "back_squat",
             listOf("ACSM-RT-2026"),
-            exerciseTags = setOf("heavy_axial_loading"),
+            exerciseTags = setOf("loaded_flexion_rotation"),
         )
         val plan = gateway.surface(listOf(unsafe))
 
@@ -139,11 +141,14 @@ class SafetyGuardedGatewayTest {
 
     @Test
     fun `an active contraindication rule blocks the unsafe candidate end to end`() {
-        // Mechanism sample (not a clinical rule): proves a contraindication rule,
-        // once activated by the Safety Reviewer, blocks end-to-end through the
-        // gateway. The tag/flag values here are generic strings.
+        // DRE-10 done-when: the heavy-axial-loading rule is now ACTIVE in
+        // production with sourced evidence (WEINSTEIN-AIS-2008). This proves the
+        // real rule — not a .copy() — blocks the contraindicated movement for the
+        // flagged condition end-to-end through the gateway. If the stub is ever
+        // reverted to DRAFT, the status guard below fails as a safety-regression
+        // alarm.
         val activeRule = ContraindicationStubs.heavyAxialLoadingForFlaggedScoliosis
-            .copy(status = RuleStatus.ACTIVE, evidenceRefs = listOf("SAFETY-SIGNED-OFF"))
+        activeRule.status shouldBe RuleStatus.ACTIVE // guard: the real rule is live
         val gateway = SafetyGuardedGateway(
             ctx(allowedExercises = setOf("back_squat"), conditionFlags = setOf("scoliosis_flagged")),
             rules = listOf(allowlistRule(setOf("back_squat")), activeRule),
@@ -163,13 +168,12 @@ class SafetyGuardedGatewayTest {
 
     @Test
     fun `the axial-loading contraindication only blocks the flagged condition, not a generic user`() {
-        // Threshold specificity: the rule blocks the same movement ONLY when the
-        // scoliosis_flagged condition is set. Same tag + unflagged context must
+        // Threshold specificity: the real ACTIVE rule blocks the same movement
+        // ONLY when scoliosis_flagged is set. Same tag + unflagged context must
         // surface fine — the contraindication protects a flagged presentation,
         // not every user. Pins the Safety Reviewer's threshold (Cobb >= ~30 deg /
         // rigid-structural / braced) as the gating condition, not the movement alone.
         val activeRule = ContraindicationStubs.heavyAxialLoadingForFlaggedScoliosis
-            .copy(status = RuleStatus.ACTIVE, evidenceRefs = listOf("SAFETY-SIGNED-OFF"))
         val gateway = SafetyGuardedGateway(
             // same exercise allowed, but scoliosis_flagged NOT set (generic user)
             ctx(allowedExercises = setOf("back_squat"), conditionFlags = emptySet()),

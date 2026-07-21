@@ -1,10 +1,14 @@
 package dreamteam.domain.safety
 
 /**
- * DRAFT contraindication-rule SLOTS — engineering integration shape with the
- * clinical *spec* authored by the Safety Reviewer (threshold + movement set),
- * but no live clinical *decision*: each entry is [RuleStatus.DRAFT] with
- * `evidenceRefs = emptyList()`, so [SafetyGuardedGateway] never evaluates it.
+ * Contraindication-rule SLOTS — engineering integration shape with the clinical
+ * *spec* authored by the Safety Reviewer (threshold + movement set). A slot is
+ * inert ([RuleStatus.DRAFT] with `evidenceRefs = emptyList()`, so
+ * [SafetyGuardedGateway] never evaluates it) until the Evidence Analyst sources
+ * a citation and the Safety Reviewer flips it to [RuleStatus.ACTIVE].
+ * `heavyAxialLoadingForFlaggedScoliosis` is now ACTIVE + sourced
+ * (`WEINSTEIN-AIS-2008`); `loadedFlexionRotationForFlaggedScoliosis` remains a
+ * DRAFT slot pending its own sourcing.
  *
  * They exist so the Safety Reviewer can see exactly where absolute-
  * contraindication rules plug in and what each rule means. Activating one
@@ -29,11 +33,13 @@ object ContraindicationStubs {
     /**
      * Heavy axial loading for a flagged scoliosis condition.
      *
-     * Clinical spec authored by the Safety Reviewer; the rule stays DRAFT until
-     * the Evidence Analyst sources `evidenceRefs` (see [EvidenceLinked]: empty =
-     * blocked-until-sourced) and status flips to ACTIVE. The threshold below is
-     * the spec the Founding Engineer's `scoliosis_flagged` derivation (and the
-     * `heavy_axial_loading` exercise tagging in data/exercises.json) must match.
+     * ACTIVE — sourced via `WEINSTEIN-AIS-2008` (`evidence_level: moderate_context`,
+     * precautionary: no RCT proves heavy axial loading worsens adult scoliosis;
+     * the block is the conservative, specialist-cleared default). The Evidence
+     * Analyst's catalog (`data/evidence_catalog.json`) resolves the id, so the
+     * rule is traceable end-to-end. The threshold below is the spec the Founding
+     * Engineer's `scoliosis_flagged` derivation (and the `heavy_axial_loading`
+     * exercise tagging in data/exercises.json) must match.
      *
      * CONDITION FLAG — `scoliosis_flagged` means a *diagnosed* scoliosis in a
      * presentation where heavy compressive axial loading is classically
@@ -55,12 +61,12 @@ object ContraindicationStubs {
     val heavyAxialLoadingForFlaggedScoliosis = SafetyRule(
         id = "stub_heavy_axial_loading_scoliosis",
         description =
-            "DRAFT (pending sourcing) — heavy axial loading proposed for a flagged " +
-                "scoliosis condition. Blocks heavy compressive/axial loading (e.g. barbell " +
-                "back/front squat, standing barbell press, heavy deadlift/good-morning, heavy " +
-                "loaded carries) for moderate-or-greater (Cobb >= ~30 deg), rigid/structural, " +
-                "or currently-braced scoliosis. Support-not-treat: blocks an unsafe load; " +
-                "prescribes nothing curve-specific.",
+            "Heavy axial loading for a flagged scoliosis condition is blocked. Blocks heavy " +
+                "compressive/axial loading (e.g. barbell back/front squat, standing barbell " +
+                "press, heavy deadlift/good-morning, heavy loaded carries) for " +
+                "moderate-or-greater (Cobb >= ~30 deg), rigid/structural, or currently-braced " +
+                "scoliosis. Support-not-treat: blocks an unsafe load; prescribes nothing " +
+                "curve-specific.",
         trigger =
             RuleTrigger.ContraindicationStub(
                 exerciseTag = "heavy_axial_loading",
@@ -69,12 +75,13 @@ object ContraindicationStubs {
                     "RESOLVED (Safety Reviewer): blocks heavy_axial_loading for scoliosis_flagged " +
                         "(Cobb >= ~30 deg / rigid-structural / braced). Movement set = barbell " +
                         "back+front squat, standing barbell press, heavy deadlift+good-morning, " +
-                        "heavy loaded carries, heavy standing barbell work. PENDING: Evidence " +
-                        "Analyst sourcing before status = ACTIVE.",
+                        "heavy loaded carries, heavy standing barbell work. Sourced: " +
+                        "WEINSTEIN-AIS-2008 (moderate_context; precautionary — no RCT proves load " +
+                        "worsens curves).",
             ),
         decision = SafetyRule.Decision.BLOCK,
-        status = RuleStatus.DRAFT,
-        evidenceRefs = emptyList(),
+        status = RuleStatus.ACTIVE,
+        evidenceRefs = listOf("WEINSTEIN-AIS-2008"),
     )
 
     /**
@@ -124,7 +131,8 @@ object ContraindicationStubs {
         evidenceRefs = emptyList(),
     )
 
-    /** All DRAFT stubs — the Safety Reviewer's worklist. Inert until activated. */
+    /** All contraindication slots — the Safety Reviewer's worklist. ACTIVE ones
+     *  are enforced by the gateway; DRAFT ones are inert until sourced + flipped. */
     val all: List<SafetyRule> =
         listOf(
             heavyAxialLoadingForFlaggedScoliosis,
