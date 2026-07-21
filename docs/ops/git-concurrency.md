@@ -117,3 +117,57 @@ for this: [DRE-28](/DRE/issues/DRE-28), [DRE-30](/DRE/issues/DRE-30),
 
 These are recorded here so we stop reopening ops tasks for symptoms the
 backstop already handles, and so the durable fixes live in one place.
+
+---
+
+## 3. Intra-agent concurrent-heartbeat divergence (DRE-42)
+
+**Problem.** An agent with `runtimeConfig.heartbeat.maxConcurrentRuns > 1`
+can run several heartbeats at once. The serialized `main` publisher (§1)
+protects the **git layer** — only one commit lands. The per-issue checkout
+lock protects the **mutation layer** — only one run owns the issue. Neither
+serializes **read-only appraisal + status-comment posting**. So concurrent
+heartbeats of the *same* agent can each read the (pre-commit) tree, appraise
+independently, and post contradictory conclusions — all non-mutating, so no
+lock stops them.
+
+This bit the Evidence & Research Analyst on [DRE-39](/DRE/issues/DRE-39):
+`maxConcurrentRuns: 20`, three heartbeats in one window produced two
+contradictory appraisals ("rule live" vs "empty set / rule inert"). Only the
+"live" appraisal's commit (`37ed65c`) shipped — the git layer held — but both
+comments landed on the thread. Same root class as the
+[DRE-21](/DRE/issues/DRE-21) inter-agent divergence, now intra-agent. Filed
+and reconciled in [DRE-42](/DRE/issues/DRE-42).
+
+**Why checkout + publisher aren't enough here.** The publisher serializes
+*pushes*; the checkout serializes *issue ownership*. Read-only appraisal that
+culminates in a comment (no checkout, no push) touches neither, so N
+concurrent heartbeats can emit N appraisals. Contradiction is invisible until
+a reviewer reads the thread — and by then both are on the record.
+
+**Mitigation (durable, config layer).** For agents whose output is
+appraisal/reasoning where contradiction is a correctness/integrity hazard
+(Evidence & Research Analyst, Safety Reviewer, Reflection Coach), set
+`maxConcurrentRuns: 1`. Serial heartbeats → no two appraisals can race.
+Research/review work is not throughput-bound; correctness >> parallelism here.
+Softer alternative: `2`–`3` if genuine parallelism across *different* issues is
+later wanted, accepting same-issue races remain possible.
+
+```jsonc
+// PATCH /api/agents/{agentId}   (runtimeConfig.heartbeat.maxConcurrentRuns)
+{ "runtimeConfig": { "heartbeat": { "maxConcurrentRuns": 1 } } }
+```
+
+This is a governance decision (changes a teammate's capacity) — propose via
+board confirmation, don't patch unilaterally.
+
+**Secondary defense (behavioral, fragile).** Before posting an appraisal or
+status flip, re-fetch the thread; if a newer same-agent appraisal already
+landed, reconcile or defer instead of re-appraising. Helps, but depends on
+every run behaving — the config change is the root fix.
+
+**Platform ask (operator/Paperclip).** Serialize per-issue comment/status
+writes for same-agent concurrent runs the way checkout serializes ownership,
+so an appraisal can't land while a sibling run is mid-flight on the same
+issue. (Same theme as the §2 platform gaps.) Until then,
+`maxConcurrentRuns: 1` for appraisal agents is the guard.
