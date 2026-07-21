@@ -4,311 +4,311 @@
     "domain": "resistance_training",
     "citation": "Currier BS et al. American College of Sports Medicine Position Stand: Resistance Training Prescription for Muscle Function, Hypertrophy, and Physical Performance in Healthy Adults. Med Sci Sports Exerc. 2026.",
     "design": "overview of 137 systematic reviews (>30,000 participants)",
-    "key_finding": "Progressive resistance training improves strength, hypertrophy and function. Higher weekly volume tends to enhance hypertrophy; consistency and progression matter more than many minor programming details.",
+    "keyFinding": "Progressive resistance training improves strength, hypertrophy and function. Higher weekly volume tends to enhance hypertrophy; consistency and progression matter more than many minor programming details.",
     "application": "Three full-body sessions, progressive overload, 2-4 sets, mostly 1-3 RIR, gradual volume progression.",
     "limitations": "Healthy-adult evidence; not a scoliosis-specific prescription.",
     "pmid": "41843416",
     "doi": "10.1249/MSS.0000000000003897",
     "url": "https://pubmed.ncbi.nlm.nih.gov/41843416/",
-    "evidence_level": "high"
+    "evidenceLevel": "high"
   },
   {
     "id": "MONTICONE-ADULT-SCOLIOSIS-2016",
     "domain": "adult_scoliosis",
     "citation": "Monticone M et al. Adults with idiopathic scoliosis improve disability after motor and cognitive rehabilitation: a randomized controlled trial. Eur Spine J. 2016.",
     "design": "randomized controlled trial, 130 adults, 20 weeks",
-    "key_finding": "Active self-correction, task-oriented exercise and cognitive-behavioural rehabilitation outperformed general physiotherapy for disability; benefits persisted at one year.",
+    "keyFinding": "Active self-correction, task-oriented exercise and cognitive-behavioural rehabilitation outperformed general physiotherapy for disability; benefits persisted at one year.",
     "application": "Use active self-correction and task integration only after curve-specific instruction; include stress/cognitive load management.",
     "limitations": "Main curve <35 degrees; mean age about 52; one programme cannot define all adult scoliosis care.",
     "pmid": "27015689",
     "doi": "10.1007/s00586-016-4528-y",
     "url": "https://pubmed.ncbi.nlm.nih.gov/27015689/",
-    "evidence_level": "moderate"
+    "evidenceLevel": "moderate"
   },
   {
     "id": "ALANAZI-ADULT-SCOLIOSIS-2018",
     "domain": "adult_scoliosis",
     "citation": "Alanazi MH et al. Effect of stabilization exercise on back pain, disability and quality of life in adults with scoliosis: a systematic review. Eur J Phys Rehabil Med. 2018.",
     "design": "systematic review",
-    "key_finding": "Only one eligible controlled study was found; adult scoliosis exercise evidence remains sparse.",
+    "keyFinding": "Only one eligible controlled study was found; adult scoliosis exercise evidence remains sparse.",
     "application": "Do not overclaim structural correction. Treat generic core work as capacity training, not curve correction.",
     "limitations": "Extremely limited evidence base.",
     "pmid": "29144110",
     "doi": "10.23736/S1973-9087.17.05062-6",
     "url": "https://pubmed.ncbi.nlm.nih.gov/29144110/",
-    "evidence_level": "low"
+    "evidenceLevel": "low"
   },
   {
     "id": "SOSORT-GUIDELINES-2016",
     "domain": "scoliosis_specific_exercise",
     "citation": "Negrini S et al. 2016 SOSORT guidelines: orthopaedic and rehabilitation treatment of idiopathic scoliosis during growth. Scoliosis Spinal Disord. 2018.",
     "design": "international guideline/consensus with evidence review",
-    "key_finding": "PSSE principles include 3D auto-correction, training activities of daily living, stabilizing the corrected posture and education.",
+    "keyFinding": "PSSE principles include 3D auto-correction, training activities of daily living, stabilizing the corrected posture and education.",
     "application": "The app locks side-specific correction until current curve data and clinician-taught instructions exist.",
     "limitations": "Primarily focused on scoliosis during growth, not a complete adult guideline.",
     "pmid": "29435499",
     "doi": "10.1186/s13013-017-0145-8",
     "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC5795289/",
-    "evidence_level": "guideline"
+    "evidenceLevel": "guideline"
   },
   {
     "id": "PSSE-METHODS-2016",
     "domain": "scoliosis_specific_exercise",
     "citation": "Berdishevsky H et al. Physiotherapy scoliosis-specific exercises – a comprehensive review of seven major schools. Scoliosis Spinal Disord. 2016.",
     "design": "narrative/comprehensive methods review",
-    "key_finding": "PSSE schools share 3D self-correction, ADL integration and stabilization, but methods and curve-pattern execution differ.",
+    "keyFinding": "PSSE schools share 3D self-correction, ADL integration and stabilization, but methods and curve-pattern execution differ.",
     "application": "Generic symmetrical training is separated from clinician-prescribed PSSE.",
     "limitations": "Not proof that every method or exercise works equally; much evidence is adolescent-focused.",
     "pmid": "27525315",
     "doi": "10.1186/s13013-016-0076-9",
     "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC4973373/",
-    "evidence_level": "moderate_context"
-  },
-  {
-    "id": "WEINSTEIN-AIS-2008",
-    "domain": "adolescent_scoliosis",
-    "citation": "Weinstein SL, Dolan LA, Cheng JCY, Danielsson AJ, Morcuende JA. Adolescent idiopathic scoliosis. Lancet. 2008;371(9623):1527-1537.",
-    "design": "Lancet Seminar / narrative clinical overview",
-    "key_finding": "AIS is a structural 3D spinal deformity; curve-progression risk rises with magnitude and skeletal immaturity. Management is observation, bracing, and surgery; loaded exercise is addressed descriptively, not as a progression trial.",
-    "application": "Context source for the precautionary block on heavy axial loading in diagnosed moderate-or-greater / rigid / braced curves. Supports conservative caution only — not direct proof that load worsens curves.",
-    "limitations": "Adolescent-focused overview (adult scoliosis extrapolated cautiously). Provides NO direct evidence that heavy axial loading worsens scoliosis; the contraindication is consensus/conservative and rated honestly as context-grade.",
-    "pmid": "18456103",
-    "doi": "10.1016/S0140-6736(08)60658-3",
-    "url": "https://pubmed.ncbi.nlm.nih.gov/18456103/",
-    "evidence_level": "moderate_context"
+    "evidenceLevel": "moderate_context"
   },
   {
     "id": "ISSN-DIETS-2017",
     "domain": "nutrition",
     "citation": "Aragon AA et al. International Society of Sports Nutrition position stand: diets and body composition. J Int Soc Sports Nutr. 2017.",
     "design": "position stand/evidence review",
-    "key_finding": "Sustained energy deficit drives fat loss; slower loss better preserves lean mass in leaner trained people; higher protein may aid retention during a deficit.",
+    "keyFinding": "Sustained energy deficit drives fat loss; slower loss better preserves lean mass in leaner trained people; higher protein may aid retention during a deficit.",
     "application": "Mild deficit, high protein, adaptive adjustment from actual weight trend and adherence.",
     "limitations": "Protein needs vary; the upper 2.3-3.1 g/kg FFM range is not a mandatory target for everyone.",
     "pmid": "28630601",
     "doi": "10.1186/s12970-017-0174-y",
     "url": "https://pubmed.ncbi.nlm.nih.gov/28630601/",
-    "evidence_level": "moderate_high"
+    "evidenceLevel": "moderate_high"
   },
   {
     "id": "MORTON-PROTEIN-2018",
     "domain": "nutrition",
     "citation": "Morton RW et al. Protein supplementation and resistance training adaptations: systematic review, meta-analysis and meta-regression. Br J Sports Med. 2018.",
     "design": "systematic review and meta-analysis",
-    "key_finding": "Protein supports resistance-training gains; average benefit plateau was around 1.6 g/kg/day with uncertainty extending higher.",
+    "keyFinding": "Protein supports resistance-training gains; average benefit plateau was around 1.6 g/kg/day with uncertainty extending higher.",
     "application": "Default 1.8-2.2 g/kg/day during a cut; 170 g/day here is about 2.0 g/kg.",
     "limitations": "Supplement studies; individual response, total energy and baseline intake matter.",
     "pmid": "28698222",
     "doi": "10.1136/bjsports-2017-097608",
     "url": "https://pubmed.ncbi.nlm.nih.gov/28698222/",
-    "evidence_level": "high"
+    "evidenceLevel": "high"
   },
   {
     "id": "MIFFLIN-1990",
     "domain": "energy_estimation",
     "citation": "Mifflin MD et al. A new predictive equation for resting energy expenditure in healthy individuals. Am J Clin Nutr. 1990.",
     "design": "equation development/validation",
-    "key_finding": "Provides a practical RMR estimate from weight, height, age and sex.",
+    "keyFinding": "Provides a practical RMR estimate from weight, height, age and sex.",
     "application": "One of two starting BMR estimates; maintenance is calibrated from observed trend.",
     "limitations": "Prediction error at individual level; not a metabolic measurement.",
     "pmid": "2305711",
     "doi": "10.1093/ajcn/51.2.241",
     "url": "https://pubmed.ncbi.nlm.nih.gov/2305711/",
-    "evidence_level": "validated_equation"
+    "evidenceLevel": "validated_equation"
   },
   {
     "id": "CUNNINGHAM-1991",
     "domain": "energy_estimation",
     "citation": "Cunningham JJ. Body composition as a determinant of energy expenditure: a synthetic review and a proposed general prediction equation. Am J Clin Nutr. 1991.",
     "design": "synthetic review/prediction equation",
-    "key_finding": "Resting energy can be estimated from fat-free mass using 370 + 21.6 × FFM kg.",
+    "keyFinding": "Resting energy can be estimated from fat-free mass using 370 + 21.6 × FFM kg.",
     "application": "Shown as a secondary estimate only because FFM comes from imprecise consumer BIA.",
     "limitations": "Accuracy is constrained by body-composition measurement error.",
     "pmid": "1957828",
     "doi": "10.1093/ajcn/54.6.963",
     "url": "https://pubmed.ncbi.nlm.nih.gov/1957828/",
-    "evidence_level": "validated_equation"
+    "evidenceLevel": "validated_equation"
   },
   {
     "id": "SMART-SCALE-2021",
     "domain": "measurement",
     "citation": "Frija-Masson J et al. Accuracy of Smart Scales on Weight and Body Composition: Observational Study. JMIR Mhealth Uhealth. 2021.",
     "design": "observational validation against DXA",
-    "key_finding": "Consumer smart scales measured body weight reasonably well but body-composition estimates were not accurate enough to replace DXA.",
+    "keyFinding": "Consumer smart scales measured body weight reasonably well but body-composition estimates were not accurate enough to replace DXA.",
     "application": "Use Xiaomi weight trends; treat body-fat, muscle, water and visceral-fat fields as noisy secondary signals.",
     "limitations": "Three tested devices, not every scale; study population was clinical.",
     "pmid": "33929337",
     "doi": "10.2196/22487",
     "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC8122302/",
-    "evidence_level": "moderate"
+    "evidenceLevel": "moderate"
   },
   {
     "id": "LOPEZ-LOAD-2021",
     "domain": "resistance_training",
     "citation": "Lopez P et al. Resistance Training Load Effects on Muscle Hypertrophy and Strength Gain: Systematic Review and Network Meta-analysis. Med Sci Sports Exerc. 2021.",
     "design": "systematic review and network meta-analysis",
-    "key_finding": "Hypertrophy can occur across a wide loading range when sets are sufficiently effortful; heavier loads are superior for maximal strength.",
+    "keyFinding": "Hypertrophy can occur across a wide loading range when sets are sufficiently effortful; heavier loads are superior for maximal strength.",
     "application": "With 10 kg dumbbells, use unilateral leverage, higher reps, pauses and 1-3 RIR.",
     "limitations": "Not scoliosis-specific; effort and technique control are critical with low loads.",
     "pmid": "33433148",
     "doi": "10.1249/MSS.0000000000002585",
     "url": "https://pubmed.ncbi.nlm.nih.gov/33433148/",
-    "evidence_level": "high"
+    "evidenceLevel": "high"
   },
   {
     "id": "KIKUCHI-PUSHUP-2017",
     "domain": "calisthenics",
     "citation": "Kikuchi N, Nakazato K. Low-load bench press and push-up induce similar muscle hypertrophy and strength gain. J Exerc Sci Fit. 2017.",
     "design": "8-week comparative training study",
-    "key_finding": "Load-matched push-ups produced comparable hypertrophy and strength to low-load bench press.",
+    "keyFinding": "Load-matched push-ups produced comparable hypertrophy and strength to low-load bench press.",
     "application": "Progressive push-up variations are a legitimate primary press exercise.",
     "limitations": "Small study and one movement pattern.",
     "pmid": "29541130",
     "doi": "10.1016/j.jesf.2017.06.003",
     "url": "https://pubmed.ncbi.nlm.nih.gov/29541130/",
-    "evidence_level": "moderate"
+    "evidenceLevel": "moderate"
   },
   {
     "id": "RIR-DOSE-2024",
     "domain": "resistance_training",
     "citation": "Robinson ZP et al. Exploring the Dose-Response Relationship Between Estimated Resistance Training Proximity to Failure, Strength Gain, and Muscle Hypertrophy. Sports Med. 2024.",
     "design": "meta-regression/systematic synthesis",
-    "key_finding": "Hypertrophy tends to improve closer to failure, while strength does not require constant failure training.",
+    "keyFinding": "Hypertrophy tends to improve closer to failure, while strength does not require constant failure training.",
     "application": "Most working sets at 1-3 RIR; avoid grinding failure on balance-demanding or spine-loaded patterns.",
     "limitations": "RIR estimation is noisy and causality/dose shape is uncertain.",
     "pmid": "38970765",
     "doi": "10.1007/s40279-024-02069-2",
     "url": "https://pubmed.ncbi.nlm.nih.gov/38970765/",
-    "evidence_level": "moderate_high"
+    "evidenceLevel": "moderate_high"
   },
   {
     "id": "FULLBODY-SPLIT-2024",
     "domain": "programming",
     "citation": "Ramos-Campo DJ et al. Efficacy of Split Versus Full-Body Resistance Training on Strength and Muscle Growth: A Systematic Review With Meta-Analysis. J Strength Cond Res. 2024.",
     "design": "systematic review and meta-analysis",
-    "key_finding": "Full-body and split routines yield similar strength and hypertrophy when weekly volume is equated.",
+    "keyFinding": "Full-body and split routines yield similar strength and hypertrophy when weekly volume is equated.",
     "application": "Three full-body sessions are a valid choice and fit the user's preference.",
     "limitations": "Programme quality and adherence matter more than the label.",
     "pmid": "38595233",
     "doi": "10.1519/JSC.0000000000004779",
     "url": "https://pubmed.ncbi.nlm.nih.gov/38595233/",
-    "evidence_level": "high"
+    "evidenceLevel": "high"
   },
   {
     "id": "WHO-ACTIVITY-2020",
     "domain": "physical_activity",
     "citation": "Bull FC et al. World Health Organization 2020 guidelines on physical activity and sedentary behaviour. Br J Sports Med. 2020.",
     "design": "global evidence-based guideline",
-    "key_finding": "Adults should accumulate 150-300 minutes of moderate or 75-150 minutes of vigorous aerobic activity weekly plus strength work on at least 2 days.",
+    "keyFinding": "Adults should accumulate 150-300 minutes of moderate or 75-150 minutes of vigorous aerobic activity weekly plus strength work on at least 2 days.",
     "application": "Add brisk walking and break up desk time; strength sessions alone do not guarantee the aerobic target.",
     "limitations": "Population-level guideline, not a disease-specific prescription.",
     "pmid": "33239350",
     "doi": "10.1136/bjsports-2020-102955",
     "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC7719906/",
-    "evidence_level": "guideline"
+    "evidenceLevel": "guideline"
   },
   {
     "id": "SIT-STAND-BREAKS-2021",
     "domain": "sedentary_behavior",
     "citation": "Peddie MC et al. The effects of prolonged sitting, prolonged standing, and activity breaks on vascular function and postprandial metabolism. 2021.",
     "design": "randomized crossover study",
-    "key_finding": "Neither prolonged sitting nor prolonged standing is ideal; regular movement breaks are preferable to simply replacing all sitting with standing.",
+    "keyFinding": "Neither prolonged sitting nor prolonged standing is ideal; regular movement breaks are preferable to simply replacing all sitting with standing.",
     "application": "Alternate positions and insert 2-3 minute movement breaks every 30-45 minutes.",
     "limitations": "Acute laboratory outcomes; exact break dose is not settled.",
     "pmid": "33395691",
     "doi": "",
     "url": "https://pubmed.ncbi.nlm.nih.gov/33395691/",
-    "evidence_level": "moderate"
+    "evidenceLevel": "moderate"
   },
   {
     "id": "SLOW-BREATHING-2022",
     "domain": "breathing_stress",
     "citation": "Laborde S et al. Effects of voluntary slow breathing on heart rate and heart rate variability: systematic review and meta-analysis. Neurosci Biobehav Rev. 2022.",
     "design": "systematic review and meta-analysis",
-    "key_finding": "Slow breathing acutely alters heart rate variability and autonomic markers.",
+    "keyFinding": "Slow breathing acutely alters heart rate variability and autonomic markers.",
     "application": "Use 5-6 comfortable breaths/min for 5 minutes as stress regulation—not as structural scoliosis correction.",
     "limitations": "Heterogeneous protocols and outcomes; symptom relief is individual.",
     "pmid": "35623448",
     "doi": "10.1016/j.neubiorev.2022.104795",
     "url": "https://pubmed.ncbi.nlm.nih.gov/35623448/",
-    "evidence_level": "moderate"
+    "evidenceLevel": "moderate"
   },
   {
     "id": "DIAPHRAGMATIC-BREATHING-2019",
     "domain": "breathing_stress",
     "citation": "Hopper SI et al. Effectiveness of diaphragmatic breathing for reducing physiological and psychological stress in adults: a quantitative systematic review. JBI Database System Rev Implement Rep. 2019.",
     "design": "systematic review",
-    "key_finding": "Diaphragmatic breathing may reduce physiological and self-reported stress.",
+    "keyFinding": "Diaphragmatic breathing may reduce physiological and self-reported stress.",
     "application": "Short daily practice, without forced maximal inhalation or prolonged breath holds.",
     "limitations": "Small heterogeneous studies and varying risk of bias.",
     "pmid": "31436595",
     "doi": "10.11124/JBISRIR-2017-003848",
     "url": "https://pubmed.ncbi.nlm.nih.gov/31436595/",
-    "evidence_level": "low_moderate"
+    "evidenceLevel": "low_moderate"
   },
   {
     "id": "YOGA-LBP-2022",
     "domain": "yoga",
     "citation": "Wieland LS et al. Yoga for chronic non-specific low back pain. Cochrane Database Syst Rev. 2022.",
     "design": "Cochrane systematic review",
-    "key_finding": "Yoga provides small improvements versus no exercise, but may increase minor adverse events such as transient back pain and is not clearly superior to other exercise.",
+    "keyFinding": "Yoga provides small improvements versus no exercise, but may increase minor adverse events such as transient back pain and is not clearly superior to other exercise.",
     "application": "Use gentle symptom-guided yoga as mobility/relaxation, not a curve-correction method.",
     "limitations": "Low-to-moderate certainty; not scoliosis-specific.",
     "pmid": "36398843",
     "doi": "10.1002/14651858.CD010671.pub3",
     "url": "https://pubmed.ncbi.nlm.nih.gov/36398843/",
-    "evidence_level": "moderate"
+    "evidenceLevel": "moderate"
   },
   {
     "id": "MRI-ASYMPTOMATIC-2015",
     "domain": "spine_imaging",
     "citation": "Brinjikji W et al. Systematic literature review of imaging features of spinal degeneration in asymptomatic populations. AJNR. 2015.",
     "design": "systematic review",
-    "key_finding": "Disc degeneration and protrusions are common in asymptomatic people and become more prevalent with age.",
+    "keyFinding": "Disc degeneration and protrusions are common in asymptomatic people and become more prevalent with age.",
     "application": "Do not let mild MRI findings alone dictate fear-based movement avoidance; correlate with symptoms and examination.",
     "limitations": "Imaging findings can still be clinically relevant in context.",
     "pmid": "25430861",
     "doi": "10.3174/ajnr.A4173",
     "url": "https://pubmed.ncbi.nlm.nih.gov/25430861/",
-    "evidence_level": "high"
+    "evidenceLevel": "high"
   },
   {
     "id": "ACR-LBP-RED-FLAGS",
     "domain": "safety",
     "citation": "American College of Radiology. ACR Appropriateness Criteria: Low Back Pain.",
     "design": "evidence-based imaging guideline",
-    "key_finding": "Urgent evaluation/imaging is considered when red flags suggest cauda equina syndrome, malignancy, fracture or infection.",
+    "keyFinding": "Urgent evaluation/imaging is considered when red flags suggest cauda equina syndrome, malignancy, fracture or infection.",
     "application": "The app blocks self-programming when new bowel/bladder dysfunction, saddle anaesthesia, progressive weakness or other major red flags are reported.",
     "limitations": "A safety gate, not a diagnosis; red flags require clinical interpretation.",
     "pmid": "",
     "doi": "",
     "url": "https://acsearch.acr.org/docs/69483/narrative/",
-    "evidence_level": "guideline"
+    "evidenceLevel": "guideline"
+  },
+  {
+    "id": "WEINSTEIN-AIS-2008",
+    "domain": "safety",
+    "citation": "Weinstein SL, Dolan LA, Cheng JC, Danielsson A, Morcuende JA. Adolescent idiopathic scoliosis. Lancet. 2008;371(9623):1527-37.",
+    "design": "authoritative narrative review (Lancet seminar) of natural history and management",
+    "keyFinding": "Scoliosis management is magnitude- and growth-driven (observation <25 deg, bracing ~25-45 deg during growth, surgery around 50 deg or on progression); curves that reach about 50 deg or more at skeletal maturity tend to continue progressing in adulthood (~1 deg/year). Load-bearing and activity decisions are individualised to curve severity and are specialist-led, not uniform across presentations.",
+    "application": "Basis for the conservative default behind the heavy-axial-loading contraindication (stub_heavy_axial_loading_scoliosis): when scoliosis is flagged but current Cobb magnitude and classification are unknown, default heavy axial loading to RESTRICT until a clinician with current curve data clears it. Supports magnitude-based, specialist-cleared loading only.",
+    "limitations": "Seminar on AIS natural history/management. Does NOT directly study heavy resistance training or axial loading in adults, and does NOT show that lifting causes curve progression. Direct contraindication evidence is absent; the conservative default is precautionary. Adult desk-bound population is extrapolated from AIS / adult-progression data.",
+    "pmid": "18456103",
+    "doi": "10.1016/S0140-6736(08)60658-3",
+    "url": "https://pubmed.ncbi.nlm.nih.gov/18456103/",
+    "evidenceLevel": "moderate_context"
   },
   {
     "id": "MARSHALL-MCGILL-AXIAL-TORQUE-2010",
     "domain": "spine_biomechanics",
     "citation": "Marshall LW, McGill SM. The role of axial torque in disc herniation. Clin Biomech (Bristol, Avon). 2010;25(1):6-9.",
     "design": "ex-vivo porcine cervical spine repeated-loading mechanics study",
-    "key_finding": "Combined repetitive flexion-extension + axial torque/twist produced radial annulus delamination in 67.5% of specimens; axial torque/twist ALONE could not initiate a disc herniation. The damaging pattern is the combination of flexion and axial torsion, not torsion alone.",
+    "keyFinding": "Combined repetitive flexion-extension + axial torque/twist produced radial annulus delamination in 67.5% of specimens; axial torque/twist ALONE could not initiate a disc herniation. The damaging pattern is the combination of flexion and axial torsion, not torsion alone.",
     "application": "Primary mechanism source for the loaded-flexion-rotation contraindication (stub_loaded_flexion_rotation_scoliosis): combined loaded spinal flexion + rotation is the high-risk loading pattern. Supports a conservative precaution against heavy combined loaded flexion+rotation in a flagged scoliotic curve.",
     "limitations": "Ex-vivo porcine cervical spines, not human scoliotic lumbar curves; a repeated-loading injury model, not curve progression. Establishes the mechanism of combined-loading damage, NOT a scoliosis outcome. Conservative/precautionary extrapolation; no RCT proves loaded rotation worsens scoliosis.",
     "pmid": "19815318",
     "doi": "10.1016/j.clinbiomech.2009.09.003",
     "url": "https://pubmed.ncbi.nlm.nih.gov/19815318/",
-    "evidence_level": "moderate_context"
+    "evidenceLevel": "moderate_context"
   },
   {
     "id": "MARRAS-TRUNK-MOTION-1993",
     "domain": "spine_biomechanics",
     "citation": "Marras WS, Lavender SA, Leurgans SE, Rajulu SL, Allread WG, Fathallah FA, Ferguson SA. The role of dynamic three-dimensional trunk motion in occupationally-related low back disorders. Spine. 1993;18(5):617-628.",
     "design": "in-vivo workplace epidemiological study, 400+ repetitive lifting jobs across 48 industries",
-    "key_finding": "Combined trunk sagittal angle (flexion) + lateral velocity + twisting (rotation) velocity + load moment + lifting frequency distinguished high- from low-risk jobs for occupational low back disorder (odds ratio ~10.7); the model more than tripled the predictive power of contemporary lifting guidelines. Combined flexion + rotation under load is the high-risk pattern.",
+    "keyFinding": "Combined trunk sagittal angle (flexion) + lateral velocity + twisting (rotation) velocity + load moment + lifting frequency distinguished high- from low-risk jobs for occupational low back disorder (odds ratio ~10.7); the model more than tripled the predictive power of contemporary lifting guidelines. Combined flexion + rotation under load is the high-risk pattern.",
     "application": "Living-human epidemiological corroboration of the loaded-flexion-rotation mechanism (stub_loaded_flexion_rotation_scoliosis): combined flexion + rotation under load is the high-risk spinal loading pattern. Supports the conservative precaution in a flagged scoliotic curve.",
     "limitations": "Occupational low-back-disorder risk in workers with presumably typical spines, not scoliosis; association, not causation (authors' explicit caveat). Extrapolated to the rotational component of a scoliotic curve as a conservative precaution; no RCT proves loaded rotation worsens scoliosis.",
     "pmid": "8484154",
     "doi": "10.1097/00007632-199304000-00015",
     "url": "https://pubmed.ncbi.nlm.nih.gov/8484154/",
-    "evidence_level": "moderate_context"
+    "evidenceLevel": "moderate_context"
   }
 ]

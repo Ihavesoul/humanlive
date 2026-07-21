@@ -27,6 +27,18 @@ application {
     mainClass.set("dreamteam.server.ApplicationKt")
 }
 
+// The deterministic baseline plan + evidence catalog live in the repo-root
+// `data/` dir (the PoC source of truth — see research/evidence_mapping.md).
+// Embed them on the server classpath so the deterministic fallback (ADR 0001
+// invariant #4) ships self-contained, with ONE copy of the data (no drift).
+sourceSets {
+    main {
+        resources {
+            srcDir(rootProject.layout.projectDirectory.dir("data"))
+        }
+    }
+}
+
 dependencies {
     implementation(project(":core:domain"))
     implementation(libs.ktor.server.core)
