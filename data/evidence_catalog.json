@@ -284,5 +284,31 @@
     "doi": "",
     "url": "https://acsearch.acr.org/docs/69483/narrative/",
     "evidence_level": "guideline"
+  },
+  {
+    "id": "MARSHALL-MCGILL-AXIAL-TORQUE-2010",
+    "domain": "spine_biomechanics",
+    "citation": "Marshall LW, McGill SM. The role of axial torque in disc herniation. Clin Biomech (Bristol, Avon). 2010;25(1):6-9.",
+    "design": "ex-vivo porcine cervical spine repeated-loading mechanics study",
+    "key_finding": "Combined repetitive flexion-extension + axial torque/twist produced radial annulus delamination in 67.5% of specimens; axial torque/twist ALONE could not initiate a disc herniation. The damaging pattern is the combination of flexion and axial torsion, not torsion alone.",
+    "application": "Primary mechanism source for the loaded-flexion-rotation contraindication (stub_loaded_flexion_rotation_scoliosis): combined loaded spinal flexion + rotation is the high-risk loading pattern. Supports a conservative precaution against heavy combined loaded flexion+rotation in a flagged scoliotic curve.",
+    "limitations": "Ex-vivo porcine cervical spines, not human scoliotic lumbar curves; a repeated-loading injury model, not curve progression. Establishes the mechanism of combined-loading damage, NOT a scoliosis outcome. Conservative/precautionary extrapolation; no RCT proves loaded rotation worsens scoliosis.",
+    "pmid": "19815318",
+    "doi": "10.1016/j.clinbiomech.2009.09.003",
+    "url": "https://pubmed.ncbi.nlm.nih.gov/19815318/",
+    "evidence_level": "moderate_context"
+  },
+  {
+    "id": "MARRAS-TRUNK-MOTION-1993",
+    "domain": "spine_biomechanics",
+    "citation": "Marras WS, Lavender SA, Leurgans SE, Rajulu SL, Allread WG, Fathallah FA, Ferguson SA. The role of dynamic three-dimensional trunk motion in occupationally-related low back disorders. Spine. 1993;18(5):617-628.",
+    "design": "in-vivo workplace epidemiological study, 400+ repetitive lifting jobs across 48 industries",
+    "key_finding": "Combined trunk sagittal angle (flexion) + lateral velocity + twisting (rotation) velocity + load moment + lifting frequency distinguished high- from low-risk jobs for occupational low back disorder (odds ratio ~10.7); the model more than tripled the predictive power of contemporary lifting guidelines. Combined flexion + rotation under load is the high-risk pattern.",
+    "application": "Living-human epidemiological corroboration of the loaded-flexion-rotation mechanism (stub_loaded_flexion_rotation_scoliosis): combined flexion + rotation under load is the high-risk spinal loading pattern. Supports the conservative precaution in a flagged scoliotic curve.",
+    "limitations": "Occupational low-back-disorder risk in workers with presumably typical spines, not scoliosis; association, not causation (authors' explicit caveat). Extrapolated to the rotational component of a scoliotic curve as a conservative precaution; no RCT proves loaded rotation worsens scoliosis.",
+    "pmid": "8484154",
+    "doi": "10.1097/00007632-199304000-00015",
+    "url": "https://pubmed.ncbi.nlm.nih.gov/8484154/",
+    "evidence_level": "moderate_context"
   }
 ]
