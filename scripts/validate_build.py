@@ -3,7 +3,11 @@ from __future__ import annotations
 import json,sys,zipfile
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
-REQUIRED=['README_RU.md','BUILD_STATUS.md','DISCLAIMER.md','excel/Body_Recomp_Scoliosis_POC.xlsx','app/index.html','app/app.js','app/styles.css','app/manifest.webmanifest','app/sw.js','data/profile.json','data/derived_metrics.json','data/program_12_weeks.json','data/exercises.json','data/evidence_catalog.json','data/safety_screening.json','prompts/system_prompt_ru.md','specs/SDD.md','obsidian/00_Index.md']
+# PoC reference integrity (ADR 0002 / DRE-9): the web/PWA client was removed
+# when the build flipped to native-only. The invariant here is the PoC's
+# logic/data source of truth — data/, prompts/, specs/, obsidian/ — not any
+# client UI files.
+REQUIRED=['README_RU.md','BUILD_STATUS.md','DISCLAIMER.md','excel/Body_Recomp_Scoliosis_POC.xlsx','data/profile.json','data/derived_metrics.json','data/program_12_weeks.json','data/exercises.json','data/evidence_catalog.json','data/safety_screening.json','prompts/system_prompt_ru.md','specs/SDD.md','obsidian/00_Index.md']
 errors=[]
 for rel in REQUIRED:
     p=ROOT/rel

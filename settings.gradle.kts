@@ -1,10 +1,12 @@
-// DreamTeam — root Gradle settings. PWA-first (ADR 0001 / DRE-8).
-// The client is the vanilla-JS PWA in app/ (not a Gradle module — it has no
-// build step). Only the JVM tiers are built here:
+// DreamTeam — root Gradle settings. Native-only (ADR 0002 / DRE-9).
+// The product client is the native Android Compose app in app/ (:app).
+// Built tiers:
+//   :app          Android + Jetpack Compose (the product client)
 //   :server       Kotlin/JVM Ktor backend (safety engine, repository layer, orchestrator)
-//   :core:domain  Pure Kotlin/JVM domain model + deterministic logic (no Android dependency)
+//   :core:domain  Pure Kotlin/JVM domain model + deterministic logic (shared by :app + :server)
 pluginManagement {
     repositories {
+        google()
         mavenCentral()
         gradlePluginPortal()
     }
@@ -13,11 +15,13 @@ pluginManagement {
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
+        google()
         mavenCentral()
     }
 }
 
 rootProject.name = "humanlive"
 
+include(":app")
 include(":server")
 include(":core:domain")

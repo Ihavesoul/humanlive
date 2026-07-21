@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Compose owns the real UI theming; this is the Activity theme that
+         applies before Compose renders. No action bar, edge-to-edge ready. -->
+    <style name="Theme.DreamTeam" parent="android:Theme.Material.Light.NoActionBar" />
+</resources>

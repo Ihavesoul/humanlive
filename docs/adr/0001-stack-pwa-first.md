@@ -1,11 +1,15 @@
 # ADR 0001 — Stack: PWA-first client + Kotlin/JVM Ktor backend
 
-- **Status:** Accepted
+- **Status:** Superseded by [ADR 0002](0002-stack-native-only.md)
 - **Date:** 2026-07-21
+- **Superseded because:** the founder reversed the PWA-first decision in
+  [DRE-9](/DRE/issues/DRE-9) ("ONLY native"). This PWA-first record is kept
+  for history; do not build against it. The authoritative stack is
+  [ADR 0002](0002-stack-native-only.md) (native Android + Compose client).
 - **Supersedes:** the "Android-first / Kotlin-Compose" framing originally
   scoped in [DRE-5](/DRE/issues/DRE-5) and [DRE-6](/DRE/issues/DRE-6). That
-  reframe is carried by the directive [DRE-8](/DRE/issues/DRE-8), which locked
-  the founder decision from [DRE-2](/DRE/issues/DRE-2).
+  reframe is carried by the directive [DRE-8](/DRE/issues/DRE-8) (now void),
+  which locked the founder decision from [DRE-2](/DRE/issues/DRE-2).
 
 ## Context
 
