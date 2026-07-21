@@ -27,6 +27,11 @@ captures/
 # Kotlin
 .kotlin/
 
+# Durable SQLite store (local dev / test) — never commit a database
+*.db
+*.db-journal
+*.sqlite
+
 # Editor
 .vscode/
 *.swp

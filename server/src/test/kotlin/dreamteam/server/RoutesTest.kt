@@ -11,12 +11,14 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
 import io.ktor.server.testing.testApplication
 import org.junit.jupiter.api.Test
+import java.nio.file.Files
 
 class RoutesTest {
+    private fun tempDb(): String = Files.createTempFile("dreamteam-test", ".db").toString()
     @Test
     fun `health endpoint reports ok`() =
         testApplication {
-            application { module() }
+            application { module(tempDb()) }
             val response = client.get("/health")
             response.status shouldBe HttpStatusCode.OK
             val body = response.bodyAsText()
@@ -27,7 +29,7 @@ class RoutesTest {
     @Test
     fun `v1 safety evaluate locks side-specific content without clinician data`() =
         testApplication {
-            application { module() }
+            application { module(tempDb()) }
             val response =
                 client.post("/v1/safety/evaluate") {
                     contentType(ContentType.Application.Json)
@@ -55,7 +57,7 @@ class RoutesTest {
     @Test
     fun `v1 safety evaluate blocks when a red flag is reported`() =
         testApplication {
-            application { module() }
+            application { module(tempDb()) }
             val response =
                 client.post("/v1/safety/evaluate") {
                     contentType(ContentType.Application.Json)
