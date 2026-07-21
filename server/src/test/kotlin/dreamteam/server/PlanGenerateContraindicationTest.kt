@@ -62,12 +62,10 @@ class PlanGenerateContraindicationTest {
 
     @Test
     fun `a loaded_flexion_rotation movement is blocked for a flagged-scoliosis request`() {
-        // cable_woodchop is not a cataloged baseline member, so add it to the
-        // exercise allowlist to isolate the contraindication as the sole blocker.
-        val ctx = flaggedContext().copy(
-            allowedExerciseIds = BaselineProgram.exerciseIds + "cable_woodchop",
-        )
-        val gateway = SafetyGuardedGateway(ctx, productionRules)
+        // cable_woodchop is a cataloged library member (allowlisted, DRE-39)
+        // carrying the loaded_flexion_rotation tag, so the ONLY blocker is the
+        // contraindication.
+        val gateway = SafetyGuardedGateway(flaggedContext(), productionRules)
         val unsafe = Recommendation(
             exerciseId = "cable_woodchop",
             evidenceRefs = listOf("ACSM-RT-2026"),

@@ -141,4 +141,56 @@ class DeterministicPlanGeneratorTest {
             recFor(id).exerciseTags shouldNotContain "heavy_axial_loading"
         }
     }
+
+    // --- DRE-39: loaded_flexion_rotation tag flows library -> Recommendation -> rule --
+
+    /**
+     * Provisions the loaded_flexion_rotation contraindication rule. ACTIVE +
+     * sourced (DRE-25, MARSHALL-MCGILL-AXIAL-TORQUE-2010 + MARRAS-TRUNK-MOTION-
+     * 1993). Kept as a helper so the end-to-end plumbing test (library tag ->
+     * Recommendation.exerciseTags via [toRecommendation] -> rule fires ->
+     * blocked) reads clearly. Before DRE-39 no library exercise carried this tag,
+     * so the rule was registered-but-inert; these tests pin that it now fires.
+     */
+    private fun loadedFlexionRotationRuleActive(): List<SafetyRule> =
+        StructuralSafetyRules.all + ContraindicationStubs.loadedFlexionRotationForFlaggedScoliosis
+
+    @Test
+    fun `a loaded_flexion_rotation exercise is blocked end-to-end for a flagged scoliosis context`() {
+        val flaggedCtx = baselineContext().copy(conditionFlags = setOf("scoliosis_flagged"))
+        val gateway = SafetyGuardedGateway(flaggedCtx, loadedFlexionRotationRuleActive())
+
+        val rec = recFor("cable_woodchop")
+        // Tag flowed from the library record into the candidate recommendation.
+        rec.exerciseTags shouldContain "loaded_flexion_rotation"
+
+        val verdict = gateway.vet(rec)
+        verdict.shouldBeInstanceOf<SafetyVerdict.Block>()
+        verdict.ruleIds shouldContain "stub_loaded_flexion_rotation_scoliosis"
+    }
+
+    @Test
+    fun `a loaded_flexion_rotation exercise is allowed for a generic context`() {
+        // Same tagged exercise, no condition flag => the contraindication rule
+        // does not match, the allowlists pass => Allow. The tag alone never
+        // blocks; it blocks only in combination with the condition flag.
+        val gateway = SafetyGuardedGateway(baselineContext(), loadedFlexionRotationRuleActive())
+
+        val rec = recFor("loaded_russian_twist")
+        rec.exerciseTags shouldContain "loaded_flexion_rotation"
+
+        gateway.vet(rec) shouldBe SafetyVerdict.Allow
+    }
+
+    @Test
+    fun `baseline anti-rotation and symmetric movements are NOT tagged loaded_flexion_rotation`() {
+        // Safety Reviewer's exclusion (DRE-25): bird_dog, dead_bug,
+        // side_plank_equal, suitcase_hold_equal are symmetric / light /
+        // unloaded anti-rotation or trunk-endurance work that resists rotation
+        // rather than producing it under load — they must stay untagged so they
+        // remain available on the generic baseline.
+        listOf("bird_dog", "dead_bug", "side_plank_equal", "suitcase_hold_equal").forEach { id ->
+            recFor(id).exerciseTags shouldNotContain "loaded_flexion_rotation"
+        }
+    }
 }

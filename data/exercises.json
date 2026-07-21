@@ -538,5 +538,125 @@
       "ACSM-RT-2026",
       "LOPEZ-LOAD-2021"
     ]
+  },
+  {
+    "id": "loaded_russian_twist",
+    "name_ru": "Скручивания с отягощением (Russian twist)",
+    "category": "trunk_control",
+    "movement_tags": [
+      "loaded_flexion_rotation"
+    ],
+    "equipment": "plate, dumbbell, or medicine ball",
+    "default_sets": 3,
+    "rep_scheme": "10–20/сторона",
+    "rir": 2,
+    "instructions": "Сидя с наклоном корпуса назад и согнутыми коленями, ротация туловища с отягощением из стороны в сторону.",
+    "progression": "Вес при контролируемом темпе без рывков.",
+    "regression": "Без веса, меньшая амплитуда, стопы опираются.",
+    "scoliosis_rule": "Сочетанная флексия и осевая ротация туловища под значительной внешней нагрузкой: блокируется правилом loaded_flexion_rotation для диагностированного умеренного/ригидного/ортезного сколиоза (DRE-25; тег — DRE-39).",
+    "evidence_ids": [
+      "ACSM-RT-2026",
+      "LOPEZ-LOAD-2021"
+    ]
+  },
+  {
+    "id": "cable_woodchop",
+    "name_ru": "Дровосек на кроссовере (cable woodchop)",
+    "category": "trunk_control",
+    "movement_tags": [
+      "loaded_flexion_rotation"
+    ],
+    "equipment": "cable machine",
+    "default_sets": 3,
+    "rep_scheme": "8–12/сторона",
+    "rir": 2,
+    "instructions": "Диагональная ротационная тяга рукояти кроссовера сверху-вниз через туловище с поворотом.",
+    "progression": "Вес при сохранении контроля туловища и ног.",
+    "regression": "Лёгкий вес, малая амплитуда, без рывка.",
+    "scoliosis_rule": "Сочетанная флексия и осевая ротация туловища под значительной внешней нагрузкой: блокируется правилом loaded_flexion_rotation для диагностированного умеренного/ригидного/ортезного сколиоза (DRE-25; тег — DRE-39).",
+    "evidence_ids": [
+      "ACSM-RT-2026",
+      "LOPEZ-LOAD-2021"
+    ]
+  },
+  {
+    "id": "landmine_rotation",
+    "name_ru": "Ротация со штангой в земле (landmine)",
+    "category": "trunk_control",
+    "movement_tags": [
+      "loaded_flexion_rotation"
+    ],
+    "equipment": "barbell, landmine attachment",
+    "default_sets": 3,
+    "rep_scheme": "8–12/сторона",
+    "rir": 2,
+    "instructions": "Штанга одним концом зафиксирована в земле; удержание свободного конца и проведение дуговой ротации с нагрузкой вокруг туловища.",
+    "progression": "Вес и амплитуда при контроле.",
+    "regression": "Меньший вес, короткая дуга.",
+    "scoliosis_rule": "Сочетанная флексия и осевая ротация туловища под значительной внешней нагрузкой: блокируется правилом loaded_flexion_rotation для диагностированного умеренного/ригидного/ортезного сколиоза (DRE-25; тег — DRE-39).",
+    "evidence_ids": [
+      "ACSM-RT-2026",
+      "LOPEZ-LOAD-2021"
+    ]
+  },
+  {
+    "id": "bent_rotational_row",
+    "name_ru": "Тяга в наклоне с ротацией",
+    "category": "horizontal_pull",
+    "movement_tags": [
+      "loaded_flexion_rotation"
+    ],
+    "equipment": "dumbbell or barbell",
+    "default_sets": 3,
+    "rep_scheme": "8–12/сторона",
+    "rir": 2,
+    "instructions": "Наклон корпуса вперёд, тяга одной рукой с одновременной ротацией туловища к нагруженной стороне.",
+    "progression": "Вес при контроле положения спины.",
+    "regression": "Тяга без ротации (с опорой), лёгкий вес.",
+    "scoliosis_rule": "Сочетанная флексия и осевая ротация туловища под значительной внешней нагрузкой: блокируется правилом loaded_flexion_rotation для диагностированного умеренного/ригидного/ортезного сколиоза (DRE-25; тег — DRE-39).",
+    "evidence_ids": [
+      "ACSM-RT-2026",
+      "LOPEZ-LOAD-2021"
+    ]
+  },
+  {
+    "id": "heavy_rotational_carry",
+    "name_ru": "Тяжёлая односторонняя ротационная переноска",
+    "category": "loaded_carry",
+    "movement_tags": [
+      "loaded_flexion_rotation"
+    ],
+    "equipment": "heavy dumbbell, kettlebell, or sandbag",
+    "default_sets": 3,
+    "rep_scheme": "20–40 м",
+    "rir": 1,
+    "instructions": "Переноска тяжёлого одностороннего груза с выраженной ротационной составляющей (груз в стороне или над головой создаёт вращательный момент).",
+    "progression": "Вес и дистанция при стабильной осанке.",
+    "regression": "Симметричная переноска без ротационного момента (suitcase hold).",
+    "scoliosis_rule": "Сочетанная флексия и осевая ротация туловища под значительной внешней нагрузкой: блокируется правилом loaded_flexion_rotation для диагностированного умеренного/ригидного/ортезного сколиоза (DRE-25; тег — DRE-39).",
+    "evidence_ids": [
+      "ACSM-RT-2026",
+      "LOPEZ-LOAD-2021"
+    ]
+  },
+  {
+    "id": "loaded_good_morning_rotation",
+    "name_ru": "Гудморнинг со штангой с ротацией",
+    "category": "hip_hinge",
+    "movement_tags": [
+      "loaded_flexion_rotation"
+    ],
+    "equipment": "barbell",
+    "default_sets": 3,
+    "rep_scheme": "8–12",
+    "rir": 2,
+    "instructions": "Гудморнинг со штангой на спине с добавлением ротации туловища в наклоне под внешней нагрузкой.",
+    "progression": "Вес при нейтрали — без ротации это уже движение heavy_axial_loading.",
+    "regression": "Гудморнинг без ротации, лёгкий вес.",
+    "scoliosis_rule": "Сочетанная флексия и осевая ротация туловища под значительной внешней нагрузкой: блокируется правилом loaded_flexion_rotation для диагностированного умеренного/ригидного/ортезного сколиоза (DRE-25; тег — DRE-39).",
+    "evidence_ids": [
+      "ACSM-RT-2026",
+      "LOPEZ-LOAD-2021"
+    ]
   }
 ]

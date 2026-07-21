@@ -115,6 +115,33 @@ object BaselineProgram {
     private val barbellGoodMorning = BaselineExercise("barbell_good_morning", "Гудморнинг со штангой", "hip_hinge", 3, "8–12", 2, listOf("ACSM-RT-2026", "LOPEZ-LOAD-2021"), setOf("heavy_axial_loading"))
     private val heavyFarmerCarry = BaselineExercise("heavy_farmer_carry", "Тяжёлая прогулка фермера", "loaded_carry", 3, "20–40 м", 1, listOf("ACSM-RT-2026", "LOPEZ-LOAD-2021"), setOf("heavy_axial_loading"))
 
+    // --- Cataloged loaded-flexion-rotation movements (NOT in any baseline session template)
+    // These are library/catalog members the `loaded_flexion_rotation` contraindication
+    // rule (ContraindicationStubs.loadedFlexionRotationForFlaggedScoliosis, DRE-25)
+    // must be able to match. Per the Safety Reviewer's movement-set definition: the
+    // *combination* of spinal flexion + axial rotation under substantial external
+    // load — loaded Russian twist / trunk rotation, heavy cable or landmine
+    // woodchop/rotation, bent rotational row, heavy unilateral rotational carry,
+    // loaded good-morning with rotation. The damage is the combination, not pure
+    // rotation (Marshall & McGill 2010: torque alone could not initiate annulus
+    // injury; flexion + axial torque did; Marras 1993: trunk flexion + twist/load
+    // moment is the high-risk occupational signature). Symmetric / light / unloaded
+    // anti-rotation (Pallof press, birddog, dead bug, equal suitcase/side plank)
+    // stays UNTAGGED and on the generic baseline — it resists rotation rather than
+    // producing it under load. They are intentionally NOT in any session template,
+    // so the surfaced baseline stays the scoliosis-safe PoC subset; they exist so
+    // the rule has real referents and can protect non-baseline plans. Evidence
+    // reuses existing catalog ids (ACSM-RT-2026, LOPEZ-LOAD-2021); the rule's own
+    // contraindication justification (MARSHALL-MCGILL + MARRAS) is carried on the
+    // rule, not the library record — mirroring how heavy_axial carries
+    // ACSM/LOPEZ here and WEINSTEIN on the rule.
+    private val loadedRussianTwist = BaselineExercise("loaded_russian_twist", "Скручивания с отягощением (Russian twist)", "trunk_control", 3, "10–20/сторона", 2, listOf("ACSM-RT-2026", "LOPEZ-LOAD-2021"), setOf("loaded_flexion_rotation"))
+    private val cableWoodchop = BaselineExercise("cable_woodchop", "Дровосек на кроссовере (cable woodchop)", "trunk_control", 3, "8–12/сторона", 2, listOf("ACSM-RT-2026", "LOPEZ-LOAD-2021"), setOf("loaded_flexion_rotation"))
+    private val landmineRotation = BaselineExercise("landmine_rotation", "Ротация со штангой в земле (landmine)", "trunk_control", 3, "8–12/сторона", 2, listOf("ACSM-RT-2026", "LOPEZ-LOAD-2021"), setOf("loaded_flexion_rotation"))
+    private val bentRotationalRow = BaselineExercise("bent_rotational_row", "Тяга в наклоне с ротацией", "horizontal_pull", 3, "8–12/сторона", 2, listOf("ACSM-RT-2026", "LOPEZ-LOAD-2021"), setOf("loaded_flexion_rotation"))
+    private val heavyRotationalCarry = BaselineExercise("heavy_rotational_carry", "Тяжёлая односторонняя ротационная переноска", "loaded_carry", 3, "20–40 м", 1, listOf("ACSM-RT-2026", "LOPEZ-LOAD-2021"), setOf("loaded_flexion_rotation"))
+    private val loadedGoodMorningRotation = BaselineExercise("loaded_good_morning_rotation", "Гудморнинг со штангой с ротацией", "hip_hinge", 3, "8–12", 2, listOf("ACSM-RT-2026", "LOPEZ-LOAD-2021"), setOf("loaded_flexion_rotation"))
+
     /** Library exercises, keyed by id: the baseline movements + cataloged contraindicated movements the safety rule references. */
     val exercises: Map<ExerciseId, BaselineExercise> = listOf(
         warmBreathing, wallAxial, rockback, wallSlide, splitSquat, gobletSquat, bulgarian,
@@ -123,6 +150,8 @@ object BaselineProgram {
         briskWalk, yogaFlow,
         barbellBackSquat, barbellFrontSquat, overheadBarbellPress, barbellDeadlift,
         barbellGoodMorning, heavyFarmerCarry,
+        loadedRussianTwist, cableWoodchop, landmineRotation, bentRotationalRow,
+        heavyRotationalCarry, loadedGoodMorningRotation,
     ).associateBy { it.id }
 
     /**
