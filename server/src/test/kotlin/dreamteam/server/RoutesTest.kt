@@ -79,4 +79,69 @@ class RoutesTest {
             body shouldContain "\"allow_side_specific_content\": false"
             body shouldContain "training generation blocked"
         }
+
+    @Test
+    fun `v1 plans generate surfaces the vetted baseline plan through the gateway`() =
+        testApplication {
+            application { module() }
+            val response =
+                client.post("/v1/plans/generate") {
+                    contentType(ContentType.Application.Json)
+                    // Scoliosis reported but NO red flags and NO current curve data:
+                    // generic baseline surfaces; curve-specific content stays locked.
+                    setBody(
+                        """
+                        {
+                          "medical_safety": {
+                            "scoliosis_reported": true,
+                            "red_flags": [],
+                            "current_curve_data_available": false,
+                            "clinician_curve_specific_plan_available": false
+                          }
+                        }
+                        """.trimIndent(),
+                    )
+                }
+            response.status shouldBe HttpStatusCode.OK
+            val body = response.bodyAsText()
+            body shouldContain "\"schema_version\": \"1.0.0\""
+            body shouldContain "\"status\": \"ok\""
+            body shouldContain "\"red_flag_gate_passed\": true"
+            // Side-specific correction stays locked (no current clinician curve data).
+            body shouldContain "\"side_specific_content_enabled\": false"
+            // The vetted baseline programme surfaces, evidence-linked per exercise.
+            body shouldContain "\"session_id\": \"strength_A\""
+            body shouldContain "\"exercise_id\": \"split_squat\""
+            body shouldContain "\"evidence_ids\": ["
+            // ADR 0001 #2: citations resolve from the allowlist, never invented.
+            body shouldContain "\"evidence_id\": \"ACSM-RT-2026\""
+        }
+
+    @Test
+    fun `v1 plans generate returns 409 blocked when a red flag is reported`() =
+        testApplication {
+            application { module() }
+            val response =
+                client.post("/v1/plans/generate") {
+                    contentType(ContentType.Application.Json)
+                    setBody(
+                        """
+                        {
+                          "medical_safety": {
+                            "scoliosis_reported": true,
+                            "red_flags": ["new_bowel_or_bladder_dysfunction"],
+                            "current_curve_data_available": true,
+                            "clinician_curve_specific_plan_available": true
+                          }
+                        }
+                        """.trimIndent(),
+                    )
+                }
+            response.status shouldBe HttpStatusCode.Conflict
+            val body = response.bodyAsText()
+            body shouldContain "\"status\": \"blocked_red_flag\""
+            body shouldContain "\"red_flag_gate_passed\": false"
+            // Nothing surfaces when the gate blocks — no partial guidance.
+            body shouldContain "\"sessions\": []"
+        }
 }

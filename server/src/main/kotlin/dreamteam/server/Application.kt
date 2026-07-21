@@ -2,6 +2,8 @@ package dreamteam.server
 
 import dreamteam.domain.safety.MedicalSafety
 import dreamteam.domain.safety.SafetyGate
+import dreamteam.server.plan.BaselinePlan
+import dreamteam.server.plan.PlanGenerateRequest
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
@@ -14,6 +16,7 @@ import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.routing.route
 import io.ktor.server.routing.routing
+import io.ktor.http.HttpStatusCode
 import kotlinx.serialization.json.Json
 
 fun main() {
@@ -43,18 +46,27 @@ fun Application.module() {
                 call.respond(SafetyGate.evaluate(safety))
             }
 
-            // Pending endpoints (not wired — listed so the skeleton surface is
-            // explicit and ownership is unambiguous):
+            // Deterministic fallback (no-LLM) plan generation — ADR 0001 invariant
+            // #4. The baseline plan is produced ONLY via SafetyGuardedGateway.surface()
+            // (the sole unbypassable producer of SurfacedPlan); the pre-LLM red-flag
+            // gate (SafetyGate) runs first and is binding. A red flag => 409.
             //   POST /v1/calculate         deterministic energy/macro math;
             //                              needs the PoC's exact Cunningham
             //                              coefficient to match the contract
             //                              reference values (follow-up).
-            //   POST /v1/plans/generate    LLM path + deterministic fallback;
-            //                              LLM & Safety Orchestrator (DRE-7).
+            //   POST /v1/plans/generate    LLM path (follow-up) + deterministic
+            //                              fallback (DRE-17, wired below).
             //   POST /v1/plans/validate    evidence/exercise allowlist + schema;
             //                              LLM & Safety Orchestrator (DRE-7).
             //   POST /v1/weekly-adjustment deterministic adaptation; needs the
             //                              check-in repository (DRE-6).
+            post("/plans/generate") {
+                val request = call.receive<PlanGenerateRequest>()
+                val response = BaselinePlan.generate(request.medicalSafety)
+                val status =
+                    if (response.status == "ok") HttpStatusCode.OK else HttpStatusCode.Conflict
+                call.respond(status, response)
+            }
         }
     }
 }
