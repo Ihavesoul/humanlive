@@ -65,6 +65,19 @@
     "evidence_level": "moderate_context"
   },
   {
+    "id": "WEINSTEIN-AIS-2008",
+    "domain": "adolescent_scoliosis",
+    "citation": "Weinstein SL, Dolan LA, Cheng JCY, Danielsson AJ, Morcuende JA. Adolescent idiopathic scoliosis. Lancet. 2008;371(9623):1527-1537.",
+    "design": "Lancet Seminar / narrative clinical overview",
+    "key_finding": "AIS is a structural 3D spinal deformity; curve-progression risk rises with magnitude and skeletal immaturity. Management is observation, bracing, and surgery; loaded exercise is addressed descriptively, not as a progression trial.",
+    "application": "Context source for the precautionary block on heavy axial loading in diagnosed moderate-or-greater / rigid / braced curves. Supports conservative caution only — not direct proof that load worsens curves.",
+    "limitations": "Adolescent-focused overview (adult scoliosis extrapolated cautiously). Provides NO direct evidence that heavy axial loading worsens scoliosis; the contraindication is consensus/conservative and rated honestly as context-grade.",
+    "pmid": "18456103",
+    "doi": "10.1016/S0140-6736(08)60658-3",
+    "url": "https://pubmed.ncbi.nlm.nih.gov/18456103/",
+    "evidence_level": "moderate_context"
+  },
+  {
     "id": "ISSN-DIETS-2017",
     "domain": "nutrition",
     "citation": "Aragon AA et al. International Society of Sports Nutrition position stand: diets and body composition. J Int Soc Sports Nutr. 2017.",
