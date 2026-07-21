@@ -1,0 +1,68 @@
+{
+  "schema_version": "1.0.0",
+  "generated_on": "2026-07-21",
+  "person": {
+    "sex_for_equations": "male",
+    "date_of_birth": null,
+    "age_years": 28,
+    "height_cm": 188,
+    "height_status": "inferred_from_weight_and_BMI; replace with measured height",
+    "weight_kg": 83.2,
+    "bmi_from_scale": 23.5,
+    "body_fat_percent_bia": 21.2,
+    "fat_free_mass_kg_bia": 65.6,
+    "waist_cm": null,
+    "resting_heart_rate": null,
+    "date_of_birth_status": "not retained; age is sufficient for calculations"
+  },
+  "context": {
+    "occupation": "programmer",
+    "work_pattern": "predominantly sedentary with sit-stand desk",
+    "training_history": {
+      "swimming_years": 6,
+      "gym_years": 5,
+      "yoga_experience": "limited"
+    },
+    "equipment": [
+      "2 adjustable dumbbells, up to 10 kg each",
+      "yoga blocks",
+      "exercise mat"
+    ],
+    "preferences": {
+      "strength_sessions_per_week": 3,
+      "scoliosis_motor_control_sessions_per_week": 2,
+      "session_minutes": 60,
+      "primary_style": "calisthenics and dumbbells",
+      "planned_equipment_purchase": "none"
+    }
+  },
+  "medical_context_user_reported": {
+    "condition": "S-shaped scoliosis, user reports grade 2-3",
+    "xray_year_seen_in_photos": 2019,
+    "current_cobb_angles_deg": null,
+    "curve_classification": null,
+    "mri_summary": "user reports mostly unremarkable except Schmorl nodes and mild protrusions",
+    "dominant_symptom_pattern": "left lumbar/hip/torso tension and visible asymmetry",
+    "psychosomatic_component": "user reports emotional stress often increases muscular tension",
+    "red_flags_present": false,
+    "clinician_curve_specific_plan_available": false,
+    "red_flag_screening_date": "2026-07-21",
+    "red_flag_screening_source": "user self-report in chat",
+    "red_flags_denied": {
+      "progressive_leg_weakness": true,
+      "numbness_or_saddle_anaesthesia": true,
+      "bowel_or_bladder_dysfunction": true,
+      "night_pain": true,
+      "unintentional_weight_loss": true,
+      "fever": true,
+      "recent_major_trauma": true,
+      "rapid_neurological_progression": true
+    },
+    "safety_gate_status": "No urgent red flags reported; this is not medical clearance."
+  },
+  "interpretation_limits": [
+    "Cobb angle and curve-specific corrections cannot be calculated from photographs of an old monitor image.",
+    "Consumer foot-to-foot BIA is used as a rough trend only; body-fat and lean-mass values are not treated as diagnostic.",
+    "No unilateral seat wedge, shoe lift, or side-specific strengthening is prescribed without current standing imaging and clinician assessment."
+  ]
+}

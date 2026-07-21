@@ -1,0 +1,40 @@
+{
+  "input": {
+    "weight_kg": 83.2,
+    "height_cm": 188,
+    "age_years": 28,
+    "body_fat_percent_bia": 21.2
+  },
+  "derived": {
+    "height_inferred_cm_unrounded": 188.16,
+    "fat_mass_kg_bia": 17.6,
+    "fat_free_mass_kg_bia": 65.6,
+    "bmr_mifflin_st_jeor_kcal": 1872,
+    "bmr_cunningham_kcal": 1786,
+    "bmr_blended_kcal": 1829,
+    "estimated_maintenance_low_kcal": 2560,
+    "estimated_maintenance_high_kcal": 2750,
+    "initial_target_kcal": 2300,
+    "protein_g": 170,
+    "fat_g": 75,
+    "carbohydrate_g": 236,
+    "estimated_weight_at_15_percent_bf_kg_if_ffm_constant": 77.2,
+    "estimated_weight_at_13_percent_bf_kg_if_ffm_constant": 75.4
+  },
+  "calibration_rule": {
+    "minimum_days_before_adjustment": 14,
+    "metric": "change in 7-day mean morning body weight",
+    "target_loss_fraction_per_week": [
+      0.002,
+      0.006
+    ],
+    "low_loss_threshold_fraction_per_week": 0.0015,
+    "high_loss_threshold_fraction_per_week": 0.0075,
+    "minimum_adherence": 0.8,
+    "adjustment_kcal": {
+      "if_too_slow": -100,
+      "if_too_fast_or_recovery_declines": 100
+    },
+    "notes": "Heuristic, not a diagnosis. Confirm using waist, photos, performance, hunger, sleep and pain—not BIA percentage alone."
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "schema_version": "1.0.0",
+  "recorded_on": "2026-07-21",
+  "source": "user self-report",
+  "urgent_red_flags_reported": false,
+  "items": {
+    "progressive_leg_weakness": false,
+    "numbness_or_saddle_anaesthesia": false,
+    "bowel_or_bladder_dysfunction": false,
+    "night_pain": false,
+    "unintentional_weight_loss": false,
+    "fever": false,
+    "recent_major_trauma": false,
+    "rapid_neurological_progression": false
+  },
+  "context": "User attributes current episodic increase in muscle tension primarily to stress.",
+  "interpretation": "General symptom-guided exercise gate may remain open. This self-screen does not diagnose, exclude non-urgent pathology, or replace clinical assessment."
+}

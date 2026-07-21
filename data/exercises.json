@@ -1,0 +1,398 @@
+[
+  {
+    "id": "warm_breathing",
+    "name_ru": "Спокойное дыхание 5–6/мин",
+    "category": "warmup",
+    "equipment": "none",
+    "default_sets": 1,
+    "rep_scheme": "3–5 мин",
+    "rir": null,
+    "instructions": "Лёжа или сидя, без максимального вдоха. Вдох примерно 4–5 с, выдох 5–6 с. Прекратить при головокружении.",
+    "progression": "Увеличивать регулярность, не глубину вдоха.",
+    "regression": "Обычное спокойное дыхание без счёта.",
+    "scoliosis_rule": "Не является направленным ротационным дыханием Schroth.",
+    "evidence_ids": [
+      "SLOW-BREATHING-2022",
+      "DIAPHRAGMATIC-BREATHING-2019"
+    ]
+  },
+  {
+    "id": "wall_axial_elongation",
+    "name_ru": "Осевое вытяжение у стены",
+    "category": "motor_control",
+    "equipment": "wall",
+    "default_sets": 5,
+    "rep_scheme": "3–5 дыханий",
+    "rir": null,
+    "instructions": "Мягко удлинить макушку вверх, рёбра над тазом, без запрокидывания и силового выпрямления дуги.",
+    "progression": "Перенести ощущение в сидение и ходьбу.",
+    "regression": "Лёжа на спине.",
+    "scoliosis_rule": "Только нейтральная симметричная версия; 3D-коррекция — после обучения у специалиста.",
+    "evidence_ids": [
+      "MONTICONE-ADULT-SCOLIOSIS-2016",
+      "SOSORT-GUIDELINES-2016"
+    ]
+  },
+  {
+    "id": "quadruped_rockback",
+    "name_ru": "Рок-бэк на четвереньках",
+    "category": "mobility_control",
+    "equipment": "mat",
+    "default_sets": 2,
+    "rep_scheme": "8–12",
+    "rir": 3,
+    "instructions": "Сохранять комфортное положение корпуса, таз вести назад без боли и перекоса.",
+    "progression": "Пауза 2 с в конечной комфортной точке.",
+    "regression": "Меньшая амплитуда.",
+    "scoliosis_rule": "Не добиваться визуальной симметрии силой.",
+    "evidence_ids": [
+      "MONTICONE-ADULT-SCOLIOSIS-2016"
+    ]
+  },
+  {
+    "id": "split_squat",
+    "name_ru": "Сплит-присед / передняя нога на возвышении",
+    "category": "knee_dominant",
+    "equipment": "dumbbells, yoga block",
+    "default_sets": 3,
+    "rep_scheme": "8–15/сторона",
+    "rir": 2,
+    "instructions": "Одинаковый объём на обе стороны. Корпус контролируемый, стопа полностью опирается, диапазон без боли.",
+    "progression": "Повторы → вес → пауза внизу → болгарский вариант.",
+    "regression": "Опора рукой, меньшая глубина, без веса.",
+    "scoliosis_rule": "Не назначать больше работы «слабой» стороне без оценки.",
+    "evidence_ids": [
+      "ACSM-RT-2026",
+      "LOPEZ-LOAD-2021"
+    ]
+  },
+  {
+    "id": "goblet_squat",
+    "name_ru": "Гоблет-присед с темпом",
+    "category": "knee_dominant",
+    "equipment": "dumbbell",
+    "default_sets": 3,
+    "rep_scheme": "10–20",
+    "rir": 2,
+    "instructions": "Темп 3-1-1, комфортная глубина, без задержки дыхания и скручивания.",
+    "progression": "Повторы → пауза → 1.5-повтора → вес.",
+    "regression": "Присед к стулу.",
+    "scoliosis_rule": "Симметричная нагрузка, но не требовать идеальной визуальной симметрии.",
+    "evidence_ids": [
+      "ACSM-RT-2026",
+      "LOPEZ-LOAD-2021"
+    ]
+  },
+  {
+    "id": "bulgarian_split_squat",
+    "name_ru": "Болгарский сплит-присед",
+    "category": "knee_dominant",
+    "equipment": "dumbbells, chair",
+    "default_sets": 3,
+    "rep_scheme": "8–15/сторона",
+    "rir": 2,
+    "instructions": "Низкая опора сзади, одинаковый объём, прекратить если баланс вызывает скручивание или боль.",
+    "progression": "Повторы → вес → пауза.",
+    "regression": "Обычный сплит-присед.",
+    "scoliosis_rule": "Баланс важнее глубины.",
+    "evidence_ids": [
+      "ACSM-RT-2026",
+      "LOPEZ-LOAD-2021"
+    ]
+  },
+  {
+    "id": "reverse_lunge",
+    "name_ru": "Обратный выпад",
+    "category": "knee_dominant",
+    "equipment": "dumbbells",
+    "default_sets": 3,
+    "rep_scheme": "8–15/сторона",
+    "rir": 2,
+    "instructions": "Шаг назад, опора при необходимости, таз и грудная клетка движутся как единый контролируемый блок.",
+    "progression": "Повторы → вес → замедление.",
+    "regression": "Сплит-присед у опоры.",
+    "scoliosis_rule": "Одинаковый объём, без намеренного бокового наклона.",
+    "evidence_ids": [
+      "ACSM-RT-2026"
+    ]
+  },
+  {
+    "id": "b_stance_rdl",
+    "name_ru": "B-stance румынская тяга",
+    "category": "hip_hinge",
+    "equipment": "dumbbells",
+    "default_sets": 3,
+    "rep_scheme": "10–20/сторона",
+    "rir": 2,
+    "instructions": "Большая часть веса на передней ноге; гантели близко к телу; амплитуда до сохранения контроля и отсутствия невральных симптомов.",
+    "progression": "Повторы → вес → 3–4 с эксцентрика.",
+    "regression": "Двуногая тяга или хип-хиндж у стены.",
+    "scoliosis_rule": "Одинаковый объём; поддержка рукой допустима.",
+    "evidence_ids": [
+      "ACSM-RT-2026",
+      "LOPEZ-LOAD-2021"
+    ]
+  },
+  {
+    "id": "single_leg_rdl_supported",
+    "name_ru": "Одноногая тяга с опорой",
+    "category": "hip_hinge",
+    "equipment": "dumbbell, wall",
+    "default_sets": 3,
+    "rep_scheme": "8–15/сторона",
+    "rir": 2,
+    "instructions": "Одна рука на опоре, таз не разворачивать силой; небольшая амплитуда лучше потери контроля.",
+    "progression": "Повторы → вес → меньшая опора.",
+    "regression": "B-stance RDL.",
+    "scoliosis_rule": "Не использовать как тест «ровности» таза.",
+    "evidence_ids": [
+      "ACSM-RT-2026"
+    ]
+  },
+  {
+    "id": "glute_bridge",
+    "name_ru": "Ягодичный мост / хамстринг-выходы",
+    "category": "hip_extension",
+    "equipment": "mat",
+    "default_sets": 3,
+    "rep_scheme": "10–20",
+    "rir": 2,
+    "instructions": "Рёбра не выпячивать, поясницу не переразгибать. Для усложнения — медленные выходы пятками.",
+    "progression": "Пауза → выходы → односторонний вариант с равным объёмом.",
+    "regression": "Короткая амплитуда.",
+    "scoliosis_rule": "Одинаковый объём при одностороннем варианте.",
+    "evidence_ids": [
+      "ACSM-RT-2026"
+    ]
+  },
+  {
+    "id": "pushup",
+    "name_ru": "Отжимания: выбранная прогрессия",
+    "category": "horizontal_push",
+    "equipment": "floor/table/blocks",
+    "default_sets": 3,
+    "rep_scheme": "8–20",
+    "rir": 2,
+    "instructions": "Тело как единый блок, лопатки свободно движутся, не проваливаться и не выворачивать корпус.",
+    "progression": "Высокая опора → пол → ноги выше → пауза/медленный эксцентрик.",
+    "regression": "Отжимания от стены/стола.",
+    "scoliosis_rule": "Не фиксировать грудную клетку насильно; прекратить при боли/онемении.",
+    "evidence_ids": [
+      "KIKUCHI-PUSHUP-2017",
+      "ACSM-RT-2026"
+    ]
+  },
+  {
+    "id": "db_floor_press",
+    "name_ru": "Жим гантелей лёжа на полу",
+    "category": "horizontal_push",
+    "equipment": "dumbbells, mat",
+    "default_sets": 3,
+    "rep_scheme": "10–20",
+    "rir": 2,
+    "instructions": "Нейтральный хват при необходимости, рёбра контролировать, плечи без боли.",
+    "progression": "Повторы → вес → пауза у пола → односторонний только при хорошем контроле.",
+    "regression": "Лёгкие гантели или отжимания от высокой опоры.",
+    "scoliosis_rule": "По умолчанию двусторонний вариант.",
+    "evidence_ids": [
+      "ACSM-RT-2026",
+      "LOPEZ-LOAD-2021"
+    ]
+  },
+  {
+    "id": "pike_pushup_optional",
+    "name_ru": "Пайк-отжимание (опционально)",
+    "category": "vertical_push",
+    "equipment": "mat/blocks",
+    "default_sets": 2,
+    "rep_scheme": "6–15",
+    "rir": 2,
+    "instructions": "Только при комфортных плечах и отсутствии усиления рёберного/поясничного симптома; не прогибаться.",
+    "progression": "Выше таз/ноги, больше амплитуда.",
+    "regression": "Жим гантелей лёжа или отжимание от высокой опоры.",
+    "scoliosis_rule": "Не использовать, если провоцирует ротацию/компрессию.",
+    "evidence_ids": [
+      "ACSM-RT-2026"
+    ]
+  },
+  {
+    "id": "one_arm_row_supported",
+    "name_ru": "Тяга гантели одной рукой с опорой",
+    "category": "horizontal_pull",
+    "equipment": "dumbbell, chair",
+    "default_sets": 3,
+    "rep_scheme": "12–30/сторона",
+    "rir": 1,
+    "instructions": "Опора второй рукой, корпус максимально стабилен; вести локоть назад, не дотягивать скручиванием.",
+    "progression": "Повторы → вес → пауза вверху → медленный эксцентрик.",
+    "regression": "Меньший вес и амплитуда.",
+    "scoliosis_rule": "Одинаковые подходы и целевой RIR на обе стороны; различие повторов допустимо только до одинакового усилия и без техники-компенсации.",
+    "evidence_ids": [
+      "ACSM-RT-2026",
+      "LOPEZ-LOAD-2021"
+    ]
+  },
+  {
+    "id": "prone_ytw",
+    "name_ru": "Y–T–W лёжа",
+    "category": "scapular",
+    "equipment": "mat/light dumbbells optional",
+    "default_sets": 2,
+    "rep_scheme": "6–10 каждой позиции",
+    "rir": 3,
+    "instructions": "Малый вес или без веса; движение лопатками, шея длинная, без переразгибания поясницы.",
+    "progression": "Пауза 2 с, затем очень лёгкий вес.",
+    "regression": "По одной позиции.",
+    "scoliosis_rule": "Симметрично; не пытаться «свести» рёбра силой.",
+    "evidence_ids": [
+      "ACSM-RT-2026"
+    ]
+  },
+  {
+    "id": "reverse_fly",
+    "name_ru": "Разведение гантелей в наклоне с опорой",
+    "category": "scapular",
+    "equipment": "dumbbells, chair",
+    "default_sets": 2,
+    "rep_scheme": "15–30",
+    "rir": 2,
+    "instructions": "Лёгкий вес, опора грудью/рукой при необходимости, не скручивать корпус.",
+    "progression": "Повторы → пауза → вес.",
+    "regression": "Без веса/резинка в будущем.",
+    "scoliosis_rule": "Симметрично.",
+    "evidence_ids": [
+      "ACSM-RT-2026",
+      "LOPEZ-LOAD-2021"
+    ]
+  },
+  {
+    "id": "dead_bug",
+    "name_ru": "Dead bug",
+    "category": "trunk_control",
+    "equipment": "mat",
+    "default_sets": 3,
+    "rep_scheme": "6–10/сторона",
+    "rir": 3,
+    "instructions": "Дышать, сохранять комфортное положение таза; уменьшить рычаг до исчезновения выпячивания/боли.",
+    "progression": "Длиннее рычаг, пауза, лёгкая гантель в руках.",
+    "regression": "Только движения ног или рук.",
+    "scoliosis_rule": "Одинаковый объём; цель — контроль, не максимальное напряжение.",
+    "evidence_ids": [
+      "MONTICONE-ADULT-SCOLIOSIS-2016",
+      "ALANAZI-ADULT-SCOLIOSIS-2018"
+    ]
+  },
+  {
+    "id": "bird_dog",
+    "name_ru": "Bird dog",
+    "category": "trunk_control",
+    "equipment": "mat",
+    "default_sets": 3,
+    "rep_scheme": "5–8/сторона, пауза 3–5 с",
+    "rir": 3,
+    "instructions": "Не поднимать конечности выше контроля; исключить скручивание и задержку дыхания.",
+    "progression": "Дольше пауза, затем скольжение колено-локоть без потери контроля.",
+    "regression": "Только рука или только нога.",
+    "scoliosis_rule": "Симметрично; не интерпретировать дрожание как структурную слабость одной стороны.",
+    "evidence_ids": [
+      "MONTICONE-ADULT-SCOLIOSIS-2016",
+      "ALANAZI-ADULT-SCOLIOSIS-2018"
+    ]
+  },
+  {
+    "id": "side_plank_equal",
+    "name_ru": "Боковая планка — обе стороны поровну",
+    "category": "trunk_endurance",
+    "equipment": "mat",
+    "default_sets": 2,
+    "rep_scheme": "20–45 с/сторона",
+    "rir": 2,
+    "instructions": "Колени или стопы, прямая линия, без боли и задержки дыхания.",
+    "progression": "Время → более длинный рычаг.",
+    "regression": "С колен, короткие удержания.",
+    "scoliosis_rule": "Никакого одностороннего протокола без классификации дуги и назначения специалиста.",
+    "evidence_ids": [
+      "ALANAZI-ADULT-SCOLIOSIS-2018"
+    ]
+  },
+  {
+    "id": "suitcase_hold_equal",
+    "name_ru": "Suitcase hold/march — обе стороны поровну",
+    "category": "trunk_endurance",
+    "equipment": "dumbbell",
+    "default_sets": 2,
+    "rep_scheme": "30–45 с/сторона",
+    "rir": 2,
+    "instructions": "Стоять/маршировать без намеренного бокового наклона; одинаковое время и вес.",
+    "progression": "Время → медленный марш → вес.",
+    "regression": "Статическое удержание, меньший вес.",
+    "scoliosis_rule": "Не делать только с одной стороны как «коррекцию».",
+    "evidence_ids": [
+      "ACSM-RT-2026"
+    ]
+  },
+  {
+    "id": "wall_hip_abduction",
+    "name_ru": "Изометрия отведения бедра у стены",
+    "category": "hip_stability",
+    "equipment": "wall",
+    "default_sets": 2,
+    "rep_scheme": "20–30 с/сторона",
+    "rir": 3,
+    "instructions": "Колено мягко давит в стену, таз не заваливать, усилие умеренное.",
+    "progression": "Дольше удержание или мини-присед на опорной ноге.",
+    "regression": "Меньшее усилие.",
+    "scoliosis_rule": "Одинаковый объём.",
+    "evidence_ids": [
+      "MONTICONE-ADULT-SCOLIOSIS-2016"
+    ]
+  },
+  {
+    "id": "wall_slide",
+    "name_ru": "Скольжение руками по стене",
+    "category": "mobility_control",
+    "equipment": "wall",
+    "default_sets": 2,
+    "rep_scheme": "8–12",
+    "rir": 3,
+    "instructions": "Рёбра не выталкивать, диапазон без боли в плечах, не прижимать позвоночник силой.",
+    "progression": "Пауза сверху.",
+    "regression": "Меньшая амплитуда.",
+    "scoliosis_rule": "Симметрично, без принуждения рёбер.",
+    "evidence_ids": [
+      "MONTICONE-ADULT-SCOLIOSIS-2016"
+    ]
+  },
+  {
+    "id": "brisk_walk",
+    "name_ru": "Быстрая ходьба",
+    "category": "aerobic",
+    "equipment": "none",
+    "default_sets": 1,
+    "rep_scheme": "20–40 мин",
+    "rir": null,
+    "instructions": "Разговорный темп умеренной интенсивности; можно дробить на 10–15 минут.",
+    "progression": "Время/темп постепенно.",
+    "regression": "Спокойная ходьба.",
+    "scoliosis_rule": "Выбирать переносимый темп и обувь.",
+    "evidence_ids": [
+      "WHO-ACTIVITY-2020"
+    ]
+  },
+  {
+    "id": "gentle_yoga_flow",
+    "name_ru": "Мягкий йога-флоу",
+    "category": "mobility_relaxation",
+    "equipment": "mat, blocks",
+    "default_sets": 1,
+    "rep_scheme": "15–25 мин",
+    "rir": null,
+    "instructions": "Мост, низкий выпад с опорой, поза ребёнка с поддержкой, мягкая задняя поверхность бедра, шавасана. Без агрессивных скручиваний и силовых боковых наклонов.",
+    "progression": "Плавность и переносимость, не экстремальная амплитуда.",
+    "regression": "Положения лёжа и с блоками.",
+    "scoliosis_rule": "Йога не заменяет PSSE и не задаёт сторону коррекции.",
+    "evidence_ids": [
+      "YOGA-LBP-2022"
+    ]
+  }
+]

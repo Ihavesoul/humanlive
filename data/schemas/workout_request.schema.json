@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://local.example/schemas/workout_request.schema.json",
+  "title": "Evidence-constrained workout generation request",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "profile", "schedule", "equipment", "medical_safety", "generator_policy"],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["age_years", "sex_for_equations", "height_cm", "weight_kg", "training_experience"],
+      "properties": {
+        "age_years": {"type": "integer", "minimum": 18, "maximum": 100},
+        "sex_for_equations": {"enum": ["male", "female"]},
+        "height_cm": {"type": "number", "minimum": 120, "maximum": 230},
+        "weight_kg": {"type": "number", "minimum": 35, "maximum": 300},
+        "body_fat_percent_bia": {"type": ["number", "null"], "minimum": 3, "maximum": 60},
+        "training_experience": {"enum": ["novice", "intermediate", "advanced", "returning"]},
+        "occupation": {"type": "string", "maxLength": 200}
+      }
+    },
+    "schedule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["strength_days_per_week", "motor_control_days_per_week", "minutes_per_session"],
+      "properties": {
+        "strength_days_per_week": {"type": "integer", "minimum": 1, "maximum": 5},
+        "motor_control_days_per_week": {"type": "integer", "minimum": 0, "maximum": 5},
+        "minutes_per_session": {"type": "integer", "minimum": 20, "maximum": 120}
+      }
+    },
+    "equipment": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {"type": "string", "maxLength": 100}
+    },
+    "medical_safety": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["scoliosis_reported", "red_flags", "current_curve_data_available", "clinician_curve_specific_plan_available"],
+      "properties": {
+        "scoliosis_reported": {"type": "boolean"},
+        "user_reported_grade": {"type": ["string", "null"], "maxLength": 50},
+        "red_flags": {
+          "type": "array",
+          "items": {"enum": [
+            "new_bowel_or_bladder_dysfunction",
+            "saddle_anaesthesia",
+            "new_or_progressive_motor_weakness",
+            "severe_unremitting_night_pain",
+            "fever_or_systemic_illness_with_back_pain",
+            "major_recent_trauma",
+            "known_cancer_with_new_back_pain",
+            "unexplained_weight_loss",
+            "other"
+          ]}
+        },
+        "current_curve_data_available": {"type": "boolean"},
+        "current_cobb_angles_deg": {
+          "type": "array",
+          "items": {"type": "number", "minimum": 0, "maximum": 120},
+          "maxItems": 4
+        },
+        "curve_classification": {"type": ["string", "null"], "maxLength": 500},
+        "clinician_curve_specific_plan_available": {"type": "boolean"},
+        "clinician_instructions": {"type": ["string", "null"], "maxLength": 4000},
+        "current_symptoms": {"type": "array", "items": {"type": "string", "maxLength": 300}}
+      }
+    },
+    "generator_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["allowed_exercise_ids", "allowed_evidence_ids", "citation_mode", "side_specific_lock"],
+      "properties": {
+        "allowed_exercise_ids": {"type": "array", "minItems": 1, "items": {"type": "string"}, "uniqueItems": true},
+        "allowed_evidence_ids": {"type": "array", "minItems": 1, "items": {"type": "string"}, "uniqueItems": true},
+        "citation_mode": {"const": "evidence_id_only"},
+        "side_specific_lock": {"type": "boolean"},
+        "max_working_sets_per_session": {"type": "integer", "minimum": 4, "maximum": 35},
+        "forbid_unlisted_exercises": {"const": true}
+      }
+    },
+    "preferences": {
+      "type": "object",
+      "additionalProperties": true
+    }
+  }
+}

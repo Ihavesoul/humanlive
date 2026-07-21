@@ -1,0 +1,259 @@
+{
+  "schema_version": "1.0.0",
+  "program_name": "12-week lean recomposition + scoliosis-aware motor control POC",
+  "default_week_schedule": [
+    {
+      "day": "Monday",
+      "session_id": "strength_A"
+    },
+    {
+      "day": "Tuesday",
+      "session_id": "scoliosis_A"
+    },
+    {
+      "day": "Wednesday",
+      "session_id": "recovery_walk_breathing"
+    },
+    {
+      "day": "Thursday",
+      "session_id": "strength_B"
+    },
+    {
+      "day": "Friday",
+      "session_id": "scoliosis_B"
+    },
+    {
+      "day": "Saturday",
+      "session_id": "strength_C"
+    },
+    {
+      "day": "Sunday",
+      "session_id": "rest_or_easy_walk"
+    }
+  ],
+  "week_parameters": [
+    {
+      "week": 1,
+      "phase": "re-entry",
+      "sets_main": 2,
+      "rir": 3,
+      "volume_factor": 0.7,
+      "notes": "Калибровка техники, симптомов, повторов и рабочего темпа."
+    },
+    {
+      "week": 2,
+      "phase": "re-entry",
+      "sets_main": 2,
+      "rir": 3,
+      "volume_factor": 0.8,
+      "notes": "Добавить повторы, не вес любой ценой."
+    },
+    {
+      "week": 3,
+      "phase": "build-1",
+      "sets_main": 3,
+      "rir": 2,
+      "volume_factor": 0.9,
+      "notes": "Большинство основных упражнений по 3 подхода."
+    },
+    {
+      "week": 4,
+      "phase": "build-1",
+      "sets_main": 3,
+      "rir": 2,
+      "volume_factor": 1.0,
+      "notes": "Двойная прогрессия в рамках диапазона повторов."
+    },
+    {
+      "week": 5,
+      "phase": "build-1",
+      "sets_main": 3,
+      "rir": 1,
+      "volume_factor": 1.05,
+      "notes": "Последний подход изолированных/стабильных движений может быть 1 RIR."
+    },
+    {
+      "week": 6,
+      "phase": "deload",
+      "sets_main": 2,
+      "rir": 4,
+      "volume_factor": 0.55,
+      "notes": "Сократить подходы на 40–50%, сохранить движения и прогулки."
+    },
+    {
+      "week": 7,
+      "phase": "build-2",
+      "sets_main": 3,
+      "rir": 2,
+      "volume_factor": 0.95,
+      "notes": "Вернуться чуть ниже недели 5."
+    },
+    {
+      "week": 8,
+      "phase": "build-2",
+      "sets_main": 3,
+      "rir": 2,
+      "volume_factor": 1.0,
+      "notes": "Усложнить рычаг или темп там, где 10 кг уже лёгкие."
+    },
+    {
+      "week": 9,
+      "phase": "build-2",
+      "sets_main": 3,
+      "rir": 1,
+      "volume_factor": 1.05,
+      "notes": "Добавить 1 подход только отстающим паттернам при нормальном восстановлении."
+    },
+    {
+      "week": 10,
+      "phase": "build-2",
+      "sets_main": 3,
+      "rir": 1,
+      "volume_factor": 1.1,
+      "notes": "Пиковый рабочий объём; без отказа в балансных и осевых движениях."
+    },
+    {
+      "week": 11,
+      "phase": "benchmark",
+      "sets_main": 3,
+      "rir": 1,
+      "volume_factor": 1.0,
+      "notes": "AMRAP с 1 RIR только в безопасных упражнениях: отжимания, тяга с опорой, мост."
+    },
+    {
+      "week": 12,
+      "phase": "deload-retest",
+      "sets_main": 2,
+      "rir": 4,
+      "volume_factor": 0.55,
+      "notes": "Снизить нагрузку, снять мерки, сравнить 7-дневные средние и технику."
+    }
+  ],
+  "sessions": {
+    "strength_A": {
+      "title_ru": "Full Body A — базовая сила и контроль",
+      "duration_min": 55,
+      "warmup": [
+        "warm_breathing",
+        "wall_axial_elongation",
+        "quadruped_rockback"
+      ],
+      "main": [
+        "split_squat",
+        "pushup",
+        "one_arm_row_supported",
+        "single_leg_rdl_supported",
+        "dead_bug",
+        "prone_ytw"
+      ],
+      "notes": "В односторонних упражнениях объём одинаковый. Сначала техника и переносимость, затем близость к отказу."
+    },
+    "strength_B": {
+      "title_ru": "Full Body B — присед, жим, задняя цепь",
+      "duration_min": 55,
+      "warmup": [
+        "warm_breathing",
+        "wall_slide",
+        "quadruped_rockback"
+      ],
+      "main": [
+        "goblet_squat",
+        "db_floor_press",
+        "one_arm_row_supported",
+        "reverse_lunge",
+        "glute_bridge",
+        "suitcase_hold_equal"
+      ],
+      "notes": "Suitcase hold выполняется поровну с обеих сторон. Не использовать как одностороннюю коррекцию."
+    },
+    "strength_C": {
+      "title_ru": "Full Body C — односторонняя работа и объём",
+      "duration_min": 58,
+      "warmup": [
+        "warm_breathing",
+        "wall_axial_elongation",
+        "wall_slide"
+      ],
+      "main": [
+        "bulgarian_split_squat",
+        "pushup",
+        "one_arm_row_supported",
+        "b_stance_rdl",
+        "pike_pushup_optional",
+        "side_plank_equal",
+        "reverse_fly"
+      ],
+      "notes": "Пайк-отжимание опционально: заменить жимом на полу при дискомфорте, рёберном выпячивании или поясничной компрессии."
+    },
+    "scoliosis_A": {
+      "title_ru": "Сколиоз/моторный контроль A — нейтральная база",
+      "duration_min": 45,
+      "main": [
+        "warm_breathing",
+        "wall_axial_elongation",
+        "quadruped_rockback",
+        "dead_bug",
+        "bird_dog",
+        "side_plank_equal",
+        "wall_hip_abduction",
+        "brisk_walk"
+      ],
+      "notes": "Это не curve-specific PSSE. Добавить отдельный блок активной 3D-самокоррекции только после очного обучения."
+    },
+    "scoliosis_B": {
+      "title_ru": "Сколиоз/моторный контроль B — интеграция и расслабление",
+      "duration_min": 50,
+      "main": [
+        "warm_breathing",
+        "wall_axial_elongation",
+        "wall_slide",
+        "suitcase_hold_equal",
+        "bird_dog",
+        "gentle_yoga_flow"
+      ],
+      "notes": "Цель — перенос контроля в стояние, ходьбу и работу. Не удерживать «идеальную осанку» силой весь день."
+    }
+  },
+  "progression_algorithm": {
+    "rule": "double progression",
+    "steps": [
+      "Use a variation that lands inside its rep range at prescribed RIR with stable technique.",
+      "Add 1-2 reps per set until all sets reach the top of the range in two consecutive exposures.",
+      "Then increase dumbbell load, leverage, range, pause or eccentric duration; return to lower half of the rep range.",
+      "If pain, neurologic symptoms or visible compensation increase, regress range/load and reassess rather than forcing progression."
+    ],
+    "failure_policy": "No intentional failure on split squats, Bulgarian split squats, single-leg hinges, pike push-ups, side planks or suitcase work. Stable push-ups, floor presses and supported rows may reach 0-1 RIR only in week 11 if symptom-free."
+  },
+  "scoliosis_guardrails": [
+    "Default unilateral volume is equal on both sides.",
+    "No side-specific 3D correction, directional breathing, one-sided side plank protocol, seat wedge or shoe lift without clinician-entered curve data and instruction.",
+    "Generic motor-control sessions target function and tolerance; they do not claim to reduce adult Cobb angle.",
+    "Current standing full-spine radiographs and a trained PSSE/Schroth/SEAS clinician are recommended before unlocking curve-specific content."
+  ],
+  "exercise_ids": [
+    "warm_breathing",
+    "wall_axial_elongation",
+    "quadruped_rockback",
+    "split_squat",
+    "goblet_squat",
+    "bulgarian_split_squat",
+    "reverse_lunge",
+    "b_stance_rdl",
+    "single_leg_rdl_supported",
+    "glute_bridge",
+    "pushup",
+    "db_floor_press",
+    "pike_pushup_optional",
+    "one_arm_row_supported",
+    "prone_ytw",
+    "reverse_fly",
+    "dead_bug",
+    "bird_dog",
+    "side_plank_equal",
+    "suitcase_hold_equal",
+    "wall_hip_abduction",
+    "wall_slide",
+    "brisk_walk",
+    "gentle_yoga_flow"
+  ]
+}
