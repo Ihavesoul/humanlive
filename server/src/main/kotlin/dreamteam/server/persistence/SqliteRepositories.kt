@@ -1,5 +1,8 @@
 package dreamteam.server.persistence
 
+import dreamteam.domain.EvidenceId
+import dreamteam.domain.ExerciseId
+import dreamteam.domain.PlanId
 import dreamteam.domain.UserId
 import dreamteam.domain.evidence.EvidenceSource
 import dreamteam.domain.exercise.Exercise
@@ -9,7 +12,6 @@ import dreamteam.domain.persistence.ExerciseRepository
 import dreamteam.domain.persistence.NutritionRepository
 import dreamteam.domain.persistence.ProgressRepository
 import dreamteam.domain.persistence.SafetyRuleRepository
-import dreamteam.domain.persistence.Schema
 import dreamteam.domain.persistence.SymptomRepository
 import dreamteam.domain.persistence.TrainingPlanRepository
 import dreamteam.domain.persistence.UserRepository
@@ -18,191 +20,290 @@ import dreamteam.domain.safety.SafetyRule
 import dreamteam.domain.symptom.Symptom
 import dreamteam.domain.training.TrainingPlan
 import dreamteam.domain.user.User
-import kotlinx.serialization.Serializable
+import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.serializer
+import java.nio.charset.StandardCharsets.UTF_8
 import java.sql.Connection
 import java.sql.DriverManager
+import java.sql.ResultSet
 
 /**
- * Durable SQLite-backed repository ports. Replaces [InMemoryRepositories] for
- * the backend durable store (ADR 0003). One SQLite database file holds all
- * aggregates; each aggregate is stored as a JSON document (the
- * [dreamteam.domain.persistence.DocumentMigrator] model) plus a few indexed
- * columns for the by-user lookups the ports require.
+ * Durable, encrypted-at-rest SQLite implementation of the `Repositories.kt`
+ * ports (ADR 0003 / DRE-16). Replaces the in-memory repos for the persistent
+ * path: data lives in a single SQLite file whose health-signal columns are
+ * AES-GCM ciphertext ([PayloadCipher]); the DB file is useless without the
+ * injected [EncryptionKey].
  *
- * **Why document-store, not relational:** the domain aggregates are already
- * @Serializable and versioned ([Schema]); a column-per-field mapping would
- * duplicate the schema and break silently on every field addition, which is the
- * opposite of "protect health-signal data against silent corruption". A JSON
- * payload per row keeps the durable shape == the in-memory shape, and a future
- * [Schema] bump is a [DocumentMigrator] step, not a brittle ALTER TABLE.
+ * Storage model — a versioned document store: each aggregate is one JSON
+ * document (the domain types are all `@Serializable`) stored as an encrypted
+ * BLOB in its own table. Only the non-sensitive query keys (`id`, `user_id`)
+ * are plaintext, which is exactly what makes "find by user / by id" cheap
+ * without decrypting the whole table. The encrypted boundary is the payload;
+ * see ADR 0003 §Decision for the threat model.
  *
- * **Encryption posture:** SQLite here is the *durability* layer; at-rest
- * encryption for the backend is enforced at the infrastructure layer (managed
- * volume / database encryption), the appropriate level for a backend service
- * per SDD §8. The on-device client uses SQLCipher (native, M3). See ADR 0003.
- *
- * **Concurrency:** a single JDBC connection guarded by `synchronized`. SQLite
- * serializes writers anyway, and the backend is a single process — this is the
- * boring ceiling. per-account locks / a pool are the upgrade path if throughput
- * ever demands it.
- *
- * ponytail: single connection + synchronized — fine for one backend process;
- * swap for a pool (HikariCP) only if contention shows up.
+ * Reversible: because feature code depends only on the ports, swapping this for
+ * a different store (Postgres, on-device Room/SQLCipher) is contained behind
+ * the same interfaces — the [dreamteam.server.persistence.RepositoryLayerTest]
+ * contract proves both in-memory and SQLite satisfy the same round-trip +
+ * allowlist behaviour.
  */
-class SqliteStore(val dbPath: String) : AutoCloseable {
-    internal val json: Json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
-    private val connection: Connection = DriverManager.getConnection("jdbc:sqlite:$dbPath")
+
+internal val repoJson = Json { ignoreUnknownKeys = true }
+
+internal inline fun <reified T> encodeJson(value: T): String = repoJson.encodeToString(value)
+internal inline fun <reified T> decodeJson(text: String): T = repoJson.decodeFromString(text)
+
+/**
+ * One encrypted SQLite connection shared by all repos. SQLite is single-writer,
+ * so access is serialized with a monitor — boring and correct for this tier.
+ *
+ * ponytail: single connection + synchronized. Add a real pool (HikariCP) only
+ * if backend write throughput ever becomes a measured bottleneck; SQLite would
+ * not be the right store at that point regardless (see ADR 0003).
+ */
+internal class SqliteStore(jdbcUrl: String, private val key: EncryptionKey) : AutoCloseable {
+    private val conn: Connection = DriverManager.getConnection(jdbcUrl)
 
     init {
-        connection.createStatement().use { stmt ->
-            // Schema baseline (Schema.CURRENT). A single source of truth for the
-            // durable layout; bumped via Schema + DocumentMigrator, never ad hoc.
-            stmt.execute("PRAGMA user_version = ${Schema.CURRENT}")
-            stmt.execute("CREATE TABLE IF NOT EXISTS schema_meta(key TEXT PRIMARY KEY, value TEXT NOT NULL)")
-            upsertMeta("schema_version", Schema.CURRENT.toString())
-            stmt.execute("CREATE TABLE IF NOT EXISTS evidence_source(id TEXT PRIMARY KEY, payload TEXT NOT NULL)")
-            stmt.execute("CREATE TABLE IF NOT EXISTS exercise(id TEXT PRIMARY KEY, payload TEXT NOT NULL)")
-            stmt.execute("CREATE TABLE IF NOT EXISTS safety_rule(id TEXT PRIMARY KEY, payload TEXT NOT NULL)")
-            stmt.execute("CREATE TABLE IF NOT EXISTS user(id TEXT PRIMARY KEY, payload TEXT NOT NULL)")
-            stmt.execute("CREATE TABLE IF NOT EXISTS training_plan(id TEXT PRIMARY KEY, user_id TEXT NOT NULL, payload TEXT NOT NULL)")
-            stmt.execute("CREATE TABLE IF NOT EXISTS current_plan(user_id TEXT PRIMARY KEY, plan_id TEXT NOT NULL)")
-            stmt.execute(
-                "CREATE TABLE IF NOT EXISTS progress(seq INTEGER PRIMARY KEY AUTOINCREMENT, id TEXT NOT NULL, user_id TEXT NOT NULL, payload TEXT NOT NULL)",
-            )
-            stmt.execute("CREATE INDEX IF NOT EXISTS idx_progress_user ON progress(user_id, seq)")
-            stmt.execute(
-                "CREATE TABLE IF NOT EXISTS symptom(seq INTEGER PRIMARY KEY AUTOINCREMENT, id TEXT NOT NULL, user_id TEXT NOT NULL, payload TEXT NOT NULL)",
-            )
-            stmt.execute("CREATE INDEX IF NOT EXISTS idx_symptom_user ON symptom(user_id, seq)")
-            stmt.execute("CREATE TABLE IF NOT EXISTS nutrition(user_id TEXT PRIMARY KEY, payload TEXT NOT NULL)")
+        synchronized(conn) {
+            createStatement().use { s ->
+                SCHEMA.forEach { s.execute(it) }
+            }
+            // WAL: readers don't block the writer, durable across process restart.
+            createStatement().use { it.execute("PRAGMA journal_mode=WAL") }
+            // ponytail: single-writer ceiling noted above; busy_timeout rides out lock contention.
+            createStatement().use { it.execute("PRAGMA busy_timeout=5000") }
         }
     }
 
-    private fun upsertMeta(key: String, value: String) =
-        connection.prepareStatement("INSERT INTO schema_meta(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value")
-            .use { it.setString(1, key); it.setString(2, value); it.executeUpdate() }
+    fun encrypt(text: String): ByteArray = PayloadCipher.encrypt(text.toByteArray(UTF_8), key.bytes())
+    fun decrypt(blob: ByteArray): String = String(PayloadCipher.decrypt(blob, key.bytes()), UTF_8)
 
-    fun <T> write(block: (Connection) -> T): T = synchronized(connection) { block(connection) }
-
-    internal inline fun <reified T> encode(value: T): String = json.encodeToString(serializer(), value)
-    internal inline fun <reified T> decode(payload: String): T = json.decodeFromString(serializer(), payload)
-
-    override fun close() = connection.close()
-}
-
-/** Insert-or-replace a keyed JSON document; returns true if a row was written. */
-private fun upsertDoc(conn: Connection, table: String, id: String, payload: String) {
-    conn.prepareStatement("INSERT INTO $table(id,payload) VALUES(?,?) ON CONFLICT(id) DO UPDATE SET payload=excluded.payload")
-        .use { it.setString(1, id); it.setString(2, payload); it.executeUpdate() }
-}
-
-private fun loadDoc(conn: Connection, table: String, id: String): String? =
-    conn.prepareStatement("SELECT payload FROM $table WHERE id=?").use { ps ->
-        ps.setString(1, id); ps.executeQuery().use { rs -> if (rs.next()) rs.getString(1) else null }
+    fun update(sql: String, vararg params: Any?): Unit = synchronized(conn) {
+        conn.prepareStatement(sql).use { ps ->
+            params.forEachIndexed { i, p -> ps.setObject(i + 1, p) }
+            ps.executeUpdate()
+        }
     }
 
-private fun loadAllDocs(conn: Connection, table: String): List<String> =
-    conn.createStatement().use { it.executeQuery("SELECT payload FROM $table").use { rs ->
-        buildList { while (rs.next()) add(rs.getString(1)) }
-    } }
-
-class SqliteEvidenceSourceRepository(private val store: SqliteStore) : EvidenceSourceRepository {
-    override fun all(): List<EvidenceSource> = store.write { loadAllDocs(it, "evidence_source").map { p -> store.decode(p) } }
-    override fun byId(id: String): EvidenceSource? = store.write { loadDoc(it, "evidence_source", id)?.let(store::decode) }
-    override fun contains(id: String): Boolean = store.write { loadDoc(it, "evidence_source", id) != null }
-    override fun save(source: EvidenceSource) { store.write { upsertDoc(it, "evidence_source", source.id, store.encode(source)) } }
-}
-
-class SqliteExerciseRepository(private val store: SqliteStore) : ExerciseRepository {
-    override fun all(): List<Exercise> = store.write { loadAllDocs(it, "exercise").map { p -> store.decode(p) } }
-    override fun byId(id: String): Exercise? = store.write { loadDoc(it, "exercise", id)?.let(store::decode) }
-    override fun contains(id: String): Boolean = store.write { loadDoc(it, "exercise", id) != null }
-    override fun save(exercise: Exercise) { store.write { upsertDoc(it, "exercise", exercise.id, store.encode(exercise)) } }
-}
-
-class SqliteSafetyRuleRepository(private val store: SqliteStore) : SafetyRuleRepository {
-    override fun all(): List<SafetyRule> = store.write { loadAllDocs(it, "safety_rule").map { p -> store.decode(p) } }
-    override fun byId(id: String): SafetyRule? = store.write { loadDoc(it, "safety_rule", id)?.let(store::decode) }
-    override fun save(rule: SafetyRule) { store.write { upsertDoc(it, "safety_rule", rule.id, store.encode(rule)) } }
-}
-
-class SqliteUserRepository(private val store: SqliteStore) : UserRepository {
-    override fun byId(id: String): User? = store.write { loadDoc(it, "user", id)?.let(store::decode) }
-    override fun save(user: User) = store.write { upsertDoc(it, "user", user.id, store.encode(user)).let {} }
-}
-
-class SqliteTrainingPlanRepository(private val store: SqliteStore) : TrainingPlanRepository {
-    override fun currentFor(userId: UserId): TrainingPlan? = store.write { conn ->
-        conn.prepareStatement("SELECT plan_id FROM current_plan WHERE user_id=?").use { ps ->
-            ps.setString(1, userId); ps.executeQuery().use { rs -> if (!rs.next()) null else loadDoc(conn, "training_plan", rs.getString(1)) }
-        }?.let(store::decode)
+    fun <T> queryOne(sql: String, mapper: (ResultSet) -> T, vararg params: Any?): T? = synchronized(conn) {
+        conn.prepareStatement(sql).use { ps ->
+            params.forEachIndexed { i, p -> ps.setObject(i + 1, p) }
+            ps.executeQuery().use { rs -> if (rs.next()) mapper(rs) else null }
+        }
     }
-    override fun byId(id: String): TrainingPlan? = store.write { loadDoc(it, "training_plan", id)?.let(store::decode) }
+
+    fun <T> queryList(sql: String, mapper: (ResultSet) -> T, vararg params: Any?): List<T> = synchronized(conn) {
+        conn.prepareStatement(sql).use { ps ->
+            params.forEachIndexed { i, p -> ps.setObject(i + 1, p) }
+            ps.executeQuery().use { rs ->
+                val out = ArrayList<T>()
+                while (rs.next()) out.add(mapper(rs))
+                out
+            }
+        }
+    }
+
+    override fun close(): Unit = synchronized(conn) { conn.close() }
+
+    private fun createStatement() = conn.createStatement()
+
+    companion object {
+        // One-time, idempotent schema. user_version pins v1 (Schema.CURRENT) for
+        // future on-read migrations; the document model means a schema bump is
+        // usually just a new table or a transform over encrypted payloads.
+        private val SCHEMA = listOf(
+            "PRAGMA user_version = 1",
+            "CREATE TABLE IF NOT EXISTS evidence_source (id TEXT PRIMARY KEY, payload BLOB NOT NULL)",
+            "CREATE TABLE IF NOT EXISTS exercise (id TEXT PRIMARY KEY, payload BLOB NOT NULL)",
+            "CREATE TABLE IF NOT EXISTS safety_rule (id TEXT PRIMARY KEY, payload BLOB NOT NULL)",
+            "CREATE TABLE IF NOT EXISTS user_account (id TEXT PRIMARY KEY, payload BLOB NOT NULL)",
+            "CREATE TABLE IF NOT EXISTS training_plan (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, payload BLOB NOT NULL)",
+            "CREATE TABLE IF NOT EXISTS current_plan (user_id TEXT PRIMARY KEY, plan_id TEXT NOT NULL)",
+            "CREATE TABLE IF NOT EXISTS progress_entry (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, seq INTEGER NOT NULL, payload BLOB NOT NULL)",
+            "CREATE TABLE IF NOT EXISTS symptom (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, seq INTEGER NOT NULL, payload BLOB NOT NULL)",
+            "CREATE TABLE IF NOT EXISTS nutrition_target (user_id TEXT PRIMARY KEY, payload BLOB NOT NULL)",
+        )
+    }
+}
+
+/**
+ * Query helper for the simple "primary-keyed encrypted payload" tables
+ * (evidence, exercise, safety_rule, user, nutrition). [table]/[idColumn] are
+ * internal compile-time identifiers only — guarded so no caller can ever
+ * interpolate user input there.
+ */
+internal class KeyedPayloadTable(
+    private val store: SqliteStore,
+    private val table: String,
+    private val idColumn: String,
+) {
+    init {
+        require(table.matches(IDENT)) { "internal: bad table identifier '$table'" }
+        require(idColumn.matches(IDENT)) { "internal: bad id identifier '$idColumn'" }
+    }
+
+    fun put(id: String, json: String) = store.update(
+        "INSERT INTO $table ($idColumn, payload) VALUES (?, ?) " +
+            "ON CONFLICT($idColumn) DO UPDATE SET payload = excluded.payload",
+        id, store.encrypt(json),
+    )
+
+    fun get(id: String): String? =
+        store.queryOne("SELECT payload FROM $table WHERE $idColumn = ?", { it.getBytes(1) }, id)?.let(store::decrypt)
+
+    fun all(): List<String> =
+        store.queryList("SELECT payload FROM $table ORDER BY $idColumn", { it.getBytes(1) }).map(store::decrypt)
+
+    fun exists(id: String): Boolean =
+        store.queryOne("SELECT EXISTS(SELECT 1 FROM $table WHERE $idColumn = ?)", { it.getBoolean(1) }, id) == true
+
+    private companion object { val IDENT = Regex("^[a-z_][a-z0-9_]*$") }
+}
+
+/**
+ * Query helper for user-scoped, append-ordered encrypted tables (progress,
+ * symptom): `recentFor(user, n)` returns the newest N in chronological order,
+ * matching the in-memory `takeLast` contract.
+ */
+internal class UserAppendPayloadTable(
+    private val store: SqliteStore,
+    private val table: String,
+) {
+    init { require(table.matches(IDENT)) { "internal: bad table identifier '$table'" } }
+
+    fun append(id: String, userId: String, json: String) = store.update(
+        "INSERT INTO $table (id, user_id, seq, payload) VALUES (?, ?, " +
+            "(SELECT COALESCE(MAX(seq), 0) + 1 FROM $table), ?)",
+        id, userId, store.encrypt(json),
+    )
+
+    fun recentFor(userId: String, limit: Int): List<String> =
+        store.queryList(
+            "SELECT payload FROM $table WHERE user_id = ? ORDER BY seq DESC LIMIT ?",
+            { it.getBytes(1) }, userId, limit,
+        ).map(store::decrypt).reversed()
+
+    fun byId(id: String): String? =
+        store.queryOne("SELECT payload FROM $table WHERE id = ?", { it.getBytes(1) }, id)?.let(store::decrypt)
+
+    private companion object { val IDENT = Regex("^[a-z_][a-z0-9_]*$") }
+}
+
+internal class SqliteEvidenceSourceRepository(store: SqliteStore) : EvidenceSourceRepository {
+    private val table = KeyedPayloadTable(store, "evidence_source", "id")
+    override fun all(): List<EvidenceSource> = table.all().map { decodeJson<EvidenceSource>(it) }
+    override fun byId(id: EvidenceId): EvidenceSource? = table.get(id)?.let { decodeJson<EvidenceSource>(it) }
+    override fun contains(id: EvidenceId): Boolean = table.exists(id)
+    override fun save(source: EvidenceSource) = table.put(source.id, encodeJson(source))
+}
+
+internal class SqliteExerciseRepository(store: SqliteStore) : ExerciseRepository {
+    private val table = KeyedPayloadTable(store, "exercise", "id")
+    override fun all(): List<Exercise> = table.all().map { decodeJson<Exercise>(it) }
+    override fun byId(id: ExerciseId): Exercise? = table.get(id)?.let { decodeJson<Exercise>(it) }
+    override fun contains(id: ExerciseId): Boolean = table.exists(id)
+    override fun save(exercise: Exercise) = table.put(exercise.id, encodeJson(exercise))
+}
+
+internal class SqliteSafetyRuleRepository(store: SqliteStore) : SafetyRuleRepository {
+    private val table = KeyedPayloadTable(store, "safety_rule", "id")
+    override fun all(): List<SafetyRule> = table.all().map { decodeJson<SafetyRule>(it) }
+    override fun byId(id: String): SafetyRule? = table.get(id)?.let { decodeJson<SafetyRule>(it) }
+    override fun save(rule: SafetyRule) = table.put(rule.id, encodeJson(rule))
+}
+
+internal class SqliteUserRepository(store: SqliteStore) : UserRepository {
+    private val table = KeyedPayloadTable(store, "user_account", "id")
+    override fun byId(id: UserId): User? = table.get(id)?.let { decodeJson<User>(it) }
+    override fun save(user: User) = table.put(user.id, encodeJson(user))
+}
+
+internal class SqliteTrainingPlanRepository(private val store: SqliteStore) : TrainingPlanRepository {
+    override fun currentFor(userId: UserId): TrainingPlan? =
+        store.queryOne(
+            "SELECT p.payload FROM current_plan c JOIN training_plan p ON p.id = c.plan_id WHERE c.user_id = ?",
+            { it.getBytes(1) }, userId,
+        )?.let(store::decrypt)?.let { decodeJson<TrainingPlan>(it) }
+
+    override fun byId(id: PlanId): TrainingPlan? =
+        store.queryOne("SELECT payload FROM training_plan WHERE id = ?", { it.getBytes(1) }, id)
+            ?.let(store::decrypt)?.let { decodeJson<TrainingPlan>(it) }
+
     override fun save(plan: TrainingPlan) {
-        store.write { conn ->
-            conn.prepareStatement(
-                "INSERT INTO training_plan(id,user_id,payload) VALUES(?,?,?) " +
-                    "ON CONFLICT(id) DO UPDATE SET user_id=excluded.user_id, payload=excluded.payload",
-            ).use { ps ->
-                ps.setString(1, plan.id); ps.setString(2, plan.userId); ps.setString(3, store.encode(plan)); ps.executeUpdate()
-            }
-            conn.prepareStatement("INSERT INTO current_plan(user_id,plan_id) VALUES(?,?) ON CONFLICT(user_id) DO UPDATE SET plan_id=excluded.plan_id")
-                .use { ps -> ps.setString(1, plan.userId); ps.setString(2, plan.id); ps.executeUpdate() }
-        }
+        // Mirror the in-memory semantics exactly: store by id (history kept),
+        // and bump the per-user "current" pointer so last save wins as current.
+        store.update(
+            "INSERT INTO training_plan (id, user_id, payload) VALUES (?, ?, ?) " +
+                "ON CONFLICT(id) DO UPDATE SET user_id = excluded.user_id, payload = excluded.payload",
+            plan.id, plan.userId, store.encrypt(encodeJson(plan)),
+        )
+        store.update(
+            "INSERT INTO current_plan (user_id, plan_id) VALUES (?, ?) " +
+                "ON CONFLICT(user_id) DO UPDATE SET plan_id = excluded.plan_id",
+            plan.userId, plan.id,
+        )
     }
 }
 
-class SqliteProgressRepository(private val store: SqliteStore) : ProgressRepository {
-    override fun recentFor(userId: UserId, limit: Int): List<ProgressEntry> = store.write { conn ->
-        conn.prepareStatement("SELECT payload FROM progress WHERE user_id=? ORDER BY seq DESC LIMIT ?").use { ps ->
-            ps.setString(1, userId); ps.setInt(2, limit); ps.executeQuery().use { rs ->
-                buildList { while (rs.next()) add(store.decode<ProgressEntry>(rs.getString(1))) }.reversed()
-            }
-        }
-    }
-    override fun append(entry: ProgressEntry) {
-        store.write { conn ->
-            conn.prepareStatement("INSERT INTO progress(id,user_id,payload) VALUES(?,?,?)").use { ps ->
-                ps.setString(1, entry.id); ps.setString(2, entry.userId); ps.setString(3, store.encode(entry)); ps.executeUpdate()
-            }
-        }
-    }
+internal class SqliteProgressRepository(store: SqliteStore) : ProgressRepository {
+    private val table = UserAppendPayloadTable(store, "progress_entry")
+    override fun recentFor(userId: UserId, limit: Int): List<ProgressEntry> =
+        table.recentFor(userId, limit).map { decodeJson<ProgressEntry>(it) }
+    override fun append(entry: ProgressEntry) = table.append(entry.id, entry.userId, encodeJson(entry))
 }
 
-class SqliteSymptomRepository(private val store: SqliteStore) : SymptomRepository {
-    override fun recentFor(userId: UserId, limit: Int): List<Symptom> = store.write { conn ->
-        conn.prepareStatement("SELECT payload FROM symptom WHERE user_id=? ORDER BY seq DESC LIMIT ?").use { ps ->
-            ps.setString(1, userId); ps.setInt(2, limit); ps.executeQuery().use { rs ->
-                buildList { while (rs.next()) add(store.decode<Symptom>(rs.getString(1))) }.reversed()
-            }
-        }
-    }
-    override fun byId(id: String): Symptom? = store.write { conn ->
-        conn.prepareStatement("SELECT payload FROM symptom WHERE id=? LIMIT 1").use { ps ->
-            ps.setString(1, id); ps.executeQuery().use { rs -> if (rs.next()) rs.getString(1) else null }
-        }
-    }?.let(store::decode)
-    override fun append(entry: Symptom) {
-        store.write { conn ->
-            conn.prepareStatement("INSERT INTO symptom(id,user_id,payload) VALUES(?,?,?)").use { ps ->
-                ps.setString(1, entry.id); ps.setString(2, entry.userId); ps.setString(3, store.encode(entry)); ps.executeUpdate()
-            }
-        }
-    }
+internal class SqliteSymptomRepository(store: SqliteStore) : SymptomRepository {
+    private val table = UserAppendPayloadTable(store, "symptom")
+    override fun recentFor(userId: UserId, limit: Int): List<Symptom> =
+        table.recentFor(userId, limit).map { decodeJson<Symptom>(it) }
+    override fun byId(id: String): Symptom? = table.byId(id)?.let { decodeJson<Symptom>(it) }
+    override fun append(entry: Symptom) = table.append(entry.id, entry.userId, encodeJson(entry))
 }
 
-class SqliteNutritionRepository(private val store: SqliteStore) : NutritionRepository {
-    override fun currentFor(userId: UserId): NutritionTarget? = store.write { conn ->
-        conn.prepareStatement("SELECT payload FROM nutrition WHERE user_id=?").use { ps ->
-            ps.setString(1, userId); ps.executeQuery().use { rs -> if (rs.next()) rs.getString(1) else null }
-        }
-    }?.let(store::decode)
-    override fun save(target: NutritionTarget) {
-        store.write { conn ->
-            conn.prepareStatement("INSERT INTO nutrition(user_id,payload) VALUES(?,?) ON CONFLICT(user_id) DO UPDATE SET payload=excluded.payload")
-                .use { ps -> ps.setString(1, target.userId); ps.setString(2, store.encode(target)); ps.executeUpdate() }
+internal class SqliteNutritionRepository(store: SqliteStore) : NutritionRepository {
+    private val table = KeyedPayloadTable(store, "nutrition_target", "user_id")
+    override fun currentFor(userId: UserId): NutritionTarget? =
+        table.get(userId)?.let { decodeJson<NutritionTarget>(it) }
+    override fun save(target: NutritionTarget) = table.put(target.userId, encodeJson(target))
+}
+
+/**
+ * The durable bundle: one encrypted SQLite file, eight repos behind the ports.
+ * Construct via [open]; close to release the connection (the file survives for
+ * the next open — that is the whole point of "not in-memory").
+ */
+class SqliteRepositories internal constructor(
+    private val store: SqliteStore,
+    val evidence: EvidenceSourceRepository,
+    val exercises: ExerciseRepository,
+    val safetyRules: SafetyRuleRepository,
+    val users: UserRepository,
+    val plans: TrainingPlanRepository,
+    val progress: ProgressRepository,
+    val symptoms: SymptomRepository,
+    val nutrition: NutritionRepository,
+) : AutoCloseable {
+    override fun close() = store.close()
+
+    companion object {
+        /**
+         * @param jdbcUrl a SQLite JDBC url, e.g. `jdbc:sqlite:./data/dreamteam.db`.
+         * @param key the injected AES-256 key (ADR 0003). Never derived in code.
+         */
+        fun open(jdbcUrl: String, key: EncryptionKey): SqliteRepositories {
+            val store = SqliteStore(jdbcUrl, key)
+            return SqliteRepositories(
+                store,
+                SqliteEvidenceSourceRepository(store),
+                SqliteExerciseRepository(store),
+                SqliteSafetyRuleRepository(store),
+                SqliteUserRepository(store),
+                SqliteTrainingPlanRepository(store),
+                SqliteProgressRepository(store),
+                SqliteSymptomRepository(store),
+                SqliteNutritionRepository(store),
+            )
         }
     }
 }

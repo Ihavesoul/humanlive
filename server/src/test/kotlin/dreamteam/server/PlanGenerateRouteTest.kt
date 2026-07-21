@@ -10,6 +10,7 @@ import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
 import io.ktor.server.testing.testApplication
+import dreamteam.server.persistence.EncryptionKeys
 import org.junit.jupiter.api.Test
 import java.nio.file.Files
 
@@ -21,12 +22,14 @@ import java.nio.file.Files
  */
 class PlanGenerateRouteTest {
 
+    private val testKey = EncryptionKeys.of(ByteArray(32) { (it + 1).toByte() })
+
     private fun tempDb(): String = Files.createTempFile("dreamteam-plan-test", ".db").toString()
 
     @Test
     fun `serves the deterministic baseline plan via the safety gateway`() =
         testApplication {
-            application { module(tempDb()) }
+            application { module("jdbc:sqlite:${tempDb()}", testKey) }
             // Seed profile: scoliosis reported, no red flags, no current curve
             // data => side-specific stays locked; generic baseline is allowed.
             val response =
@@ -64,7 +67,7 @@ class PlanGenerateRouteTest {
     @Test
     fun `a red flag returns 409 and surfaces nothing`() =
         testApplication {
-            application { module(tempDb()) }
+            application { module("jdbc:sqlite:${tempDb()}", testKey) }
             val response =
                 client.post("/v1/plans/generate") {
                     contentType(ContentType.Application.Json)

@@ -10,15 +10,18 @@ import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
 import io.ktor.server.testing.testApplication
+import dreamteam.server.persistence.EncryptionKeys
 import org.junit.jupiter.api.Test
 import java.nio.file.Files
 
 class RoutesTest {
+    private val testKey = EncryptionKeys.of(ByteArray(32) { (it + 1).toByte() })
+
     private fun tempDb(): String = Files.createTempFile("dreamteam-test", ".db").toString()
     @Test
     fun `health endpoint reports ok`() =
         testApplication {
-            application { module(tempDb()) }
+            application { module("jdbc:sqlite:${tempDb()}", testKey) }
             val response = client.get("/health")
             response.status shouldBe HttpStatusCode.OK
             val body = response.bodyAsText()
@@ -29,7 +32,7 @@ class RoutesTest {
     @Test
     fun `v1 safety evaluate locks side-specific content without clinician data`() =
         testApplication {
-            application { module(tempDb()) }
+            application { module("jdbc:sqlite:${tempDb()}", testKey) }
             val response =
                 client.post("/v1/safety/evaluate") {
                     contentType(ContentType.Application.Json)
@@ -57,7 +60,7 @@ class RoutesTest {
     @Test
     fun `v1 safety evaluate blocks when a red flag is reported`() =
         testApplication {
-            application { module(tempDb()) }
+            application { module("jdbc:sqlite:${tempDb()}", testKey) }
             val response =
                 client.post("/v1/safety/evaluate") {
                     contentType(ContentType.Application.Json)

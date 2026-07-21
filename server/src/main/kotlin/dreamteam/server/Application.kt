@@ -10,15 +10,9 @@ import dreamteam.domain.safety.StructuralSafetyRules
 import dreamteam.domain.training.DeterministicPlanGenerator
 import dreamteam.domain.training.GeneratedPlan
 import dreamteam.domain.training.TrainingPlan
-import dreamteam.server.persistence.SqliteEvidenceSourceRepository
-import dreamteam.server.persistence.SqliteExerciseRepository
-import dreamteam.server.persistence.SqliteNutritionRepository
-import dreamteam.server.persistence.SqliteProgressRepository
-import dreamteam.server.persistence.SqliteSafetyRuleRepository
-import dreamteam.server.persistence.SqliteStore
-import dreamteam.server.persistence.SqliteSymptomRepository
-import dreamteam.server.persistence.SqliteTrainingPlanRepository
-import dreamteam.server.persistence.SqliteUserRepository
+import dreamteam.server.persistence.EncryptionKey
+import dreamteam.server.persistence.EncryptionKeys
+import dreamteam.server.persistence.SqliteRepositories
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
@@ -41,31 +35,40 @@ fun main() {
 }
 
 /**
- * The durable repository wiring for one server process. Default DB path comes
- * from `DREAMTEAM_DB` (or `dreamteam.db` in the working dir); tests pass a temp
- * path explicitly. ADR 0003.
+ * The durable repository wiring for one server process: one encrypted SQLite
+ * file behind the eight repository ports (ADR 0003 / DRE-16). Default DB path
+ * comes from `DREAMTEAM_DB` (or `dreamteam.db` in the working dir); the AES-256
+ * at-rest key is injected from the `DREAMTEAM_DB_KEY` env var (base64, 32
+ * bytes — fatal if missing/wrong, never a silent plaintext fallback). Both are
+ * deployment secrets, never committed.
  */
-class ServerDeps(dbPath: String) : AutoCloseable {
-    val store: SqliteStore = SqliteStore(dbPath)
-    val users = SqliteUserRepository(store)
-    val plans = SqliteTrainingPlanRepository(store)
-    val progress = SqliteProgressRepository(store)
-    val symptoms = SqliteSymptomRepository(store)
-    val nutrition = SqliteNutritionRepository(store)
-    val exercises = SqliteExerciseRepository(store)
-    val evidence = SqliteEvidenceSourceRepository(store)
-    val rules = SqliteSafetyRuleRepository(store)
-    override fun close() = store.close()
+class ServerDeps(jdbcUrl: String, key: EncryptionKey) : AutoCloseable {
+    private val repos = SqliteRepositories.open(jdbcUrl, key)
+    val users = repos.users
+    val plans = repos.plans
+    val progress = repos.progress
+    val symptoms = repos.symptoms
+    val nutrition = repos.nutrition
+    val exercises = repos.exercises
+    val evidence = repos.evidence
+    val rules = repos.safetyRules
+    override fun close() = repos.close()
 }
 
 /** Resolves the DB path: explicit arg > env > local default. */
 fun resolveDbPath(): String = System.getenv("DREAMTEAM_DB")?.takeIf { it.isNotBlank() } ?: "dreamteam.db"
 
-fun Application.module(dbPath: String = resolveDbPath()) {
+/** Resolves the SQLite JDBC url for [ServerDeps]. */
+fun resolveJdbcUrl(): String = "jdbc:sqlite:${resolveDbPath()}"
+
+/** Resolves the AES-256 at-rest key (base64, 32 bytes) from the deployment env. */
+fun resolveEncryptionKey(): EncryptionKey = EncryptionKeys.fromBase64Env("DREAMTEAM_DB_KEY")
+
+fun Application.module(jdbcUrl: String = resolveJdbcUrl(), key: EncryptionKey = resolveEncryptionKey()) {
     install(ContentNegotiation) {
         json(Json { prettyPrint = true; ignoreUnknownKeys = true })
     }
-    val deps = ServerDeps(dbPath)
+    val deps = ServerDeps(jdbcUrl, key)
 
     routing {
         // Infra liveness probe — no medical data, no claims.
