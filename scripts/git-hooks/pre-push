@@ -1,0 +1,30 @@
+#!/bin/sh
+# pre-push: serialize pushes to `main` on the shared humanlive checkout.
+#
+# Only scripts/git_publish.py may push main (it holds an exclusive flock across
+# fetch->rebase->commit->push, and sets PAPERCLIP_MAIN_PUSH_OK=1). A bare
+# `git push origin main` is blocked here so two agents can never race on main.
+#
+# Branches other than main are unaffected.
+#
+# Operator escape hatch (merge hotfixes, emergency rebase): prefix with
+#   PAPERCLIP_MAIN_PUSH_BYPASS=1 git push ...
+bypass=0
+[ "$PAPERCLIP_MAIN_PUSH_BYPASS" = "1" ] && bypass=1
+
+while read -r local_ref local_sha remote_ref remote_sha; do
+  if [ "$remote_ref" = "refs/heads/main" ] && [ "$PAPERCLIP_MAIN_PUSH_OK" != "1" ] && [ "$bypass" = "0" ]; then
+    cat >&2 <<'EOF'
+pre-push: direct push to 'main' is blocked (DRE-33 serialization rule).
+
+  Use the serialized publisher instead:
+      scripts/git_publish.py -m "<commit message>"
+
+  It holds an exclusive lock across fetch -> rebase -> commit -> push, so two
+  runs can never diverge main. Operator bypass:
+      PAPERCLIP_MAIN_PUSH_BYPASS=1 git push origin main
+EOF
+    exit 1
+  fi
+done
+exit 0
