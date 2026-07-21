@@ -160,4 +160,31 @@ class SafetyGuardedGatewayTest {
         plan.surfaced.shouldBeEmpty()
         plan.items[0].verdict.ruleIds shouldBe listOf("stub_heavy_axial_loading_scoliosis")
     }
+
+    @Test
+    fun `the axial-loading contraindication only blocks the flagged condition, not a generic user`() {
+        // DRE-10 threshold specificity: the rule encodes "heavy axial loading is
+        // blocked for a *flagged* scoliosis presentation", not a blanket ban. The
+        // same movement with an unflagged screening context must NOT be blocked
+        // by this rule — otherwise it over-reaches generic users. (Clinical
+        // content is defined in ContraindicationStubs; activation is gated on
+        // DRE-14 sourcing, so the test activates a copy with the same mechanism.)
+        val activeRule = ContraindicationStubs.heavyAxialLoadingForFlaggedScoliosis
+            .copy(status = RuleStatus.ACTIVE, evidenceRefs = listOf("SAFETY-SIGNED-OFF"))
+        val gateway = SafetyGuardedGateway(
+            // scoliosis_flagged NOT present -> rule must not fire.
+            ctx(allowedExercises = setOf("back_squat"), conditionFlags = emptySet()),
+            rules = listOf(allowlistRule(setOf("back_squat")), activeRule),
+        )
+        val movement = Recommendation(
+            "back_squat",
+            listOf("ACSM-RT-2026"),
+            exerciseTags = setOf("heavy_axial_loading"),
+        )
+
+        val plan = gateway.surface(listOf(movement))
+
+        plan.shouldBeInstanceOf<SurfacedPlan.Ok>()
+        plan.surfaced shouldBe listOf(movement)
+    }
 }
