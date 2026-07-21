@@ -116,14 +116,26 @@ class SafetyGuardedGatewayTest {
     }
 
     @Test
-    fun `a still-draft contraindication stub is inert and does not provision the gateway`() {
-        // DRE-7 boundary survives activation: a DRAFT stub never provisions the
-        // gate and cannot unblock a candidate. The heavy-axial-loading rule is
-        // now ACTIVE (see the next two tests); this pins that the remaining
-        // loaded-flexion-rotation stub stays inert until it is sourced + flipped.
+    fun `a draft contraindication rule is inert and does not provision the gateway`() {
+        // DRE-7 boundary survives activation: a DRAFT rule never provisions the
+        // gate and cannot block (the engine evaluates ACTIVE rules only). Both
+        // production stubs are now ACTIVE, so a synthetic DRAFT rule keeps the
+        // boundary pinned — a not-yet-sourced slot must stay inert.
+        val draftRule = SafetyRule(
+            id = "draft_sample",
+            description = "Sample draft contraindication.",
+            trigger = RuleTrigger.ContraindicationStub(
+                exerciseTag = "loaded_flexion_rotation",
+                conditionFlag = "scoliosis_flagged",
+                clinicalQuestion = "(draft boundary test)",
+            ),
+            decision = SafetyRule.Decision.BLOCK,
+            status = RuleStatus.DRAFT,
+            evidenceRefs = listOf("SAFETY-STUB"),
+        )
         val gateway = SafetyGuardedGateway(
             ctx(allowedExercises = setOf("cable_woodchop"), conditionFlags = setOf("scoliosis_flagged")),
-            rules = listOf(ContraindicationStubs.loadedFlexionRotationForFlaggedScoliosis), // DRAFT
+            rules = listOf(draftRule),
         )
         gateway.isProvisioned shouldBe false
 
@@ -180,6 +192,56 @@ class SafetyGuardedGatewayTest {
             "back_squat",
             listOf("ACSM-RT-2026"),
             exerciseTags = setOf("heavy_axial_loading"),
+        )
+
+        val plan = gateway.surface(listOf(movement))
+
+        plan.shouldBeInstanceOf<SurfacedPlan.Ok>()
+        plan.surfaced shouldBe listOf(movement)
+    }
+
+    @Test
+    fun `the active loaded-flexion-rotation contraindication blocks the unsafe candidate end to end`() {
+        // DRE-25 activation: the rule is now natively ACTIVE and carries its real
+        // sourced evidence (MARSHALL + MARRAS). Proves the production rule — no
+        // .copy, no fake evidence override — blocks end-to-end and provisions the
+        // gateway. This is the sign-off verification for the activation.
+        val activeRule = ContraindicationStubs.loadedFlexionRotationForFlaggedScoliosis
+        val gateway = SafetyGuardedGateway(
+            ctx(allowedExercises = setOf("cable_woodchop"), conditionFlags = setOf("scoliosis_flagged")),
+            rules = listOf(allowlistRule(setOf("cable_woodchop")), activeRule),
+        )
+        gateway.isProvisioned shouldBe true
+
+        val unsafe = Recommendation(
+            "cable_woodchop",
+            listOf("ACSM-RT-2026"),
+            exerciseTags = setOf("loaded_flexion_rotation"),
+        )
+        val plan = gateway.surface(listOf(unsafe))
+
+        plan.shouldBeInstanceOf<SurfacedPlan.Blocked>()
+        plan.surfaced.shouldBeEmpty()
+        plan.items[0].verdict.ruleIds shouldBe listOf("stub_loaded_flexion_rotation_scoliosis")
+    }
+
+    @Test
+    fun `the loaded-flexion-rotation contraindication only blocks the flagged condition, not a generic user`() {
+        // DRE-25 threshold specificity: the rule blocks loaded flexion/rotation
+        // only for a *flagged* scoliosis presentation, not a blanket ban. The same
+        // movement in an unflagged screening context must surface — otherwise the
+        // rule over-reaches generic users. Uses the real production rule (now
+        // ACTIVE + sourced), no .copy.
+        val activeRule = ContraindicationStubs.loadedFlexionRotationForFlaggedScoliosis
+        val gateway = SafetyGuardedGateway(
+            // scoliosis_flagged NOT present -> rule must not fire.
+            ctx(allowedExercises = setOf("cable_woodchop"), conditionFlags = emptySet()),
+            rules = listOf(allowlistRule(setOf("cable_woodchop")), activeRule),
+        )
+        val movement = Recommendation(
+            "cable_woodchop",
+            listOf("ACSM-RT-2026"),
+            exerciseTags = setOf("loaded_flexion_rotation"),
         )
 
         val plan = gateway.surface(listOf(movement))
