@@ -42,8 +42,29 @@ Analyst's catalog; this is an audit aid, not a clinical appraisal.
   trunk flexion (sagittal angle) + twisting/lateral velocity + load moment
   distinguished high- from low-risk jobs for low back disorder (OR ~10.7). The
   living-human leg the porcine mechanics study lacks.
-- **Evidence level:** `moderate_context` (controlled vocab) for both — these are
-  context/mechanism sources, NOT scoliosis-specific proof.
+- **Evidence level (split; DRE-31 settlement):** `MARSHALL-MCGILL-AXIAL-TORQUE-2010`
+  = `low_moderate`; `MARRAS-TRUNK-MOTION-1993` = `moderate_context` (controlled
+  vocab). Rated **separately** because the two sources differ in strength.
+  - **MARSHALL `low_moderate`** (downgraded from the prior committed
+    `moderate_context`): a single **ex-vivo porcine** mechanism study. By the
+    catalog's own precedent ladder it is weaker *direct* evidence than
+    `DIAPHRAGMATIC-BREATHING-2019` (human **systematic review** = `low_moderate`)
+    and `KIKUCHI-PUSHUP-2017` (single **human** study = `moderate`); it cannot
+    sit at `moderate_context` (the band of `WEINSTEIN-AIS-2008`'s human
+    narrative review, *above* a human SR) — that would be inflation that
+    undercuts the support-not-treat framing. Not `low`: the combined
+    flexion+axial-torsion → annular-failure mechanism is among the most
+    reproduced results in spine biomechanics, so `low_moderate` =
+    "methodologically sound but indirect/animal."
+  - **MARRAS `moderate_context`** (kept): **in-vivo human**, large-n
+    epidemiology (400+ jobs, 48 industries, OR ~10.7) — genuinely
+    moderate-quality *human* evidence, stronger than MARSHALL. Observational +
+    occupational-LBD in presumably-typical spines, not scoliosis, so
+    applicability is as **supporting context** (population mismatch).
+  - **Net:** the two-source bundle reads as "solid human epi context (MARRAS) +
+    corroborating animal mechanism (MARSHALL)" — a defensible *precautionary*
+    basis, not a treatment claim. `evidenceLevel` reflects *each* source's own
+    basis; it was not set to match a sibling rule for "coherence."
 - **Honest caveat (do not inflate):** No RCT proves loaded flexion+rotation
   worsens scoliosis (a PubMed search for scoliosis × exercise × rotation ×
   contraindication returns nothing direct — a genuine consensus/conservative
