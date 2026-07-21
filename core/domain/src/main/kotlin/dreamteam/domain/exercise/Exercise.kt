@@ -30,4 +30,11 @@ data class Exercise(
     val regression: String,
     val scoliosisRule: String,
     override val evidenceRefs: List<EvidenceId>,
+    /**
+     * Movement-set tags a contraindication rule may match on (mirrors
+     * `movement_tags` in data/exercises.json; e.g. "heavy_axial_loading"). Empty
+     * by default; flows into
+     * [dreamteam.domain.safety.Recommendation.exerciseTags] at plan generation.
+     */
+    val movementTags: Set<String> = emptySet(),
 ) : EvidenceLinked

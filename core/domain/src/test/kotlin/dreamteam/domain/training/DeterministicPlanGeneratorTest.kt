@@ -1,13 +1,17 @@
 package dreamteam.domain.training
 
+import dreamteam.domain.safety.ContraindicationStubs
 import dreamteam.domain.safety.Recommendation
 import dreamteam.domain.safety.RuleStatus
 import dreamteam.domain.safety.RuleTrigger
 import dreamteam.domain.safety.SafetyGuardedGateway
 import dreamteam.domain.safety.SafetyRule
+import dreamteam.domain.safety.SafetyVerdict
 import dreamteam.domain.safety.ScreeningContext
 import dreamteam.domain.safety.StructuralSafetyRules
+import io.kotest.matchers.collections.shouldContain
 import io.kotest.matchers.collections.shouldContainExactly
+import io.kotest.matchers.collections.shouldNotContain
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.types.shouldBeInstanceOf
 import org.junit.jupiter.api.Test
@@ -77,5 +81,65 @@ class DeterministicPlanGeneratorTest {
 
         surfaced.shouldBeInstanceOf<dreamteam.domain.safety.SurfacedPlan.Blocked>()
         surfaced.surfaced shouldBe emptyList() // nothing reaches the user
+    }
+
+    // --- DRE-18: movement-set tags flow library -> Recommendation -> rule ------
+
+    /**
+     * Provisions the heavy_axial_loading contraindication rule. Production keeps
+     * it [RuleStatus.DRAFT] pending DRE-14 sourcing; this test activates it to
+     * prove the end-to-end plumbing (library tag -> Recommendation.exerciseTags
+     * via [toRecommendation] -> rule fires -> blocked) is wired.
+     */
+    private fun heavyAxialRuleActive(): List<SafetyRule> =
+        StructuralSafetyRules.all +
+            ContraindicationStubs.heavyAxialLoadingForFlaggedScoliosis.copy(status = RuleStatus.ACTIVE)
+
+    private fun recFor(exerciseId: String): Recommendation =
+        toRecommendation(
+            ExerciseAssignment(
+                exerciseId = exerciseId,
+                sets = BaselineProgram.exercises.getValue(exerciseId).defaultSets,
+                repScheme = BaselineProgram.exercises.getValue(exerciseId).repScheme,
+                rir = BaselineProgram.exercises.getValue(exerciseId).defaultRir,
+                evidenceRefs = BaselineProgram.exercises.getValue(exerciseId).evidenceRefs,
+            ),
+        )
+
+    @Test
+    fun `a heavy_axial_loading exercise is blocked end-to-end for a flagged scoliosis context`() {
+        val flaggedCtx = baselineContext().copy(conditionFlags = setOf("scoliosis_flagged"))
+        val gateway = SafetyGuardedGateway(flaggedCtx, heavyAxialRuleActive())
+
+        val rec = recFor("barbell_back_squat")
+        // Tag flowed from the library record into the candidate recommendation.
+        rec.exerciseTags shouldContain "heavy_axial_loading"
+
+        val verdict = gateway.vet(rec)
+        verdict.shouldBeInstanceOf<SafetyVerdict.Block>()
+        verdict.ruleIds shouldContain "stub_heavy_axial_loading_scoliosis"
+    }
+
+    @Test
+    fun `a heavy_axial_loading exercise is allowed for a generic context`() {
+        // Same tagged exercise, no condition flag => the contraindication rule
+        // does not match, the allowlists pass => Allow. The tag alone never
+        // blocks; it blocks only in combination with the condition flag.
+        val gateway = SafetyGuardedGateway(baselineContext(), heavyAxialRuleActive())
+
+        val rec = recFor("overhead_barbell_press")
+        rec.exerciseTags shouldContain "heavy_axial_loading"
+
+        gateway.vet(rec) shouldBe SafetyVerdict.Allow
+    }
+
+    @Test
+    fun `baseline light unilateral movements are NOT tagged heavy_axial_loading`() {
+        // Safety Reviewer's exclusion (DRE-10): split squat, goblet squat,
+        // push-up, single-arm row are light/unilateral and must stay untagged so
+        // they remain available on the generic baseline.
+        listOf("split_squat", "goblet_squat", "pushup", "one_arm_row_supported").forEach { id ->
+            recFor(id).exerciseTags shouldNotContain "heavy_axial_loading"
+        }
     }
 }

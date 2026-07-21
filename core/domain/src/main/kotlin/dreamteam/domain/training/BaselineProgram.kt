@@ -41,6 +41,15 @@ object BaselineProgram {
         val repScheme: String,
         val defaultRir: Int?,
         val evidenceRefs: List<EvidenceId>,
+        /**
+         * Movement-set tags a contraindication rule may match on (e.g.
+         * "heavy_axial_loading"). Mirrors `movement_tags` in
+         * data/exercises.json and flows into
+         * [dreamteam.domain.safety.Recommendation.exerciseTags] by the plan
+         * generator. Empty for the scoliosis-safe baseline movements; populated
+         * on cataloged contraindicated movements the safety rule must catch.
+         */
+        val movementTags: Set<String> = emptySet(),
     )
 
     data class SessionTemplate(
@@ -87,15 +96,41 @@ object BaselineProgram {
     private val briskWalk = BaselineExercise("brisk_walk", "Быстрая ходьба", "aerobic", 1, "20–40 мин", null, listOf("WHO-ACTIVITY-2020"))
     private val yogaFlow = BaselineExercise("gentle_yoga_flow", "Мягкий йога-флоу", "mobility_relaxation", 1, "15–25 мин", null, listOf("YOGA-LBP-2022"))
 
-    /** All baseline exercises, keyed by id. */
+    // --- Cataloged heavy-axial movements (NOT in any baseline session template) -
+    // These are library/catalog members the `heavy_axial_loading` contraindication
+    // rule (ContraindicationStubs.heavyAxialLoadingForFlaggedScoliosis, DRE-10)
+    // must be able to match. Per the Safety Reviewer's definition: barbell
+    // back/front squat, standing overhead barbell press, heavy deadlift &
+    // good-morning variations, heavy loaded carry. They are intentionally NOT in
+    // any session template above, so the surfaced baseline stays the
+    // scoliosis-safe PoC subset; they exist so the rule has real referents and
+    // can protect non-baseline plans. Bodyweight/light unilateral variants
+    // (split squat, goblet squat, push-up, single-arm row) stay UNTAGGED — they
+    // remain on the generic baseline. Evidence reuses existing catalog ids; a
+    // dedicated movement-specific source is an Evidence Analyst follow-up.
+    private val barbellBackSquat = BaselineExercise("barbell_back_squat", "Приседания со штангой на спине", "knee_dominant", 4, "5–8", 1, listOf("ACSM-RT-2026", "LOPEZ-LOAD-2021"), setOf("heavy_axial_loading"))
+    private val barbellFrontSquat = BaselineExercise("barbell_front_squat", "Приседания со штангой на груди", "knee_dominant", 4, "5–8", 1, listOf("ACSM-RT-2026", "LOPEZ-LOAD-2021"), setOf("heavy_axial_loading"))
+    private val overheadBarbellPress = BaselineExercise("overhead_barbell_press", "Жим штанги стоя над головой", "vertical_push", 4, "5–8", 1, listOf("ACSM-RT-2026", "LOPEZ-LOAD-2021"), setOf("heavy_axial_loading"))
+    private val barbellDeadlift = BaselineExercise("barbell_deadlift", "Становая тяга со штангой (классика/сумо)", "hip_hinge", 3, "3–6", 1, listOf("ACSM-RT-2026", "LOPEZ-LOAD-2021"), setOf("heavy_axial_loading"))
+    private val barbellGoodMorning = BaselineExercise("barbell_good_morning", "Гудморнинг со штангой", "hip_hinge", 3, "8–12", 2, listOf("ACSM-RT-2026", "LOPEZ-LOAD-2021"), setOf("heavy_axial_loading"))
+    private val heavyFarmerCarry = BaselineExercise("heavy_farmer_carry", "Тяжёлая прогулка фермера", "loaded_carry", 3, "20–40 м", 1, listOf("ACSM-RT-2026", "LOPEZ-LOAD-2021"), setOf("heavy_axial_loading"))
+
+    /** Library exercises, keyed by id: the baseline movements + cataloged contraindicated movements the safety rule references. */
     val exercises: Map<ExerciseId, BaselineExercise> = listOf(
         warmBreathing, wallAxial, rockback, wallSlide, splitSquat, gobletSquat, bulgarian,
         reverseLunge, bStanceRdl, singleLegRdl, gluteBridge, pushup, floorPress, pikePushup,
         oneArmRow, proneYtw, reverseFly, deadBug, birdDog, sidePlank, suitcase, wallHipAbd,
         briskWalk, yogaFlow,
+        barbellBackSquat, barbellFrontSquat, overheadBarbellPress, barbellDeadlift,
+        barbellGoodMorning, heavyFarmerCarry,
     ).associateBy { it.id }
 
-    /** Every exercise id the baseline plan may surface — the allowlist seed. */
+    /**
+     * Known library exercise ids — the allowlist seed. The baseline session
+     * templates surface only the scoliosis-safe subset; the heavy-axial ids are
+     * allowlisted (valid library members) so a contraindication rule — not the
+     * allowlist — is what blocks them for a flagged context.
+     */
     val exerciseIds: Set<ExerciseId> = exercises.keys
 
     /** Every evidence id cited by the baseline — the catalog allowlist seed. */

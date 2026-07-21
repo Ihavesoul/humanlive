@@ -16,7 +16,8 @@ import dreamteam.domain.safety.SurfacedPlan
  *
  * Flow:
  *  1. Build the deterministic [TrainingPlan] + baseline [NutritionTarget].
- *  2. Project every assignment to a [Recommendation] (exerciseId + evidence refs).
+ *  2. Project every assignment to a [Recommendation] (exerciseId + evidence refs
+ *     + movement-set tags from the library, so a contraindication rule can match).
  *  3. [SafetyGuardedGateway.surface] — all-or-nothing: if *any* assignment is
  *     blocked, *nothing* is surfaced (a partial plan with a silently-dropped
  *     contraindicated exercise is a footgun; see [SurfacedPlan]).
@@ -44,7 +45,7 @@ class DeterministicPlanGenerator(private val gateway: SafetyGuardedGateway) {
         val candidates: List<Recommendation> = plan.weeks
             .flatMap { it.sessions }
             .flatMap { it.assignments }
-            .map { Recommendation(it.exerciseId, it.evidenceRefs) }
+            .map { toRecommendation(it) }
 
         return when (val surfaced = gateway.surface(candidates)) {
             is SurfacedPlan.Ok -> GeneratedPlan.Ok(plan, nutrition)
@@ -56,6 +57,22 @@ class DeterministicPlanGenerator(private val gateway: SafetyGuardedGateway) {
         }
     }
 }
+
+/**
+ * Projects an [ExerciseAssignment] to a candidate [Recommendation], carrying the
+ * movement-set tags from the library record ([BaselineProgram.exercises]) so a
+ * contraindication rule
+ * ([dreamteam.domain.safety.RuleTrigger.ContraindicationStub]) can match on
+ * them (DRE-18: tags flow library → exerciseTags → rule). An unknown id
+ * (should not happen — the baseline is self-sourced) yields an empty tag set and
+ * is then caught by the structural allowlist rule.
+ */
+internal fun toRecommendation(assignment: ExerciseAssignment): Recommendation =
+    Recommendation(
+        exerciseId = assignment.exerciseId,
+        evidenceRefs = assignment.evidenceRefs,
+        exerciseTags = BaselineProgram.exercises[assignment.exerciseId]?.movementTags ?: emptySet(),
+    )
 
 /** Outcome of deterministic generation: a fully-vetted plan, or a block (nothing surfaced). */
 sealed interface GeneratedPlan {

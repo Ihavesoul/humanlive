@@ -3,6 +3,7 @@
     "id": "warm_breathing",
     "name_ru": "Спокойное дыхание 5–6/мин",
     "category": "warmup",
+    "movement_tags": [],
     "equipment": "none",
     "default_sets": 1,
     "rep_scheme": "3–5 мин",
@@ -20,6 +21,7 @@
     "id": "wall_axial_elongation",
     "name_ru": "Осевое вытяжение у стены",
     "category": "motor_control",
+    "movement_tags": [],
     "equipment": "wall",
     "default_sets": 5,
     "rep_scheme": "3–5 дыханий",
@@ -37,6 +39,7 @@
     "id": "quadruped_rockback",
     "name_ru": "Рок-бэк на четвереньках",
     "category": "mobility_control",
+    "movement_tags": [],
     "equipment": "mat",
     "default_sets": 2,
     "rep_scheme": "8–12",
@@ -53,6 +56,7 @@
     "id": "split_squat",
     "name_ru": "Сплит-присед / передняя нога на возвышении",
     "category": "knee_dominant",
+    "movement_tags": [],
     "equipment": "dumbbells, yoga block",
     "default_sets": 3,
     "rep_scheme": "8–15/сторона",
@@ -70,6 +74,7 @@
     "id": "goblet_squat",
     "name_ru": "Гоблет-присед с темпом",
     "category": "knee_dominant",
+    "movement_tags": [],
     "equipment": "dumbbell",
     "default_sets": 3,
     "rep_scheme": "10–20",
@@ -87,6 +92,7 @@
     "id": "bulgarian_split_squat",
     "name_ru": "Болгарский сплит-присед",
     "category": "knee_dominant",
+    "movement_tags": [],
     "equipment": "dumbbells, chair",
     "default_sets": 3,
     "rep_scheme": "8–15/сторона",
@@ -104,6 +110,7 @@
     "id": "reverse_lunge",
     "name_ru": "Обратный выпад",
     "category": "knee_dominant",
+    "movement_tags": [],
     "equipment": "dumbbells",
     "default_sets": 3,
     "rep_scheme": "8–15/сторона",
@@ -120,6 +127,7 @@
     "id": "b_stance_rdl",
     "name_ru": "B-stance румынская тяга",
     "category": "hip_hinge",
+    "movement_tags": [],
     "equipment": "dumbbells",
     "default_sets": 3,
     "rep_scheme": "10–20/сторона",
@@ -137,6 +145,7 @@
     "id": "single_leg_rdl_supported",
     "name_ru": "Одноногая тяга с опорой",
     "category": "hip_hinge",
+    "movement_tags": [],
     "equipment": "dumbbell, wall",
     "default_sets": 3,
     "rep_scheme": "8–15/сторона",
@@ -153,6 +162,7 @@
     "id": "glute_bridge",
     "name_ru": "Ягодичный мост / хамстринг-выходы",
     "category": "hip_extension",
+    "movement_tags": [],
     "equipment": "mat",
     "default_sets": 3,
     "rep_scheme": "10–20",
@@ -169,6 +179,7 @@
     "id": "pushup",
     "name_ru": "Отжимания: выбранная прогрессия",
     "category": "horizontal_push",
+    "movement_tags": [],
     "equipment": "floor/table/blocks",
     "default_sets": 3,
     "rep_scheme": "8–20",
@@ -186,6 +197,7 @@
     "id": "db_floor_press",
     "name_ru": "Жим гантелей лёжа на полу",
     "category": "horizontal_push",
+    "movement_tags": [],
     "equipment": "dumbbells, mat",
     "default_sets": 3,
     "rep_scheme": "10–20",
@@ -203,6 +215,7 @@
     "id": "pike_pushup_optional",
     "name_ru": "Пайк-отжимание (опционально)",
     "category": "vertical_push",
+    "movement_tags": [],
     "equipment": "mat/blocks",
     "default_sets": 2,
     "rep_scheme": "6–15",
@@ -219,6 +232,7 @@
     "id": "one_arm_row_supported",
     "name_ru": "Тяга гантели одной рукой с опорой",
     "category": "horizontal_pull",
+    "movement_tags": [],
     "equipment": "dumbbell, chair",
     "default_sets": 3,
     "rep_scheme": "12–30/сторона",
@@ -236,6 +250,7 @@
     "id": "prone_ytw",
     "name_ru": "Y–T–W лёжа",
     "category": "scapular",
+    "movement_tags": [],
     "equipment": "mat/light dumbbells optional",
     "default_sets": 2,
     "rep_scheme": "6–10 каждой позиции",
@@ -252,6 +267,7 @@
     "id": "reverse_fly",
     "name_ru": "Разведение гантелей в наклоне с опорой",
     "category": "scapular",
+    "movement_tags": [],
     "equipment": "dumbbells, chair",
     "default_sets": 2,
     "rep_scheme": "15–30",
@@ -269,6 +285,7 @@
     "id": "dead_bug",
     "name_ru": "Dead bug",
     "category": "trunk_control",
+    "movement_tags": [],
     "equipment": "mat",
     "default_sets": 3,
     "rep_scheme": "6–10/сторона",
@@ -286,6 +303,7 @@
     "id": "bird_dog",
     "name_ru": "Bird dog",
     "category": "trunk_control",
+    "movement_tags": [],
     "equipment": "mat",
     "default_sets": 3,
     "rep_scheme": "5–8/сторона, пауза 3–5 с",
@@ -303,6 +321,7 @@
     "id": "side_plank_equal",
     "name_ru": "Боковая планка — обе стороны поровну",
     "category": "trunk_endurance",
+    "movement_tags": [],
     "equipment": "mat",
     "default_sets": 2,
     "rep_scheme": "20–45 с/сторона",
@@ -319,6 +338,7 @@
     "id": "suitcase_hold_equal",
     "name_ru": "Suitcase hold/march — обе стороны поровну",
     "category": "trunk_endurance",
+    "movement_tags": [],
     "equipment": "dumbbell",
     "default_sets": 2,
     "rep_scheme": "30–45 с/сторона",
@@ -335,6 +355,7 @@
     "id": "wall_hip_abduction",
     "name_ru": "Изометрия отведения бедра у стены",
     "category": "hip_stability",
+    "movement_tags": [],
     "equipment": "wall",
     "default_sets": 2,
     "rep_scheme": "20–30 с/сторона",
@@ -351,6 +372,7 @@
     "id": "wall_slide",
     "name_ru": "Скольжение руками по стене",
     "category": "mobility_control",
+    "movement_tags": [],
     "equipment": "wall",
     "default_sets": 2,
     "rep_scheme": "8–12",
@@ -367,6 +389,7 @@
     "id": "brisk_walk",
     "name_ru": "Быстрая ходьба",
     "category": "aerobic",
+    "movement_tags": [],
     "equipment": "none",
     "default_sets": 1,
     "rep_scheme": "20–40 мин",
@@ -383,6 +406,7 @@
     "id": "gentle_yoga_flow",
     "name_ru": "Мягкий йога-флоу",
     "category": "mobility_relaxation",
+    "movement_tags": [],
     "equipment": "mat, blocks",
     "default_sets": 1,
     "rep_scheme": "15–25 мин",
@@ -393,6 +417,126 @@
     "scoliosis_rule": "Йога не заменяет PSSE и не задаёт сторону коррекции.",
     "evidence_ids": [
       "YOGA-LBP-2022"
+    ]
+  },
+  {
+    "id": "barbell_back_squat",
+    "name_ru": "Приседания со штангой на спине",
+    "category": "knee_dominant",
+    "movement_tags": [
+      "heavy_axial_loading"
+    ],
+    "equipment": "barbell, rack",
+    "default_sets": 4,
+    "rep_scheme": "5–8",
+    "rir": 1,
+    "instructions": "Штанга на верхней части спины, стойка ритмичная, глубина контролируемая. Существенная компрессионная осевая нагрузка на позвоночник под тяжёлым внешним весом.",
+    "progression": "Вес при сохранении техники.",
+    "regression": "Гоблет-присед или сплит-присед.",
+    "scoliosis_rule": "Тяжёлая осевая нагрузка: блокируется правилом heavy_axial_loading для диагностированного умеренного/ригидного/ортезного сколиоза (DRE-10).",
+    "evidence_ids": [
+      "ACSM-RT-2026",
+      "LOPEZ-LOAD-2021"
+    ]
+  },
+  {
+    "id": "barbell_front_squat",
+    "name_ru": "Приседания со штангой на груди",
+    "category": "knee_dominant",
+    "movement_tags": [
+      "heavy_axial_loading"
+    ],
+    "equipment": "barbell, rack",
+    "default_sets": 4,
+    "rep_scheme": "5–8",
+    "rir": 1,
+    "instructions": "Штанга на передней дельте, корпус вертикальнее, чем в back squat, но осевая нагрузка под тяжёлым весом остаётся существенной.",
+    "progression": "Вес при сохранении техники.",
+    "regression": "Гоблет-присед.",
+    "scoliosis_rule": "Тяжёлая осевая нагрузка: блокируется правилом heavy_axial_loading для диагностированного умеренного/ригидного/ортезного сколиоза (DRE-10).",
+    "evidence_ids": [
+      "ACSM-RT-2026",
+      "LOPEZ-LOAD-2021"
+    ]
+  },
+  {
+    "id": "overhead_barbell_press",
+    "name_ru": "Жим штанги стоя над головой",
+    "category": "vertical_push",
+    "movement_tags": [
+      "heavy_axial_loading"
+    ],
+    "equipment": "barbell, rack",
+    "default_sets": 4,
+    "rep_scheme": "5–8",
+    "rir": 1,
+    "instructions": "Стоя, штанга выжимается над головой; тяжёлая вертикальная нагрузка «под штангой» стоя передаёт компрессию по оси позвоночника.",
+    "progression": "Вес при сохранении техники.",
+    "regression": "Жим гантелей сидя с опорой.",
+    "scoliosis_rule": "Тяжёлая осевая нагрузка стоя под штангой: блокируется правилом heavy_axial_loading для диагностированного умеренного/ригидного/ортезного сколиоза (DRE-10).",
+    "evidence_ids": [
+      "ACSM-RT-2026",
+      "LOPEZ-LOAD-2021"
+    ]
+  },
+  {
+    "id": "barbell_deadlift",
+    "name_ru": "Становая тяга со штангой (классика/сумо)",
+    "category": "hip_hinge",
+    "movement_tags": [
+      "heavy_axial_loading"
+    ],
+    "equipment": "barbell",
+    "default_sets": 3,
+    "rep_scheme": "3–6",
+    "rir": 1,
+    "instructions": "Тяжёлая тяга с пола; при рабочих весах создаёт высокую осевую/сдвиговую нагрузку на позвоночник. Техника и контролируемый диапазон обязательны.",
+    "progression": "Вес при безупречной технике.",
+    "regression": "Румынская тяга с лёгкими гантелями или B-stance RDL.",
+    "scoliosis_rule": "Тяжёлая осевая нагрузка: блокируется правилом heavy_axial_loading для диагностированного умеренного/ригидного/ортезного сколиоза (DRE-10).",
+    "evidence_ids": [
+      "ACSM-RT-2026",
+      "LOPEZ-LOAD-2021"
+    ]
+  },
+  {
+    "id": "barbell_good_morning",
+    "name_ru": "Гудморнинг со штангой",
+    "category": "hip_hinge",
+    "movement_tags": [
+      "heavy_axial_loading"
+    ],
+    "equipment": "barbell, rack",
+    "default_sets": 3,
+    "rep_scheme": "8–12",
+    "rir": 2,
+    "instructions": "Штанга на спине, наклон корпуса за счёт отведения таза назад; нагружает позвоночник осевой нагрузкой под внешним весом в наклоне.",
+    "progression": "Вес при сохранении нейтрали позвоночника.",
+    "regression": "RDL с лёгкими гантелями.",
+    "scoliosis_rule": "Тяжёлая осевая нагрузка в наклоне: блокируется правилом heavy_axial_loading для диагностированного умеренного/ригидного/ортезного сколиоза (DRE-10).",
+    "evidence_ids": [
+      "ACSM-RT-2026",
+      "LOPEZ-LOAD-2021"
+    ]
+  },
+  {
+    "id": "heavy_farmer_carry",
+    "name_ru": "Тяжёлая прогулка фермера",
+    "category": "loaded_carry",
+    "movement_tags": [
+      "heavy_axial_loading"
+    ],
+    "equipment": "heavy dumbbells / implements",
+    "default_sets": 3,
+    "rep_scheme": "20–40 м",
+    "rir": 1,
+    "instructions": "Перенос тяжёлого груза в руках; при больших весах создаёт выраженную компрессионную осевую нагрузку на позвоночник.",
+    "progression": "Вес и/или дистанция при стабильной осанке.",
+    "regression": "Suitcase hold с умеренным весом (обе стороны поровну).",
+    "scoliosis_rule": "Тяжёлая осевая нагрузка: блокируется правилом heavy_axial_loading для диагностированного умеренного/ригидного/ортезного сколиоза (DRE-10).",
+    "evidence_ids": [
+      "ACSM-RT-2026",
+      "LOPEZ-LOAD-2021"
     ]
   }
 ]
