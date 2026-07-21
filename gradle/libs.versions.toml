@@ -8,6 +8,8 @@ kotlin = "2.3.21"
 # Backend
 ktor = "3.0.3"
 logback = "1.5.12"
+# Persistence (ADR 0003 — encrypted SQLite at rest)
+sqlite = "3.47.1.0"
 # Testing
 junit = "5.11.3"
 junitPlatform = "1.11.3"
@@ -28,6 +30,8 @@ ktor-server-content-negotiation = { group = "io.ktor", name = "ktor-server-conte
 ktor-serialization-kotlinx-json = { group = "io.ktor", name = "ktor-serialization-kotlinx-json" }
 ktor-server-test-host = { group = "io.ktor", name = "ktor-server-test-host" }
 logback-classic = { group = "ch.qos.logback", name = "logback-classic", version.ref = "logback" }
+# Persistence (encrypted SQLite document store behind the repository ports — ADR 0003)
+sqlite-jdbc = { group = "org.xerial", name = "sqlite-jdbc", version.ref = "sqlite" }
 # Serialization
 kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version = "1.7.3" }
 kotlinx-coroutines-core = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-core", version.ref = "kotlinxCoroutines" }

@@ -35,6 +35,8 @@ dependencies {
     implementation(libs.ktor.serialization.kotlinx.json)
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.logback.classic)
+    // Encrypted-at-rest durable persistence behind the repository ports (ADR 0003 / DRE-16).
+    implementation(libs.sqlite.jdbc)
 
     testImplementation(libs.ktor.server.test.host)
     testImplementation(libs.ktor.server.content.negotiation)
