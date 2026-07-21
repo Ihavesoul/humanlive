@@ -1,19 +1,32 @@
 # OS
 .DS_Store
 Thumbs.db
-# Node
+
+# Node (PoC PWA tooling)
 node_modules/
 npm-debug.log*
-# Env / secrets
+
+# Env / secrets — never commit
 .env
 .env.*
 !.env.example
 *.local
-# Build
-dist/
+
+# Gradle
+.gradle/
 build/
-.cache/
+!gradle/wrapper/gradle-wrapper.jar
+
+# Android (machine-specific — never commit)
+local.properties
+*.iml
+.idea/
+.cxx/
+captures/
+
+# Kotlin
+.kotlin/
+
 # Editor
 .vscode/
-.idea/
 *.swp

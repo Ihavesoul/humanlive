@@ -1,0 +1,33 @@
+# Central version catalog — JVM backend + domain only (ADR 0001 / DRE-8).
+# No Android/Compose entries: the client is the static PWA in app/.
+[versions]
+kotlin = "2.3.21"
+# Backend
+ktor = "3.0.3"
+logback = "1.5.12"
+# Testing
+junit = "5.11.3"
+junitPlatform = "1.11.3"
+kotlinxCoroutines = "1.9.0"
+kotestAssertions = "5.9.1"
+
+[libraries]
+# Backend (Ktor)
+ktor-server-core = { group = "io.ktor", name = "ktor-server-core" }
+ktor-server-netty = { group = "io.ktor", name = "ktor-server-netty" }
+ktor-server-content-negotiation = { group = "io.ktor", name = "ktor-server-content-negotiation" }
+ktor-serialization-kotlinx-json = { group = "io.ktor", name = "ktor-serialization-kotlinx-json" }
+ktor-server-test-host = { group = "io.ktor", name = "ktor-server-test-host" }
+logback-classic = { group = "ch.qos.logback", name = "logback-classic", version.ref = "logback" }
+# Serialization
+kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version = "1.7.3" }
+kotlinx-coroutines-core = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-core", version.ref = "kotlinxCoroutines" }
+# Testing
+junit-jupiter = { group = "org.junit.jupiter", name = "junit-jupiter", version.ref = "junit" }
+junit-platform-launcher = { group = "org.junit.platform", name = "junit-platform-launcher", version.ref = "junitPlatform" }
+kotest-assertions-core = { group = "io.kotest", name = "kotest-assertions-core", version.ref = "kotestAssertions" }
+
+[plugins]
+kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
+kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+ktor = { id = "io.ktor.plugin", version.ref = "ktor" }
