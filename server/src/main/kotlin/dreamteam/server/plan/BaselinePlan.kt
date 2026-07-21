@@ -1,6 +1,7 @@
 package dreamteam.server.plan
 
 import dreamteam.domain.evidence.EvidenceSource
+import dreamteam.domain.safety.ContraindicationStubs
 import dreamteam.domain.safety.MedicalSafety
 import dreamteam.domain.safety.Recommendation
 import dreamteam.domain.safety.RuleStatus
@@ -32,8 +33,10 @@ import kotlinx.serialization.json.Json
  * vetted set (research/evidence_mapping.md), the allowlist rules are the
  * engineering enforcement of ADR 0001 #2 (citations resolve only from the
  * catalog), and contraindication rules are the Safety Reviewer's
- * ([dreamteam.domain.safety.ContraindicationStubs]) — DRAFT/inert until
- * activated, so they never bypass or unblock a candidate.
+ * ([dreamteam.domain.safety.ContraindicationStubs]) — both ACTIVE + sourced
+ * (DRE-10/DRE-24) and registered on the gateway (DRE-35), so a
+ * flagged-scoliosis request is blocked from heavy-axial / loaded-rotation
+ * movements. They never bypass or unblock a candidate.
  */
 object BaselinePlan {
 
@@ -63,6 +66,14 @@ object BaselinePlan {
     /** Baseline candidates the gateway vets. evidenceRefs resolve to the catalog (0 dangling — DRE-14). */
     fun candidates(): List<Recommendation> = candidateExerciseIds.map { id ->
         val seed = exercises[id] ?: error("baseline exercise '$id' has no library entry")
+        // ponytail: exerciseTags not propagated — ExerciseSeed has no movement_tags
+        // field, so a contraindication rule cannot match a BaselinePlan candidate.
+        // Harmless today: the data baseline carries no tagged movement (verified),
+        // and the live /plans/generate route uses DeterministicPlanGenerator (which
+        // DOES carry tags from BaselineProgram.exercises). If a tagged heavy_axial /
+        // loaded_rotation exercise is ever added to data/program_12_weeks.json, add
+        // movement_tags to ExerciseSeed + populate exerciseTags here so the
+        // registered contraindication rules can fire on this path too.
         Recommendation(exerciseId = id, evidenceRefs = seed.evidenceIds)
     }
 
@@ -113,12 +124,13 @@ object BaselinePlan {
         val ctx = ScreeningContext(
             allowedExerciseIds = allowedExerciseIds,
             allowedEvidenceIds = allowedEvidenceIds,
-            // Inert today: no ACTIVE contraindication rule is registered, so this
-            // flag cannot block anything. It matters once the Safety Reviewer
-            // activates ContraindicationStubs (DRE-10); derived conservatively.
+            // scoliosis_flagged is derived conservatively below; the ACTIVE
+            // contraindication rules are now registered on the gateway (DRE-35),
+            // so a flagged-scoliosis request proposing a heavy_axial_loading /
+            // loaded_flexion_rotation movement is BLOCKED, not surfaced.
             conditionFlags = scoliosisFlag(medicalSafety),
         )
-        val gateway = SafetyGuardedGateway(ctx, activeAllowlistRules())
+        val gateway = SafetyGuardedGateway(ctx, activeAllowlistRules() + ContraindicationStubs.all)
         val plan = gateway.surface(candidates())
         return when (plan) {
             is SurfacedPlan.Ok -> render(plan.surfaced, eval)
@@ -174,8 +186,10 @@ object BaselinePlan {
     /**
      * Conservative `scoliosis_flagged` derivation matching ContraindicationStubs'
      * spec (Cobb >= ~30 deg / rigid-structural / braced): flag when reported AND
-     * current curve data is absent OR any Cobb >= 30. Inert until a
-     * contraindication rule is activated (Safety Reviewer, DRE-10).
+     * current curve data is absent OR any Cobb >= 30. The ACTIVE contraindication
+     * rules are registered on the gateway (DRE-35), so this flag now drives a
+     * block when a heavy_axial_loading / loaded_flexion_rotation movement is
+     * proposed.
      */
     private fun scoliosisFlag(m: MedicalSafety): Set<String> {
         if (!m.scoliosisReported) return emptySet()

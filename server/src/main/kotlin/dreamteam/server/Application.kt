@@ -1,6 +1,7 @@
 package dreamteam.server
 
 import dreamteam.domain.nutrition.NutritionTarget
+import dreamteam.domain.safety.ContraindicationStubs
 import dreamteam.domain.safety.MedicalSafety
 import dreamteam.domain.safety.SafetyEvaluation
 import dreamteam.domain.safety.SafetyGate
@@ -116,7 +117,11 @@ fun Application.module(jdbcUrl: String = resolveJdbcUrl(), key: EncryptionKey = 
                     clinicianCurveSpecificPlanAvailable = medical.clinicianCurveSpecificPlanAvailable,
                     conditionFlags = if (medical.scoliosisReported) setOf("scoliosis_flagged") else emptySet(),
                 )
-                val gateway = SafetyGuardedGateway(context, StructuralSafetyRules.all)
+                // Structural allowlists + the ACTIVE contraindication rules
+                // (DRE-10/DRE-24). scoliosis_flagged is derived above, so a
+                // flagged-scoliosis request proposing a heavy_axial_loading /
+                // loaded_flexion_rotation movement is BLOCKED here, not surfaced.
+                val gateway = SafetyGuardedGateway(context, StructuralSafetyRules.all + ContraindicationStubs.all)
                 val generated = DeterministicPlanGenerator(gateway).generate(
                     userId = userId,
                     createdAt = LocalDate.now().toString(),

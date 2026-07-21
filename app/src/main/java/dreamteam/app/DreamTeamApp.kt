@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import dreamteam.app.data.LocalDatabase
 import dreamteam.app.data.Profile
 import dreamteam.app.data.SymptomEntry
+import dreamteam.domain.safety.ContraindicationStubs
 import dreamteam.domain.safety.MedicalSafety
 import dreamteam.domain.safety.SafetyEvaluation
 import dreamteam.domain.safety.SafetyGate
@@ -79,7 +80,7 @@ private fun generateLocalPlan(profile: Profile, today: String): PlanResult {
         sideSpecificLockEngaged = !safety.allowSideSpecificContent,
         conditionFlags = if (profile.scoliosisReported) setOf("scoliosis_flagged") else emptySet(),
     )
-    val gateway = SafetyGuardedGateway(context, StructuralSafetyRules.all)
+    val gateway = SafetyGuardedGateway(context, StructuralSafetyRules.all + ContraindicationStubs.all)
     return when (val g = DeterministicPlanGenerator(gateway).generate(userId = "local", createdAt = today)) {
         is GeneratedPlan.Ok -> PlanResult.Ok(g.plan.weeks.first(), g.nutrition, safety)
         is GeneratedPlan.Blocked -> PlanResult.Blocked("План заблокирован шлюзом безопасности: ${g.ruleIds.joinToString()}.")

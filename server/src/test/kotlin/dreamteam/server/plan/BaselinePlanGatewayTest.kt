@@ -2,7 +2,6 @@ package dreamteam.server.plan
 
 import dreamteam.domain.safety.ContraindicationStubs
 import dreamteam.domain.safety.Recommendation
-import dreamteam.domain.safety.RuleStatus
 import dreamteam.domain.safety.ScreeningContext
 import dreamteam.domain.safety.SafetyGuardedGateway
 import dreamteam.domain.safety.SurfacedPlan
@@ -66,18 +65,21 @@ class BaselinePlanGatewayTest {
     }
 
     @Test
-    fun `a contraindicated candidate blocks the whole plan and surfaces nothing`() {
-        // The baseline is entirely safe; appending ONE contraindicated candidate
-        // (heavy axial loading for flagged scoliosis) must block the ENTIRE plan.
-        // Surfacing a partial plan that silently dropped the unsafe exercise would
-        // be a footgun — surfacing is all-or-nothing.
+    fun `the production-registered ruleset blocks a contraindicated candidate end to end`() {
+        // DRE-35: BaselinePlan.generate() now registers the ACTIVE contraindication
+        // rules (activeAllowlistRules() + ContraindicationStubs.all), so a
+        // flagged-scoliosis request proposing a heavy_axial_loading movement is
+        // BLOCKED — not surfaced. The baseline itself carries no tagged movement;
+        // appending one contraindicated candidate must block the ENTIRE plan
+        // (all-or-nothing, no partial surfacing). The rule is used as-authored —
+        // no .copy — because it is natively ACTIVE + sourced (DRE-10/DRE-20).
         val contraindicated = Recommendation(
             exerciseId = "back_squat",
             evidenceRefs = listOf("ACSM-RT-2026"),
             exerciseTags = setOf("heavy_axial_loading"),
         )
-        val activeContra = ContraindicationStubs.heavyAxialLoadingForFlaggedScoliosis
-            .copy(status = RuleStatus.ACTIVE, evidenceRefs = listOf("WEINSTEIN-AIS-2008"))
+        // The exact production ruleset BaselinePlan.generate() registers today.
+        val productionRules = BaselinePlan.activeAllowlistRules() + ContraindicationStubs.all
         val gateway = SafetyGuardedGateway(
             ScreeningContext(
                 // back_squat is allowlisted + its evidence resolves, so the ONLY
@@ -86,7 +88,7 @@ class BaselinePlanGatewayTest {
                 allowedEvidenceIds = BaselinePlan.allowedEvidenceIds,
                 conditionFlags = setOf("scoliosis_flagged"),
             ),
-            BaselinePlan.activeAllowlistRules() + activeContra,
+            productionRules,
         )
 
         val plan = gateway.surface(BaselinePlan.candidates() + contraindicated)
@@ -95,5 +97,57 @@ class BaselinePlanGatewayTest {
         plan.surfaced.shouldBeEmpty() // even the safe baseline is NOT partially surfaced
         plan.items.map { it.recommendation.exerciseId } shouldContain "back_squat"
         plan.items[0].verdict.ruleIds shouldBe listOf("stub_heavy_axial_loading_scoliosis")
+    }
+
+    @Test
+    fun `the production-registered ruleset also blocks loaded_flexion_rotation for flagged scoliosis`() {
+        // DRE-24 coverage at the boundary: the second ACTIVE contraindication rule
+        // is registered too, so a loaded_flexion_rotation movement is blocked for
+        // a flagged user.
+        val contraindicated = Recommendation(
+            exerciseId = "cable_woodchop",
+            evidenceRefs = listOf("ACSM-RT-2026"),
+            exerciseTags = setOf("loaded_flexion_rotation"),
+        )
+        val gateway = SafetyGuardedGateway(
+            ScreeningContext(
+                allowedExerciseIds = BaselinePlan.allowedExerciseIds + "cable_woodchop",
+                allowedEvidenceIds = BaselinePlan.allowedEvidenceIds,
+                conditionFlags = setOf("scoliosis_flagged"),
+            ),
+            BaselinePlan.activeAllowlistRules() + ContraindicationStubs.all,
+        )
+
+        val plan = gateway.surface(listOf(contraindicated))
+
+        plan.shouldBeInstanceOf<SurfacedPlan.Blocked>()
+        plan.surfaced.shouldBeEmpty()
+        plan.items[0].verdict.ruleIds shouldBe listOf("stub_loaded_flexion_rotation_scoliosis")
+    }
+
+    @Test
+    fun `the contraindication rules do not over-reach an unflagged generic user`() {
+        // DRE-10/DRE-24 threshold specificity at the boundary: with
+        // scoliosis_flagged absent, the same contraindicated movement surfaces (the
+        // rule is not a blanket ban). Proves the production registration blocks
+        // ONLY flagged users and leaves the generic baseline intact.
+        val movement = Recommendation(
+            exerciseId = "back_squat",
+            evidenceRefs = listOf("ACSM-RT-2026"),
+            exerciseTags = setOf("heavy_axial_loading"),
+        )
+        val gateway = SafetyGuardedGateway(
+            ScreeningContext(
+                allowedExerciseIds = BaselinePlan.allowedExerciseIds + "back_squat",
+                allowedEvidenceIds = BaselinePlan.allowedEvidenceIds,
+                conditionFlags = emptySet(), // not flagged
+            ),
+            BaselinePlan.activeAllowlistRules() + ContraindicationStubs.all,
+        )
+
+        val plan = gateway.surface(listOf(movement))
+
+        plan.shouldBeInstanceOf<SurfacedPlan.Ok>()
+        plan.surfaced shouldBe listOf(movement)
     }
 }
