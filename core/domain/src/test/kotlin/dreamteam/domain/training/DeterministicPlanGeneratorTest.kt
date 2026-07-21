@@ -2,7 +2,6 @@ package dreamteam.domain.training
 
 import dreamteam.domain.safety.ContraindicationStubs
 import dreamteam.domain.safety.Recommendation
-import dreamteam.domain.safety.RuleStatus
 import dreamteam.domain.safety.RuleTrigger
 import dreamteam.domain.safety.SafetyGuardedGateway
 import dreamteam.domain.safety.SafetyRule
@@ -86,14 +85,14 @@ class DeterministicPlanGeneratorTest {
     // --- DRE-18: movement-set tags flow library -> Recommendation -> rule ------
 
     /**
-     * Provisions the heavy_axial_loading contraindication rule. Production keeps
-     * it [RuleStatus.DRAFT] pending DRE-14 sourcing; this test activates it to
-     * prove the end-to-end plumbing (library tag -> Recommendation.exerciseTags
-     * via [toRecommendation] -> rule fires -> blocked) is wired.
+     * Provisions the heavy_axial_loading contraindication rule. Now that the rule
+     * is natively ACTIVE + sourced (DRE-10/DRE-20, WEINSTEIN-AIS-2008), this is
+     * just the production ruleset — kept as a helper so the end-to-end plumbing
+     * test (library tag -> Recommendation.exerciseTags via [toRecommendation]
+     * -> rule fires -> blocked) reads clearly.
      */
     private fun heavyAxialRuleActive(): List<SafetyRule> =
-        StructuralSafetyRules.all +
-            ContraindicationStubs.heavyAxialLoadingForFlaggedScoliosis.copy(status = RuleStatus.ACTIVE)
+        StructuralSafetyRules.all + ContraindicationStubs.heavyAxialLoadingForFlaggedScoliosis
 
     private fun recFor(exerciseId: String): Recommendation =
         toRecommendation(

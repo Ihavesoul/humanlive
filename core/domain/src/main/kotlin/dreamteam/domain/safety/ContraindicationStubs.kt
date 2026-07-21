@@ -1,27 +1,30 @@
 package dreamteam.domain.safety
 
 /**
- * DRAFT contraindication-rule SLOTS — engineering integration only, **no
- * clinical content**.
+ * Contraindication-rule SLOTS where absolute-contraindication rules plug in.
+ * Clinical content is authored by the Safety Reviewer + sourced by the Evidence
+ * Analyst, never by the implementing engineer.
  *
- * Each entry is [RuleStatus.DRAFT], so [SafetyGuardedGateway] never evaluates
- * it: a draft rule cannot block (or unblock) anything. They exist so the Safety
- * Reviewer can see exactly where absolute-contraindication rules plug in, what
- * shape they take, and which clinical question remains open. Activating one
- * (filling its thresholds + sourcing evidence + flipping [SafetyRule.status] to
- * [RuleStatus.ACTIVE]) is a Safety Reviewer + Evidence Analyst decision — never
- * this engineer's. See the DRE-7 boundary: "you implement rules others define;
- * you do not author medical guidance."
+ * Each entry starts as [RuleStatus.DRAFT], so [SafetyGuardedGateway] never
+ * evaluates it: a draft rule cannot block (or unblock) anything. Filling its
+ * thresholds + sourcing evidence + flipping [SafetyRule.status] to
+ * [RuleStatus.ACTIVE] is a Safety Reviewer + Evidence Analyst decision — never
+ * this engineer's (DRE-7 boundary: "you implement rules others define; you do
+ * not author medical guidance"). Current state:
+ *   - [heavyAxialLoadingForFlaggedScoliosis] — ACTIVE + sourced (DRE-10/DRE-20).
+ *     This is the one rule that provisions the gate today.
+ *   - [loadedFlexionRotationForFlaggedScoliosis] — still DRAFT (content authored,
+ *     pending a rotation-relevant source; see its own doc).
  *
  * The mechanism ([RuleTrigger.ContraindicationStub]) is pure string matching on
  * a movement tag + a condition flag; the *medical* judgement — which movements
  * carry which tag, at what severity a condition flags, and whether a
  * combination is truly contraindicated — is precisely the TODO left here.
  *
- * Evidence is intentionally unsourced (`evidenceRefs = emptyList()`): per the
- * [dreamteam.domain.EvidenceLinked] contract, an empty list means
- * "blocked-until-sourced", so these cannot be activated without the Evidence
- * Analyst supplying a citation.
+ * The "blocked-until-sourced" gate (per [dreamteam.domain.EvidenceLinked], an
+ * empty `evidenceRefs` means "not safe to activate") is honored per-rule: an
+ * ACTIVE rule always carries a resolvable [EvidenceId]; a DRAFT slot keeps
+ * `evidenceRefs = emptyList()` until the Evidence Analyst supplies one.
  */
 object ContraindicationStubs {
 
@@ -50,15 +53,14 @@ object ContraindicationStubs {
      * and remain on the generic baseline. (Wiring these tags onto the exercise
      * library is a data task for the library owner, not this rule.)
      *
-     * EVIDENCE STATUS: this is *consensus / conservative* guidance — no RCT
-     * proves heavy axial loading worsens adult scoliosis. Activation therefore
-     * requires a conservative source the Evidence Analyst rates honestly as
-     * low-to-moderate / consensus-grade (never inflated). `evidenceRefs` stays
-     * empty until DRE-14 supplies a resolvable EvidenceId; per the
-     * [dreamteam.domain.EvidenceLinked] contract an empty list means
-     * "blocked-until-sourced", so `status` stays [RuleStatus.DRAFT] until then.
-     * This is a support-not-treat rule: it blocks an unsafe load, it does not
-     * prescribe curve-specific treatment.
+     * EVIDENCE STATUS: *consensus / conservative* guidance — no RCT proves
+     * heavy axial loading worsens scoliosis. Sourced + ACTIVATED (DRE-10/DRE-20):
+     * `evidenceRefs = WEINSTEIN-AIS-2008` (Lancet Seminar, rated
+     * `moderate_context` honestly — context-grade, never inflated to "proof").
+     * Per the [dreamteam.domain.EvidenceLinked] contract the resolvable id lifts
+     * the blocked-until-sourced hold, so `status = ACTIVE` and this rule is what
+     * provisions [SafetyGuardedGateway] today. This is a support-not-treat rule:
+     * it blocks an unsafe load, it does not prescribe curve-specific treatment.
      */
     val heavyAxialLoadingForFlaggedScoliosis = SafetyRule(
         id = "stub_heavy_axial_loading_scoliosis",
@@ -67,47 +69,77 @@ object ContraindicationStubs {
                 "heavy deadlift/carry) is blocked for a flagged scoliosis presentation — " +
                 "Cobb >= ~30°, a rigid/structural curve, or current brace wear. Generic " +
                 "baseline movements remain available; curve-specific loaded work needs " +
-                "clinician-taught direction. (Content defined DRE-10; DRAFT pending sourcing.)",
+                "clinician-taught direction. ACTIVE — sourced WEINSTEIN-AIS-2008 " +
+                "(moderate_context, consensus/conservative; no RCT proves load worsens " +
+                "curves).",
         trigger =
             RuleTrigger.ContraindicationStub(
                 exerciseTag = "heavy_axial_loading",
                 conditionFlag = "scoliosis_flagged",
                 clinicalQuestion =
-                    "Resolved (DRE-10): block heavy_axial_loading for scoliosis_flagged = " +
-                        "diagnosed moderate-or-greater (Cobb >= ~30°) / rigid / braced. " +
-                        "PENDING: Evidence Analyst sourcing (DRE-14) before activation.",
+                    "ACTIVATED (DRE-10/DRE-20): block heavy_axial_loading for " +
+                        "scoliosis_flagged = diagnosed moderate-or-greater (Cobb >= ~30°) / " +
+                        "rigid / braced. Sourced via WEINSTEIN-AIS-2008 (moderate_context).",
             ),
         decision = SafetyRule.Decision.BLOCK,
-        status = RuleStatus.DRAFT,
-        evidenceRefs = emptyList(),
+        status = RuleStatus.ACTIVE,
+        evidenceRefs = listOf("WEINSTEIN-AIS-2008"),
     )
 
     /**
      * Loaded flexion / rotation for a flagged scoliosis condition.
      *
-     * TODO(Safety Reviewer): define which loaded flexion/rotation movements and
-     * which presentations are blocked. TODO(Evidence Analyst): source it.
+     * THRESHOLD (resolved by Safety Reviewer, DRE-10): same gate as the axial
+     * loading rule — fires on `scoliosis_flagged` (diagnosed moderate-or-greater,
+     * Cobb >= ~30°, or rigid/structural, or currently braced). The rotational
+     * concern is sharpest with measurable apical vertebral rotation, but the
+     * screening flag is the gating condition here; a self-reported mild / flexible
+     * curve does not set it and is not blocked.
+     *
+     * MOVEMENT SET (`loaded_flexion_rotation` tag): combined spinal flexion +
+     * axial rotation under substantial external load — e.g. loaded Russian twist
+     * / loaded trunk rotation, heavy cable or landmine woodchop/rotation, bent
+     * rotational row, heavy unilateral rotational carry, loaded good-morning with
+     * rotation. The mechanism: combined loaded flexion + rotation multiplies the
+     * rotational / axial torque on an already-rotated (apical) vertebra in a
+     * scoliotic curve. Symmetric, light, or unloaded anti-rotation (Pallof press,
+     * birddog) is NOT in this set and stays on the generic baseline.
+     *
+     * EVIDENCE STATUS: still blocked-until-sourced. This is consensus /
+     * conservative caution — no RCT proves loaded rotation worsens curves. The
+     * axial-loading source ([heavyAxialLoadingForFlaggedScoliosis] uses
+     * WEINSTEIN-AIS-2008) does NOT directly cover loaded rotation (its catalog
+     * `application` scopes it to axial loading), so reusing it here would be
+     * evidence inflation. `status` therefore stays DRAFT and `evidenceRefs =
+     * emptyList()` until the Evidence Analyst supplies a rotation-relevant source
+     * (or explicitly attests coverage). Sourcing tracked as a follow-up to DRE-10.
      */
     val loadedFlexionRotationForFlaggedScoliosis = SafetyRule(
         id = "stub_loaded_flexion_rotation_scoliosis",
         description =
-            "STUB (DRAFT) — loaded flexion/rotation proposed for a flagged scoliosis " +
-                "condition. TODO(Safety Reviewer): define the blocking threshold and exercise " +
-                "set, source evidence, then set status = ACTIVE.",
+            "Loaded combined flexion + rotation under heavy load (e.g. loaded Russian " +
+                "twist, cable/landmine woodchop, bent rotational row) is blocked for a " +
+                "flagged scoliosis presentation (Cobb >= ~30° / rigid / braced) — the " +
+                "multiplied rotational torque can aggravate the rotational curve " +
+                "component. Symmetric/light anti-rotation (Pallof, birddog) stays on the " +
+                "generic baseline. (Content defined DRE-10; DRAFT pending a rotation-" +
+                "relevant source — WEINSTEIN-AIS-2008 does not cover rotation.)",
         trigger =
             RuleTrigger.ContraindicationStub(
                 exerciseTag = "loaded_flexion_rotation",
                 conditionFlag = "scoliosis_flagged",
                 clinicalQuestion =
-                    "Which loaded flexion/rotation movements are contraindicated, and for " +
-                        "which scoliosis presentations?",
+                    "Resolved threshold (DRE-10): block loaded_flexion_rotation for " +
+                        "scoliosis_flagged (Cobb >= ~30° / rigid / braced). PENDING: " +
+                        "Evidence Analyst sourcing — no catalog entry directly covers " +
+                        "loaded rotation (WEINSTEIN-AIS-2008 is axial-loading-only).",
             ),
         decision = SafetyRule.Decision.BLOCK,
         status = RuleStatus.DRAFT,
         evidenceRefs = emptyList(),
     )
 
-    /** All DRAFT stubs — the Safety Reviewer's worklist. Inert until activated. */
+    /** All contraindication rules: one ACTIVE (provisions the gate), one DRAFT (inert pending sourcing). */
     val all: List<SafetyRule> =
         listOf(
             heavyAxialLoadingForFlaggedScoliosis,
