@@ -45,6 +45,33 @@ sealed interface RuleTrigger {
 
     @Serializable @SerialName("clinician_curve_specific_plan_required")
     data class ClinicianCurveSpecificPlanRequired(val reason: String) : RuleTrigger
+
+    /**
+     * An absolute-contraindication slot: block when a recommendation carrying
+     * [exerciseTag] is proposed for a user with [conditionFlag]. Pure mechanism
+     * (string matching) — *which* tags/flags and combinations actually block is
+     * a Safety Reviewer decision. [clinicalQuestion] makes the open clinical
+     * content machine-visible so it can be tracked to sign-off.
+     */
+    @Serializable @SerialName("contraindication_stub")
+    data class ContraindicationStub(
+        val exerciseTag: String,
+        val conditionFlag: String,
+        val clinicalQuestion: String,
+    ) : RuleTrigger
+}
+
+/**
+ * Lifecycle of a [SafetyRule]. The gateway evaluates [ACTIVE] rules only; a
+ * [DRAFT] rule is a documented slot the Safety Reviewer must fill and sign off
+ * before it can block anything. This keeps the engineering integration (where a
+ * contraindication plugs in) decoupled from the clinical authoring (the actual
+ * blocking decision), which is never this engineer's call.
+ */
+@Serializable
+enum class RuleStatus {
+    @SerialName("draft") DRAFT,
+    @SerialName("active") ACTIVE,
 }
 
 /**
@@ -55,7 +82,8 @@ sealed interface RuleTrigger {
  * (which flags, which thresholds, which exercise/evidence ids) is authored by
  * the Safety Reviewer and wired in DRE-7. This type carries rules; it does not
  * invent clinical guidance. Every rule carries [evidenceRefs] so a block is
- * itself traceable.
+ * itself traceable. [status] separates an authored, active rule
+ * ([RuleStatus.ACTIVE]) from a documented-but-pending stub ([RuleStatus.DRAFT]).
  */
 @Serializable
 data class SafetyRule(
@@ -64,6 +92,7 @@ data class SafetyRule(
     val trigger: RuleTrigger,
     val decision: Decision,
     override val evidenceRefs: List<EvidenceId>,
+    val status: RuleStatus = RuleStatus.ACTIVE,
 ) : EvidenceLinked {
     /** BLOCK = the recommendation never reaches the user. REQUIRE_CLINICIAN = escalate. */
     @Serializable

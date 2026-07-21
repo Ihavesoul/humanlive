@@ -33,13 +33,60 @@ class SafetyRuleEngineTest {
     }
 
     @Test
-    fun `no matching rule allows`() {
+    fun `no matching rule in a provisioned ruleset allows`() {
         val rec = Recommendation("split_squat", listOf("ACSM-RT-2026"))
         val ctx = ScreeningContext()
 
         val verdict = SafetyRuleEngine.evaluate(rec, ctx, listOf(redFlagRule(RedFlag.FEVER)))
 
         verdict shouldBe SafetyVerdict.Allow
+    }
+
+    @Test
+    fun `an empty ruleset blocks by default even before any real rules exist`() {
+        // DRE-7 done-when: unsafe output cannot reach the user before any rules
+        // are registered. An empty ruleset => Block, never Allow.
+        val rec = Recommendation("split_squat", listOf("ACSM-RT-2026"))
+        val ctx = ScreeningContext()
+
+        val verdict = SafetyRuleEngine.evaluate(rec, ctx, rules = emptyList())
+
+        verdict shouldBe SafetyVerdict.Block(
+            reason = "Safety ruleset not provisioned; block-by-default (DRE-7).",
+            ruleIds = emptyList(),
+        )
+    }
+
+    @Test
+    fun `a contraindication stub trigger blocks on tag and condition flag`() {
+        // Mechanism sample only — not a clinical rule. Proves the trigger matches
+        // on a movement tag + a condition flag; which tags/flags actually block
+        // is the Safety Reviewer's call (see ContraindicationStubs).
+        val rule =
+            SafetyRule(
+                id = "contraindication_mechanism",
+                description = "Block tag+condition (mechanism sample, not clinical).",
+                trigger =
+                    RuleTrigger.ContraindicationStub(
+                        exerciseTag = "heavy_axial_loading",
+                        conditionFlag = "scoliosis_flagged",
+                        clinicalQuestion = "(mechanism test)",
+                    ),
+                decision = SafetyRule.Decision.BLOCK,
+                status = RuleStatus.ACTIVE,
+                evidenceRefs = listOf("SAFETY-MECHANISM"),
+            )
+        val unsafe =
+            Recommendation(
+                exerciseId = "barbell_back_squat",
+                evidenceRefs = listOf("ACSM-RT-2026"),
+                exerciseTags = setOf("heavy_axial_loading"),
+            )
+        val ctx = ScreeningContext(conditionFlags = setOf("scoliosis_flagged"))
+
+        val verdict = SafetyRuleEngine.evaluate(unsafe, ctx, listOf(rule))
+
+        verdict shouldBe SafetyVerdict.Block(rule.description, listOf(rule.id))
     }
 
     @Test
