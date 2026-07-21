@@ -96,6 +96,47 @@ Analyst's catalog; this is an audit aid, not a clinical appraisal.
   end-to-end `SafetyGuardedGatewayTest`, are the Safety Reviewer's downstream
   step on this issue.
 
+## `loaded_flexion_rotation` tag set (DRE-39)
+
+Appraisal (Evidence & Research Analyst, library-content owner): the rule's
+movement set is *combined spinal flexion + axial rotation under substantial
+external load*. **No movement in the scoliosis-safe baseline library met this
+definition** — the 24 baseline movements are light / unilateral / anti-rotation
+(bird dog, dead bug, Pallof-like suitcase hold, split/goblet squat, push-up),
+which the rule explicitly EXCLUDES; the 6 `heavy_axial_loading` movements are
+pure compressive/hip-hinge (squats, presses, deadlift, good-morning, farmer
+carry) with no rotational component. That is why the rule was
+registered-but-inert: the movement class was genuinely absent from the
+library, not merely untagged.
+
+Closing the gap mirrors the DRE-18 `heavy_axial_loading` pattern: six canonical
+loaded-flexion-rotation movements are cataloged in `data/exercises.json` and
+mirrored in `BaselineProgram.kt` with `movementTags = setOf(
+"loaded_flexion_rotation")`, placed in the library allowlist but **not** in any
+session template (so the surfaced baseline stays scoliosis-safe):
+
+- `loaded_russian_twist`, `cable_woodchop`, `landmine_rotation` — loaded trunk
+  rotation / rotational chop patterns.
+- `bent_rotational_row` — flexion + rotation pulling pattern.
+- `heavy_rotational_carry` — heavy unilateral rotational carry.
+- `loaded_good_morning_rotation` — flexion + rotation hinge (the plain
+  `barbell_good_morning` stays tagged `heavy_axial_loading` only; this is the
+  distinct combined rotational variant).
+
+Evidence note: the movement records cite `ACSM-RT-2026` + `LOPEZ-LOAD-2021`
+(general resistance-training parameters, consistent with the `heavy_axial_loading`
+records). The *contraindication mechanism* evidence
+(`MARSHALL-MCGILL-AXIAL-TORQUE-2010` + `MARRAS-TRUNK-MOTION-1993`) lives on the
+RULE, not the movement records — same convention as `heavy_axial_loading`
+(WEINSTEIN on the rule, not the movement).
+
+Net: the rule now has real referents and fires end-to-end on a real library
+movement (`DeterministicPlanGeneratorTest`: `cable_woodchop` →
+`stub_loaded_flexion_rotation_scoliosis` Block for `scoliosis_flagged`; allowed
+for a generic context; safe baseline stays untagged). Safety Reviewer verifies
+the tagged set blocks correctly for `scoliosis_flagged` without over/under-reach
+(mirror of the `heavy_axial_loading` check from DRE-37).
+
 ## Catalog integrity (DRE-24 / re-landed DRE-20)
 
 - `data/evidence_catalog.json` carries 24 entries: the DRE-20 baseline plus
