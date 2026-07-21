@@ -160,4 +160,31 @@ class SafetyGuardedGatewayTest {
         plan.surfaced.shouldBeEmpty()
         plan.items[0].verdict.ruleIds shouldBe listOf("stub_heavy_axial_loading_scoliosis")
     }
+
+    @Test
+    fun `the axial-loading contraindication only blocks the flagged condition, not a generic user`() {
+        // Threshold specificity: the rule blocks the same movement ONLY when the
+        // scoliosis_flagged condition is set. Same tag + unflagged context must
+        // surface fine — the contraindication protects a flagged presentation,
+        // not every user. Pins the Safety Reviewer's threshold (Cobb >= ~30 deg /
+        // rigid-structural / braced) as the gating condition, not the movement alone.
+        val activeRule = ContraindicationStubs.heavyAxialLoadingForFlaggedScoliosis
+            .copy(status = RuleStatus.ACTIVE, evidenceRefs = listOf("SAFETY-SIGNED-OFF"))
+        val gateway = SafetyGuardedGateway(
+            // same exercise allowed, but scoliosis_flagged NOT set (generic user)
+            ctx(allowedExercises = setOf("back_squat"), conditionFlags = emptySet()),
+            rules = listOf(allowlistRule(setOf("back_squat")), activeRule),
+        )
+
+        val candidate = Recommendation(
+            "back_squat",
+            listOf("ACSM-RT-2026"),
+            exerciseTags = setOf("heavy_axial_loading"),
+        )
+        val plan = gateway.surface(listOf(candidate))
+
+        // No flag => contraindication does not fire => candidate surfaces.
+        plan.shouldBeInstanceOf<SurfacedPlan.Ok>()
+        plan.surfaced shouldBe listOf(candidate)
+    }
 }
