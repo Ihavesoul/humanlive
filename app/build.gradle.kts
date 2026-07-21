@@ -44,11 +44,11 @@ kotlin {
 }
 
 dependencies {
-    // The native client shares the deterministic safety/domain logic with the
-    // backend through :core:domain. That wiring is the next step once DRE-6
-    // (domain model + native Room/SQLite persistence) lands; the skeleton is
-    // intentionally standalone so the native build is verifiable in isolation.
-    // implementation(project(":core:domain"))
+    // The native client consumes the shared deterministic safety/domain logic
+    // (ADR 0002 / DRE-9): plan generation runs the SAME SafetyGuardedGateway
+    // offline-first, with no server round-trip required.
+    implementation(project(":core:domain"))
+    implementation(libs.kotlinx.serialization.json)
 
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.core.ktx)
