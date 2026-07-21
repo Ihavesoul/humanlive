@@ -271,5 +271,18 @@
     "doi": "",
     "url": "https://acsearch.acr.org/docs/69483/narrative/",
     "evidence_level": "guideline"
+  },
+  {
+    "id": "WEINSTEIN-AIS-2008",
+    "domain": "safety",
+    "citation": "Weinstein SL, Dolan LA, Cheng JC, Danielsson A, Morcuende JA. Adolescent idiopathic scoliosis. Lancet. 2008;371(9623):1527-37.",
+    "design": "authoritative narrative review (Lancet seminar) of natural history and management",
+    "key_finding": "Scoliosis management is magnitude- and growth-driven (observation <25 deg, bracing ~25-45 deg during growth, surgery around 50 deg or on progression); curves that reach about 50 deg or more at skeletal maturity tend to continue progressing in adulthood (~1 deg/year). Load-bearing and activity decisions are individualised to curve severity and are specialist-led, not uniform across presentations.",
+    "application": "Basis for the conservative default behind the heavy-axial-loading contraindication (stub_heavy_axial_loading_scoliosis): when scoliosis is flagged but current Cobb magnitude and classification are unknown, default heavy axial loading to RESTRICT until a clinician with current curve data clears it. Supports magnitude-based, specialist-cleared loading only.",
+    "limitations": "Seminar on AIS natural history/management. Does NOT directly study heavy resistance training or axial loading in adults, and does NOT show that lifting causes curve progression. Direct contraindication evidence is absent; the conservative default is precautionary. Adult desk-bound population is extrapolated from AIS / adult-progression data.",
+    "pmid": "18456103",
+    "doi": "10.1016/S0140-6736(08)60658-3",
+    "url": "https://pubmed.ncbi.nlm.nih.gov/18456103/",
+    "evidence_level": "moderate_context"
   }
 ]
