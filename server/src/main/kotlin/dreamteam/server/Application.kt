@@ -93,7 +93,8 @@ fun Application.module(jdbcUrl: String = resolveJdbcUrl(), key: EncryptionKey = 
             // per-recommendation structural gate. No LLM, no client can skip it.
             // A blocked candidate (red flag or unlisted id) returns 409, never a
             // 200 with a hole in the plan. The vetted plan + nutrition are
-            // persisted durably (ADR 0003).
+            // persisted durably (ADR 0003). Baseline semantics: adaptation = None
+            // (the log-driven counterpart is POST /v1/plans/recalculate).
             post("/plans/generate") {
                 val request = call.receive<PlanGenerateRequest>()
                 val medical = request.medicalSafety
@@ -109,22 +110,70 @@ fun Application.module(jdbcUrl: String = resolveJdbcUrl(), key: EncryptionKey = 
                     return@post
                 }
 
-                val context = ScreeningContext(
-                    redFlags = emptySet(), // gate already passed => none reported
-                    sideSpecificLockEngaged = !safetyEval.allowSideSpecificContent,
-                    allowedExerciseIds = dreamteam.domain.training.BaselineProgram.exerciseIds,
-                    allowedEvidenceIds = dreamteam.domain.training.BaselineProgram.evidenceIds,
-                    clinicianCurveSpecificPlanAvailable = medical.clinicianCurveSpecificPlanAvailable,
-                    conditionFlags = if (medical.scoliosisReported) setOf("scoliosis_flagged") else emptySet(),
-                )
-                // Structural allowlists + the ACTIVE contraindication rules
-                // (DRE-10/DRE-24). scoliosis_flagged is derived above, so a
-                // flagged-scoliosis request proposing a heavy_axial_loading /
-                // loaded_flexion_rotation movement is BLOCKED here, not surfaced.
-                val gateway = SafetyGuardedGateway(context, StructuralSafetyRules.all + ContraindicationStubs.all)
+                val gateway = provisionedGateway(medical, safetyEval)
                 val generated = DeterministicPlanGenerator(gateway).generate(
                     userId = userId,
                     createdAt = LocalDate.now().toString(),
+                )
+
+                when (generated) {
+                    is GeneratedPlan.Ok -> {
+                        deps.plans.save(generated.plan)
+                        deps.nutrition.save(generated.nutrition)
+                        call.respond(
+                            PlanResponse(
+                                status = "ok",
+                                safety = safetyEval,
+                                plan = generated.plan,
+                                nutrition = generated.nutrition,
+                            ),
+                        )
+                    }
+                    is GeneratedPlan.Blocked -> call.respond(
+                        io.ktor.http.HttpStatusCode.Conflict,
+                        BlockedResponse(
+                            status = "blocked",
+                            safety = safetyEval,
+                            blockedExerciseIds = generated.blockedExerciseIds.distinct(),
+                            ruleIds = generated.ruleIds,
+                        ),
+                    )
+                }
+            }
+
+            // POST /v1/plans/recalculate — the weekly adaptation loop (M3-B,
+            // [DRE-51](/DRE/issues/DRE-51)). Loads the user's recent progress +
+            // symptom logs, derives the fresh de-load-only AdaptationSignal, and
+            // regenerates the plan through the SAME safety gate as /generate —
+            // under a NEW versioned plan id ("{user}@{date}"), so the prior plan
+            // is retained for audit/rollback, not overwritten. Still
+            // deterministic, still gated, de-load-only (no "intensify" path).
+            // Cadence is a caller policy: this is an on-demand operation, no
+            // scheduler (YAGNI).
+            post("/plans/recalculate") {
+                val request = call.receive<PlanGenerateRequest>()
+                val medical = request.medicalSafety
+                val userId = request.userId.ifBlank { "seed-user" }
+                val safetyEval = SafetyGate.evaluate(medical)
+
+                // Same pre-LLM red-flag gate as /generate: a red flag closes
+                // adaptation too — the loop never bypasses safety.
+                if (!safetyEval.allowTrainingGeneration) {
+                    call.respond(
+                        io.ktor.http.HttpStatusCode.Conflict,
+                        BlockedResponse(status = "blocked_red_flag", safety = safetyEval),
+                    )
+                    return@post
+                }
+
+                val gateway = provisionedGateway(medical, safetyEval)
+                val progress = deps.progress.recentFor(userId, RECENT_LOG_LIMIT)
+                val symptoms = deps.symptoms.recentFor(userId, RECENT_LOG_LIMIT)
+                val generated = DeterministicPlanGenerator(gateway).recalculate(
+                    userId = userId,
+                    createdAt = LocalDate.now().toString(),
+                    progress = progress,
+                    symptoms = symptoms,
                 )
 
                 when (generated) {
@@ -176,3 +225,35 @@ data class BlockedResponse(
     @SerialName("blocked_exercise_ids") val blockedExerciseIds: List<String> = emptyList(),
     @SerialName("rule_ids") val ruleIds: List<String> = emptyList(),
 )
+
+/**
+ * Builds the provisioned gateway both plan routes share: the same screening
+ * context (allowlists from the PoC baseline + scoliosis_flagged derivation) and
+ * the same ACTIVE rules (structural allowlists + contraindications, DRE-10/24).
+ * A flagged-scoliosis request proposing a heavy_axial_loading /
+ * loaded_flexion_rotation movement is BLOCKED here regardless of which route
+ * called it — adaptation and baseline share one gate, never a bypass.
+ */
+private fun provisionedGateway(
+    medical: MedicalSafety,
+    safetyEval: SafetyEvaluation,
+): SafetyGuardedGateway {
+    val context = ScreeningContext(
+        redFlags = emptySet(), // red-flag gate already passed => none reported
+        sideSpecificLockEngaged = !safetyEval.allowSideSpecificContent,
+        allowedExerciseIds = dreamteam.domain.training.BaselineProgram.exerciseIds,
+        allowedEvidenceIds = dreamteam.domain.training.BaselineProgram.evidenceIds,
+        clinicianCurveSpecificPlanAvailable = medical.clinicianCurveSpecificPlanAvailable,
+        conditionFlags = if (medical.scoliosisReported) setOf("scoliosis_flagged") else emptySet(),
+    )
+    return SafetyGuardedGateway(context, StructuralSafetyRules.all + ContraindicationStubs.all)
+}
+
+/**
+ * How many recent progress + symptom entries the recalc reads to derive the
+ * AdaptationSignal. Generous for a weekly loop: trend detection needs >=2
+ * points spanning >=1 week; this window covers multiple weeks of daily logs
+ * while staying bounded. The pure derivation only uses first/last + latest-vs-
+ * prior-union, so the exact limit just bounds how far back "recent" reaches.
+ */
+private const val RECENT_LOG_LIMIT = 30

@@ -64,6 +64,8 @@ class InMemoryTrainingPlanRepository : TrainingPlanRepository {
     private val currentByUser = ConcurrentHashMap<UserId, String>()
     override fun currentFor(userId: UserId): TrainingPlan? = currentByUser[userId]?.let { byId[it] }
     override fun byId(id: String): TrainingPlan? = byId[id]
+    override fun historyFor(userId: UserId): List<TrainingPlan> =
+        byId.values.filter { it.userId == userId }.sortedBy { it.createdAt }
     override fun save(plan: TrainingPlan) {
         byId[plan.id] = plan
         currentByUser[plan.userId] = plan.id

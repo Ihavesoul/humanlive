@@ -10,6 +10,8 @@ import dreamteam.domain.safety.ScreeningContext
 import dreamteam.domain.safety.StructuralSafetyRules
 import dreamteam.domain.adaptation.AdaptationSignal
 import dreamteam.domain.adaptation.DeLoadTrigger
+import dreamteam.domain.progress.ProgressEntry
+import dreamteam.domain.symptom.Symptom
 import io.kotest.matchers.collections.shouldContain
 import io.kotest.matchers.collections.shouldContainExactly
 import io.kotest.matchers.collections.shouldNotContain
@@ -298,5 +300,119 @@ class DeterministicPlanGeneratorTest {
         val verdict = gateway.vet(recFor("barbell_back_squat"))
         verdict.shouldBeInstanceOf<SafetyVerdict.Block>()
         verdict.ruleIds shouldContain "stub_heavy_axial_loading_scoliosis"
+    }
+
+    // --- DRE-51 (M3-B): weekly recalculation (recalculate) --------------------
+
+    /**
+     * The recalc reads a user's logged progress + symptoms and regenerates the
+     * plan through [generate] + the gate, under a NEW versioned plan id. Pinned
+     * behaviours: (a) a de-load-triggering log set reduces real volume vs the
+     * baseline; (b) a no-signal log set reproduces baseline volume; (d) a
+     * contraindicated movement is still blocked under a recalc; (e) same logs
+     * => identical recalc (determinism). (c) history retention is covered at
+     * the repository layer.
+     */
+    private fun progress(weight: Double, on: String) =
+        ProgressEntry(id = "p-$on", userId = "seed-user", recordedOn = on, weightKg = weight)
+
+    private fun symptom(on: String, current: List<String>) =
+        Symptom(id = "s-$on", userId = "seed-user", recordedOn = on, source = "self-report", currentSymptoms = current)
+
+    @Test
+    fun `(a) a de-load-triggering log set reduces working-set volume vs the baseline`() {
+        val generator = DeterministicPlanGenerator(provisionedGateway(baselineContext()))
+
+        val baseline = generator.generate(userId = "seed-user", createdAt = "2026-07-21")
+        baseline.shouldBeInstanceOf<GeneratedPlan.Ok>()
+
+        // 80kg -> 78.4kg over 2 weeks = -1.0%/week => rapid weight loss => DeLoad.
+        val recalc = generator.recalculate(
+            userId = "seed-user",
+            createdAt = "2026-07-28",
+            progress = listOf(progress(80.0, "2026-07-14"), progress(78.4, "2026-07-28")),
+            symptoms = emptyList(),
+        )
+        recalc.shouldBeInstanceOf<GeneratedPlan.Ok>()
+
+        // Week 4 is a 3-set build week; after the de-load it drops to 2.
+        val baselineWeek4 = baseline.plan.weeks.first { it.weekNumber == 4 }.setsMain
+        val recalcWeek4 = recalc.plan.weeks.first { it.weekNumber == 4 }.setsMain
+        baselineWeek4 shouldBe 3
+        recalcWeek4 shouldBe 2
+        (recalcWeek4 < baselineWeek4) shouldBe true
+
+        // De-load-only invariant: no recalc week exceeds its baseline.
+        baseline.plan.weeks.forEach { base ->
+            val adapted = recalc.plan.weeks.first { it.weekNumber == base.weekNumber }
+            (adapted.setsMain <= base.setsMain) shouldBe true
+        }
+
+        // Versioning: recalc mints a distinct id, never the baseline id.
+        (recalc.plan.id != baseline.plan.id) shouldBe true
+        recalc.plan.id shouldBe "seed-user@2026-07-28"
+    }
+
+    @Test
+    fun `(b) a no-signal log set reproduces the baseline volume identically`() {
+        val generator = DeterministicPlanGenerator(provisionedGateway(baselineContext()))
+
+        val baseline = generator.generate(userId = "seed-user", createdAt = "2026-07-21")
+        baseline.shouldBeInstanceOf<GeneratedPlan.Ok>()
+
+        // Stable logs (slow loss, no symptom change) => AdaptationSignal.None =>
+        // the recalc's working-set volume is byte-identical to the baseline.
+        val recalc = generator.recalculate(
+            userId = "seed-user",
+            createdAt = "2026-07-28",
+            progress = listOf(progress(80.0, "2026-07-14"), progress(79.8, "2026-07-28")),
+            symptoms = listOf(
+                symptom("2026-07-14", listOf("lumbar tension")),
+                symptom("2026-07-28", listOf("lumbar tension")),
+            ),
+        )
+        recalc.shouldBeInstanceOf<GeneratedPlan.Ok>()
+
+        recalc.plan.weeks.map { it.setsMain } shouldContainExactly
+            baseline.plan.weeks.map { it.setsMain }
+    }
+
+    @Test
+    fun `(d) a contraindicated movement is still blocked end-to-end under a recalc`() {
+        val flaggedCtx = baselineContext().copy(conditionFlags = setOf("scoliosis_flagged"))
+        val gateway = SafetyGuardedGateway(flaggedCtx, StructuralSafetyRules.all + ContraindicationStubs.heavyAxialLoadingForFlaggedScoliosis)
+        val generator = DeterministicPlanGenerator(gateway)
+
+        // The recalc of the (tag-free) baseline still surfaces Ok under the
+        // flagged gate: adaptation changes volume, never selection/tags.
+        val recalc = generator.recalculate(
+            userId = "seed-user",
+            createdAt = "2026-07-28",
+            progress = listOf(progress(80.0, "2026-07-14"), progress(78.4, "2026-07-28")),
+            symptoms = emptyList(),
+        )
+        recalc.shouldBeInstanceOf<GeneratedPlan.Ok>()
+
+        // ...and a contraindicated candidate is still blocked in the SAME
+        // provisioned gateway — the gate is not bypassed by the recalc path.
+        val verdict = gateway.vet(recFor("barbell_back_squat"))
+        verdict.shouldBeInstanceOf<SafetyVerdict.Block>()
+        verdict.ruleIds shouldContain "stub_heavy_axial_loading_scoliosis"
+    }
+
+    @Test
+    fun `(e) same logs produce the identical recalc - determinism`() {
+        val generator = DeterministicPlanGenerator(provisionedGateway(baselineContext()))
+        val progress = listOf(progress(80.0, "2026-07-14"), progress(78.4, "2026-07-28"))
+        val symptoms = listOf(symptom("2026-07-14", listOf("a")), symptom("2026-07-21", listOf("a", "b")))
+
+        val first = generator.recalculate(userId = "seed-user", createdAt = "2026-07-28", progress = progress, symptoms = symptoms)
+            .shouldBeInstanceOf<GeneratedPlan.Ok>()
+        val second = generator.recalculate(userId = "seed-user", createdAt = "2026-07-28", progress = progress, symptoms = symptoms)
+            .shouldBeInstanceOf<GeneratedPlan.Ok>()
+
+        // Identical inputs (incl. createdAt => identical versioned id) => identical plan.
+        first.plan shouldBe second.plan
+        first.plan.id shouldBe "seed-user@2026-07-28"
     }
 }

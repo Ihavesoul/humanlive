@@ -54,6 +54,14 @@ interface UserRepository {
 interface TrainingPlanRepository {
     fun currentFor(userId: UserId): TrainingPlan?
     fun byId(id: PlanId): TrainingPlan?
+    /**
+     * Every retained version for a user, oldest-first by `createdAt` — for
+     * audit / rollback. The active version is the one [currentFor] returns
+     * (the last [save]d). Versions are append-mostly: a recalc saves under a
+     * new id, so prior plans are retained, never silently overwritten
+     * ([DRE-51](/DRE/issues/DRE-51)).
+     */
+    fun historyFor(userId: UserId): List<TrainingPlan>
     fun save(plan: TrainingPlan)
 }
 

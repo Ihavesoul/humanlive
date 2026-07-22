@@ -22,6 +22,7 @@ import dreamteam.domain.user.MedicalContext
 import dreamteam.domain.user.User
 import dreamteam.domain.user.UserPreferences
 import io.kotest.matchers.collections.shouldHaveSize
+import io.kotest.matchers.collections.shouldContainExactlyInAnyOrder
 import io.kotest.matchers.shouldBe
 
 /**
@@ -88,6 +89,15 @@ internal fun userPlanProgressSymptomNutritionContract(
     )
     plans.save(plan)
     plans.currentFor("user-1") shouldBe plan
+
+    // DRE-51 (M3-B): append-mostly versioning — a second save under a NEW id
+    // retains the prior version and bumps the current pointer; historyFor lists
+    // every retained version (audit/rollback), ordered oldest-first.
+    val plan2 = plan.copy(id = "plan-2", createdAt = "2026-07-28")
+    plans.save(plan2)
+    plans.currentFor("user-1") shouldBe plan2
+    plans.historyFor("user-1") shouldContainExactlyInAnyOrder listOf(plan, plan2)
+    plans.historyFor("user-1").sortedBy { it.createdAt } shouldBe listOf(plan, plan2)
 
     progress.append(ProgressEntry("p1", "user-1", "2026-07-21", 83.2, 21.2))
     progress.recentFor("user-1", 10) shouldHaveSize 1

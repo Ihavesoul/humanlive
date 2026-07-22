@@ -230,6 +230,20 @@ internal class SqliteTrainingPlanRepository(private val store: SqliteStore) : Tr
         store.queryOne("SELECT payload FROM training_plan WHERE id = ?", { it.getBytes(1) }, id)
             ?.let(store::decrypt)?.let { decodeJson<TrainingPlan>(it) }
 
+    /**
+     * All retained versions for a user, oldest-first by `createdAt`. Selects by
+     * the plaintext `user_id` key, then decodes + orders by the (in-payload)
+     * `createdAt` field — matching the in-memory impl's contract. Per-user
+     * history is tiny (one row per weekly recalc), so decoding each payload is
+     * cheap; no schema column needed for ordering (ADR 0003 document model).
+     */
+    override fun historyFor(userId: UserId): List<TrainingPlan> =
+        store.queryList(
+            "SELECT payload FROM training_plan WHERE user_id = ?",
+            { it.getBytes(1) }, userId,
+        ).map(store::decrypt).map { decodeJson<TrainingPlan>(it) }
+            .sortedBy { it.createdAt }
+
     override fun save(plan: TrainingPlan) {
         // Mirror the in-memory semantics exactly: store by id (history kept),
         // and bump the per-user "current" pointer so last save wins as current.

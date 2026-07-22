@@ -2,10 +2,13 @@ package dreamteam.domain.training
 
 import dreamteam.domain.UserId
 import dreamteam.domain.adaptation.AdaptationSignal
+import dreamteam.domain.adaptation.deriveAdaptationSignal
 import dreamteam.domain.nutrition.NutritionTarget
+import dreamteam.domain.progress.ProgressEntry
 import dreamteam.domain.safety.Recommendation
 import dreamteam.domain.safety.SafetyGuardedGateway
 import dreamteam.domain.safety.SurfacedPlan
+import dreamteam.domain.symptom.Symptom
 
 /**
  * The deterministic plan generator. Produces the PoC baseline training plan
@@ -57,6 +60,37 @@ class DeterministicPlanGenerator(private val gateway: SafetyGuardedGateway) {
                 ruleIds = surfaced.items.flatMap { it.verdict.ruleIds }.distinct(),
             )
         }
+    }
+
+    /**
+     * The weekly recalculation ([DRE-51](/DRE/issues/DRE-51), M3-B): derive the
+     * fresh [AdaptationSignal] from a user's logged progress + symptoms, then
+     * regenerate the plan **through the same [generate] / safety gate** — under a
+     * **new versioned [planId]** so the prior plan is retained, not overwritten.
+     *
+     * This is the log-driven counterpart to baseline [generate]: same gate, same
+     * determinism, de-load-only (the signal sealed type has no increase variant).
+     * [progress] / [symptoms] are the caller's recent window for this user
+     * (e.g. `progress.recentFor(user, n)`); [deriveAdaptationSignal] decides the
+     * cut from their contents. Default [planId] is `"{userId}@{createdAt}"` —
+     * distinct from the baseline `"baseline-12w"` id, so a recalc never collides
+     * with or overwrites the baseline version.
+     *
+     * ponytail: weekly cadence assumption — a date-granularity id can collide if
+     * two recalcs run the same day with *different* logs (same logs → identical
+     * plan → harmless no-op overwrite). The "weekly" cadence is a caller policy
+     * (out of scope: no scheduler here); if same-day multi-recalc ever becomes
+     * real, switch the id to a monotonic version derived from history size.
+     */
+    fun recalculate(
+        userId: UserId,
+        createdAt: String,
+        progress: List<ProgressEntry>,
+        symptoms: List<Symptom>,
+        planId: String = "${userId}@${createdAt}",
+    ): GeneratedPlan {
+        val signal = deriveAdaptationSignal(progress, symptoms)
+        return generate(userId, createdAt, planId, signal)
     }
 }
 
