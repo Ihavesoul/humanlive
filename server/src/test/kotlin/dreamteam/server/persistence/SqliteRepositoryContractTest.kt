@@ -105,6 +105,7 @@ class SqliteRepositoryContractTest {
             r.users.byId("user-1") shouldBe user
             r.plans.currentFor("user-1") shouldBe plan
             r.plans.byId("plan-1") shouldBe plan
+            r.plans.historyFor("user-1").map { it.id } shouldBe listOf("plan-1") // rowid order survives reopen
             r.progress.recentFor("user-1", 10).size shouldBe 1
             r.symptoms.recentFor("user-1", 10).size shouldBe 1
             r.symptoms.byId("s1")?.currentSymptoms shouldBe listOf("lumbar tension")
