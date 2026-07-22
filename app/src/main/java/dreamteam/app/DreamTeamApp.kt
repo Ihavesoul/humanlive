@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import dreamteam.app.data.LocalDatabase
 import dreamteam.app.data.Profile
 import dreamteam.app.data.SymptomEntry
+import dreamteam.domain.adaptation.AdaptationSignal
 import dreamteam.domain.safety.ContraindicationStubs
 import dreamteam.domain.safety.MedicalSafety
 import dreamteam.domain.safety.SafetyEvaluation
@@ -59,13 +60,31 @@ import java.time.LocalDate
  */
 private enum class Screen { Onboarding, Plan, Symptoms }
 
-/** Outcome of the local deterministic generation, mirroring the server's. */
+/**
+ * Outcome of the local deterministic generation, mirroring the server's. [Ok.signal]
+ * carries the week's adaptation so the UI can render it — de-load only, support-
+ * framed, no diagnosis (M3-C [DRE-52](/DRE/issues/DRE-52)).
+ */
 private sealed interface PlanResult {
-    data class Ok(val week: PlanWeek, val nutrition: NutritionTarget, val safety: SafetyEvaluation) : PlanResult
+    data class Ok(
+        val week: PlanWeek,
+        val nutrition: NutritionTarget,
+        val safety: SafetyEvaluation,
+        val signal: AdaptationSignal,
+    ) : PlanResult
     data class Blocked(val reason: String) : PlanResult
 }
 
-private fun generateLocalPlan(profile: Profile, today: String): PlanResult {
+/**
+ * Runs the SAME deterministic, safety-gated path as the backend — offline-first,
+ * no server round-trip (ADR 0002). [symptoms] are the user's own logged rows,
+ * turned into a de-load-only [AdaptationSignal] by [localAdaptationSignal]; the
+ * signal flows through [DeterministicPlanGenerator.generate] **inside** the
+ * already-approved gate bounds (it only de-loads working sets; it never selects,
+ * unblocks, or bypasses [SafetyGuardedGateway]). A red-flag profile still blocks
+ * here, before any signal is considered.
+ */
+private fun generateLocalPlan(profile: Profile, today: String, symptoms: List<SymptomEntry>): PlanResult {
     val medical = MedicalSafety(
         scoliosisReported = profile.scoliosisReported,
         redFlags = profile.redFlags,
@@ -81,8 +100,9 @@ private fun generateLocalPlan(profile: Profile, today: String): PlanResult {
         conditionFlags = if (profile.scoliosisReported) setOf("scoliosis_flagged") else emptySet(),
     )
     val gateway = SafetyGuardedGateway(context, StructuralSafetyRules.all + ContraindicationStubs.all)
-    return when (val g = DeterministicPlanGenerator(gateway).generate(userId = "local", createdAt = today)) {
-        is GeneratedPlan.Ok -> PlanResult.Ok(g.plan.weeks.first(), g.nutrition, safety)
+    val signal = localAdaptationSignal(symptoms)
+    return when (val g = DeterministicPlanGenerator(gateway).generate(userId = "local", createdAt = today, adaptation = signal)) {
+        is GeneratedPlan.Ok -> PlanResult.Ok(g.plan.weeks.first(), g.nutrition, safety, signal)
         is GeneratedPlan.Blocked -> PlanResult.Blocked("План заблокирован шлюзом безопасности: ${g.ruleIds.joinToString()}.")
     }
 }
@@ -181,7 +201,11 @@ private fun PlanScreen(modifier: Modifier, db: LocalDatabase, profile: Profile?,
         Column(modifier.fillMaxSize().padding(16.dp)) { Text("Профиль не найден."); Button(onClick = {}) {} }
         return
     }
-    val result = remember(p) { generateLocalPlan(p, LocalDate.now().toString()) }
+    // Local, offline-first read; cheap SQLite query, no network. Keying the plan
+    // on the symptom snapshot means a newly logged symptom (escalation) is
+    // reflected the next time this screen composes — same inputs → same plan.
+    val symptoms = db.recentSymptoms()
+    val result = remember(p, symptoms) { generateLocalPlan(p, LocalDate.now().toString(), symptoms) }
 
     LazyColumn(modifier = modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         when (result) {
@@ -195,6 +219,15 @@ private fun PlanScreen(modifier: Modifier, db: LocalDatabase, profile: Profile?,
                             Text("Неделя ${result.week.weekNumber} · ${result.week.phase}", fontWeight = FontWeight.Bold)
                             Text("Цель: ${result.nutrition.targetKcal} ккал · Б${result.nutrition.proteinG} Ж${result.nutrition.fatG} У${result.nutrition.carbohydrateG}")
                             if (result.safety.warnings.isNotEmpty()) Text(result.safety.warnings.joinToString(" "))
+                            // M3-C: surface a de-load as a plain "объём снижен" indicator + the
+                            // support-framed reason (authored in M3-A). No diagnosis, no "у вас …",
+                            // no medical framing — only that the week's volume was reduced and why.
+                            // On AdaptationSignal.None nothing extra is rendered (baseline as today).
+                            if (result.signal is AdaptationSignal.DeLoad) {
+                                Spacer(Modifier.height(4.dp))
+                                Text("Объём снижен", fontWeight = FontWeight.SemiBold)
+                                Text(result.signal.reason, fontWeight = FontWeight.Light)
+                            }
                         }
                     }
                 }

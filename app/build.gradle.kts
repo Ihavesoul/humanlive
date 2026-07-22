@@ -35,6 +35,15 @@ android {
     buildFeatures {
         compose = true
     }
+    // JVM unit tests for client→domain wiring (DRE-52). Run as plain JUnit 5 on
+    // the host JDK with a stubbed android.jar — no device/Robolectric needed,
+    // because the unit under test (ClientAdaptation) is pure Kotlin with no
+    // Android runtime dependency.
+    testOptions {
+        unitTests {
+            all { it.useJUnitPlatform() }
+        }
+    }
 }
 
 kotlin {
@@ -59,4 +68,9 @@ dependencies {
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.compose.ui.tooling.preview)
     debugImplementation(libs.androidx.compose.ui.tooling)
+
+    // Client→domain wiring unit tests (DRE-52): JUnit 5 + Kotest matchers.
+    testImplementation(libs.junit.jupiter)
+    testRuntimeOnly(libs.junit.platform.launcher)
+    testImplementation(libs.kotest.assertions.core)
 }
