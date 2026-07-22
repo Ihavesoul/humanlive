@@ -112,12 +112,16 @@ evidence source and the safety rule it implements in the commit/PR. A
 recommendation with no evidence link, a safety rule the user can skip, or a
 medical claim is a **bug**, not a feature.
 
-## CI
+## Verification
 
-[`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs on every push/PR:
-the PoC reference build validator (Python), the JVM tests
-(`:core:domain:test` `:server:test`), and `:app:assembleDebug` — as independent
-commit gates.
+GitHub Actions CI is **retired** ([DRE-27](/DRE/issues/DRE-27)) — the
+`Ihavesoul/humanlive` account has a billing lock, and the board directed
+local verification. Before pushing, build and test under **JDK 17** on the
+host:
+
+- JVM tests: `./gradlew :core:domain:test :server:test`
+- Native build: `./gradlew :app:assembleDebug`
+- PoC reference build validator (Python).
 
 ---
 

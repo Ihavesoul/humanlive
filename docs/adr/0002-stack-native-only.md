@@ -73,8 +73,9 @@ These are the PoC's invariants; the stack keeps them enforceable in code:
 - The Android client is the installed app; there is no web/PWA delivery path.
 - `:core:domain` is the integration seam between native and backend; the native
   `:app` consumes it so deterministic safety logic is shared, not duplicated.
-- CI runs (a) the PoC reference validator, (b) the JVM tests (`:core:domain`,
-  `:server`), and (c) `:app:assembleDebug` as commit gates
-  (`.github/workflows/ci.yml`).
+- Verification is local under JDK 17 ([DRE-27](/DRE/issues/DRE-27)): run the
+  PoC reference validator, the JVM tests (`:core:domain`, `:server`), and
+  `:app:assembleDebug` before pushing. GitHub Actions CI was retired (billing
+  lock on `Ihavesoul/humanlive`); the workflow file was removed.
 - Adding a feature: deterministic logic in `:core:domain`, the HTTP surface +
   repository layer in `:server`, and Compose UI in `:app`.
