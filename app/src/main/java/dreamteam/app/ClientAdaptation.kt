@@ -46,6 +46,20 @@ internal fun clientSymptoms(entries: List<SymptomEntry>): List<Symptom> =
 internal fun localAdaptationSignal(symptoms: List<SymptomEntry>): AdaptationSignal =
     deriveAdaptationSignal(progress = emptyList(), symptoms = clientSymptoms(symptoms))
 
+/**
+ * What [PlanScreen] shows for an [AdaptationSignal]: a plain, support-framed
+ * note on [AdaptationSignal.DeLoad] (behavioral — "объём снижен" + why), nothing
+ * on [AdaptationSignal.None]. Extracted from the Compose tree into a **pure**
+ * function so a JVM test can pin the two M3-C guarantees ([DRE-53](/DRE/issues/DRE-53)):
+ * (1) it renders exactly on DeLoad and carries the domain reason verbatim, and
+ * (2) the rendered strings never contain a banned medical-claim phrase. No
+ * diagnosis, no "у вас …", no treatment/cure framing — the note is volume-only.
+ */
+internal data class AdaptationNote(val indicator: String, val reason: String)
+
+internal fun adaptationNote(signal: AdaptationSignal): AdaptationNote? =
+    (signal as? AdaptationSignal.DeLoad)?.let { AdaptationNote(indicator = "Объём снижен", reason = it.reason) }
+
 private fun tokenize(text: String): List<String> =
     text.split(Regex("[\\s,]+"))
         .map { it.trim().lowercase() }

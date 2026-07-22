@@ -223,10 +223,14 @@ private fun PlanScreen(modifier: Modifier, db: LocalDatabase, profile: Profile?,
                             // support-framed reason (authored in M3-A). No diagnosis, no "у вас …",
                             // no medical framing — only that the week's volume was reduced and why.
                             // On AdaptationSignal.None nothing extra is rendered (baseline as today).
-                            if (result.signal is AdaptationSignal.DeLoad) {
+                            // M3-C: surface a de-load via the pure adaptationNote(signal)
+                            // (extracted so its strings are banned-phrase-tested, DRE-53).
+                            // Support-framed only: "объём снижен" + the domain reason; no
+                            // diagnosis/claim. On AdaptationSignal.None → null → nothing.
+                            adaptationNote(result.signal)?.let { note ->
                                 Spacer(Modifier.height(4.dp))
-                                Text("Объём снижен", fontWeight = FontWeight.SemiBold)
-                                Text(result.signal.reason, fontWeight = FontWeight.Light)
+                                Text(note.indicator, fontWeight = FontWeight.SemiBold)
+                                Text(note.reason, fontWeight = FontWeight.Light)
                             }
                         }
                     }
