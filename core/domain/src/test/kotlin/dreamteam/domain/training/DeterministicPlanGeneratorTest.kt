@@ -8,6 +8,8 @@ import dreamteam.domain.safety.SafetyRule
 import dreamteam.domain.safety.SafetyVerdict
 import dreamteam.domain.safety.ScreeningContext
 import dreamteam.domain.safety.StructuralSafetyRules
+import dreamteam.domain.adaptation.AdaptationSignal
+import dreamteam.domain.adaptation.DeLoadTrigger
 import io.kotest.matchers.collections.shouldContain
 import io.kotest.matchers.collections.shouldContainExactly
 import io.kotest.matchers.collections.shouldNotContain
@@ -192,5 +194,109 @@ class DeterministicPlanGeneratorTest {
         listOf("bird_dog", "dead_bug", "side_plank_equal", "suitcase_hold_equal").forEach { id ->
             recFor(id).exerciseTags shouldNotContain "loaded_flexion_rotation"
         }
+    }
+
+    // --- DRE-49 (M3-A): AdaptationSignal threads into the generator ----------
+
+    /**
+     * A DeLoad signal must reduce real training volume (working-set count) but
+     * never below the program's own deload floor (2), and never raise it. The
+     * lever is [BaselineProgram]'s per-week `setsMain` (Decision_Rules YELLOW:
+     * "reduce sets 25–50%"); warm-ups keep their default sets and are untouched.
+     */
+    @Test
+    fun `a de-load signal reduces main working sets on build weeks but never below the deload floor`() {
+        val baseline = DeterministicPlanGenerator(provisionedGateway(baselineContext()))
+            .generate(userId = "seed-user", createdAt = "2026-07-21")
+        baseline.shouldBeInstanceOf<GeneratedPlan.Ok>()
+
+        val deLoaded = DeterministicPlanGenerator(provisionedGateway(baselineContext()))
+            .generate(
+                userId = "seed-user",
+                createdAt = "2026-07-21",
+                adaptation = AdaptationSignal.DeLoad(
+                    trigger = DeLoadTrigger.SymptomEscalation,
+                    volumeScale = AdaptationSignal.SCALE_MODERATE,
+                    reason = "test",
+                ),
+            )
+        deLoaded.shouldBeInstanceOf<GeneratedPlan.Ok>()
+
+        // Week 4 is a 3-set build week (baseline setsMain = 3). After a 0.75
+        // de-load: 3 * 0.75 = 2.25 -> floor 2 -> coerceIn(2, 3) = 2. Real cut.
+        val baselineBuildSets = baseline.plan.weeks.first { it.weekNumber == 4 }.setsMain
+        val deLoadedBuildSets = deLoaded.plan.weeks.first { it.weekNumber == 4 }.setsMain
+        baselineBuildSets shouldBe 3
+        deLoadedBuildSets shouldBe 2
+
+        // De-load-only invariant: every adapted week's sets <= its baseline.
+        baseline.plan.weeks.forEach { base ->
+            val adapted = deLoaded.plan.weeks.first { it.weekNumber == base.weekNumber }
+            adapted.setsMain shouldBe (if (base.setsMain > 2) base.setsMain - 1 else base.setsMain)
+            (adapted.setsMain <= base.setsMain) shouldBe true
+            (adapted.setsMain >= 2) shouldBe true
+        }
+    }
+
+    @Test
+    fun `no adaptation signal yields the unchanged baseline`() {
+        val none = DeterministicPlanGenerator(provisionedGateway(baselineContext()))
+            .generate(userId = "seed-user", createdAt = "2026-07-21")
+        none.shouldBeInstanceOf<GeneratedPlan.Ok>()
+        none.plan.weeks shouldContainExactly BaselineProgram.baselineTrainingPlan("seed-user", createdAt = "2026-07-21").weeks
+    }
+
+    /**
+     * The hard invariant: adaptation cannot bypass the gate. An exercise
+     * outside the allowlist is still BLOCKED (nothing surfaced) even when a
+     * DeLoad signal is present — the signal only changes volume, never
+     * selection/evidence/tags, so the gateway vets identical candidates.
+     */
+    @Test
+    fun `a de-load signal does not unblock an allowlist violation`() {
+        val ctxWithHole = baselineContext().copy(
+            allowedExerciseIds = BaselineProgram.exerciseIds - "split_squat",
+        )
+        val result = DeterministicPlanGenerator(provisionedGateway(ctxWithHole)).generate(
+            userId = "seed-user",
+            createdAt = "2026-07-21",
+            adaptation = AdaptationSignal.DeLoad(
+                trigger = DeLoadTrigger.RapidWeightLoss,
+                volumeScale = AdaptationSignal.SCALE_STRONG,
+                reason = "test",
+            ),
+        )
+        result.shouldBeInstanceOf<GeneratedPlan.Blocked>()
+        result.blockedExerciseIds.toSet() shouldContainExactly setOf("split_squat")
+    }
+
+    /**
+     * A contraindicated movement (heavy_axial_loading, flagged scoliosis) is
+     * still blocked end-to-end with a DeLoad active: adaptation is a pre-gate
+     * volume modifier and never reaches [Recommendation], so the contraindication
+     * rule fires exactly as without adaptation.
+     */
+    @Test
+    fun `a contraindicated movement is still blocked end-to-end under a de-load`() {
+        val flaggedCtx = baselineContext().copy(conditionFlags = setOf("scoliosis_flagged"))
+        val gateway = SafetyGuardedGateway(flaggedCtx, StructuralSafetyRules.all + ContraindicationStubs.heavyAxialLoadingForFlaggedScoliosis)
+
+        // The surfaced baseline (none of its movements carry heavy_axial) still
+        // passes end-to-end under a de-load — no tagged movement is introduced.
+        val ok = DeterministicPlanGenerator(gateway).generate(
+            userId = "seed-user",
+            createdAt = "2026-07-21",
+            adaptation = AdaptationSignal.DeLoad(
+                trigger = DeLoadTrigger.SymptomEscalation,
+                volumeScale = AdaptationSignal.SCALE_MODERATE,
+                reason = "test",
+            ),
+        )
+        ok.shouldBeInstanceOf<GeneratedPlan.Ok>()
+
+        // And a contraindicated candidate is still blocked in the same provisioned gateway.
+        val verdict = gateway.vet(recFor("barbell_back_squat"))
+        verdict.shouldBeInstanceOf<SafetyVerdict.Block>()
+        verdict.ruleIds shouldContain "stub_heavy_axial_loading_scoliosis"
     }
 }

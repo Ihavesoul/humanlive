@@ -3,6 +3,7 @@ package dreamteam.domain.training
 import dreamteam.domain.EvidenceId
 import dreamteam.domain.ExerciseId
 import dreamteam.domain.UserId
+import dreamteam.domain.adaptation.AdaptationSignal
 
 /**
  * The deterministic PoC v0.2.0 baseline training + nutrition plan, encoded as
@@ -204,17 +205,44 @@ object BaselineProgram {
     )
 
     /**
+     * The hardest cut the de-load will apply: never prescribe fewer working sets
+     * than the program's own intentional deload weeks (`setsMain = 2`). A de-load
+     * therefore either removes one set from a 3-set build week (→2, a ~33% cut,
+     * inside Decision_Rules YELLOW's 25–50% band) or holds a 2-set week as-is.
+     * Integer granularity means a stronger scale collapses to the same 2 at the
+     * floor — safe (less reduction), documented; a finer lever is an M3-B call.
+     */
+    private const val DELOAD_SETS_FLOOR = 2
+
+    /**
      * Builds the full 12-week baseline [TrainingPlan] for [userId]. Pure: same
      * inputs → same plan, every time. Warm-ups keep their exercise default sets;
      * main lifts take the week's [WeekParameter.setsMain] / [WeekParameter.rir].
      * Every assignment carries the exercise's PoC evidence refs (no assignment
      * ships unsourced — DRE-6).
+     *
+     * [adaptation] (M3-A, [DRE-49](/DRE/issues/DRE-49)) optionally de-loads the
+     * baseline working-set volume. It is applied here — at the single place
+     * [WeekParameter.setsMain] becomes real assignment dose — and **only ever
+     * reduces or holds** it: the adapted count is `coerceIn([DELOAD_SETS_FLOOR],
+     * wp.setsMain)`, so it can never exceed the baseline week's sets (the
+     * de-load-only invariant, doubled by [AdaptationSignal] having no increase
+     * variant). Selection, evidence, and movement tags are untouched, so the
+     * surfaced candidates are byte-identical with or without adaptation — the
+     * [dreamteam.domain.safety.SafetyGuardedGateway] still vets every one of
+     * them. Adaptation works strictly *inside* the already-approved gate bounds.
      */
-    fun baselineTrainingPlan(userId: UserId, planId: String = "baseline-12w", createdAt: String): TrainingPlan {
+    fun baselineTrainingPlan(
+        userId: UserId,
+        planId: String = "baseline-12w",
+        createdAt: String,
+        adaptation: AdaptationSignal = AdaptationSignal.None,
+    ): TrainingPlan {
         val weeks = weekParameters.map { wp ->
+            val (setsMain, noteSuffix) = adaptedWeekDose(wp, adaptation)
             val sessions = schedule.map { template ->
                 val warmupAssignments = template.warmup.map { assignment(it, sets = exercises.getValue(it).defaultSets, rir = exercises.getValue(it).defaultRir) }
-                val mainAssignments = template.main.map { assignment(it, sets = wp.setsMain, rir = wp.rir) }
+                val mainAssignments = template.main.map { assignment(it, sets = setsMain, rir = wp.rir) }
                 PlanSession(
                     id = template.id,
                     day = template.day,
@@ -225,10 +253,10 @@ object BaselineProgram {
             PlanWeek(
                 weekNumber = wp.week,
                 phase = wp.phase,
-                setsMain = wp.setsMain,
+                setsMain = setsMain,
                 rir = wp.rir,
                 volumeFactor = wp.volumeFactor,
-                notes = wp.notes,
+                notes = wp.notes + noteSuffix,
                 sessions = sessions,
             )
         }
@@ -239,6 +267,21 @@ object BaselineProgram {
             weeks = weeks,
             createdAt = createdAt,
         )
+    }
+
+    /**
+     * Returns `(working sets for this week, notes suffix)` after applying a
+     * de-load. None/hold → baseline sets, empty suffix. The cap is the
+     * `coerceIn` below: never below the deload floor, never above the baseline.
+     */
+    private fun adaptedWeekDose(wp: WeekParameter, adaptation: AdaptationSignal): Pair<Int, String> {
+        if (adaptation !is AdaptationSignal.DeLoad) return wp.setsMain to ""
+        val target = (wp.setsMain * adaptation.volumeScale).toInt()
+        val adapted = target.coerceIn(DELOAD_SETS_FLOOR, wp.setsMain)
+        val suffix = if (adapted < wp.setsMain) {
+            " [Адаптация: −${wp.setsMain - adapted} рабочий подход — ${adaptation.reason}]"
+        } else ""
+        return adapted to suffix
     }
 
     private fun assignment(id: ExerciseId, sets: Int, rir: Int?): ExerciseAssignment {

@@ -1,6 +1,7 @@
 package dreamteam.domain.training
 
 import dreamteam.domain.UserId
+import dreamteam.domain.adaptation.AdaptationSignal
 import dreamteam.domain.nutrition.NutritionTarget
 import dreamteam.domain.safety.Recommendation
 import dreamteam.domain.safety.SafetyGuardedGateway
@@ -36,8 +37,9 @@ class DeterministicPlanGenerator(private val gateway: SafetyGuardedGateway) {
         userId: UserId,
         createdAt: String,
         planId: String = "baseline-12w",
+        adaptation: AdaptationSignal = AdaptationSignal.None,
     ): GeneratedPlan {
-        val plan = BaselineProgram.baselineTrainingPlan(userId, planId, createdAt)
+        val plan = BaselineProgram.baselineTrainingPlan(userId, planId, createdAt, adaptation)
         val nutrition = BaselineNutrition.baselineTarget(userId, createdAt)
 
         // Every assignment becomes a candidate recommendation; the gateway is
