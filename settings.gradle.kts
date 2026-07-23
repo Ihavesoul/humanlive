@@ -12,6 +12,14 @@ pluginManagement {
     }
 }
 
+// Toolchain resolver so Gradle can auto-provision a JDK matching the daemon
+// JVM criteria (gradle/gradle-daemon-jvm.properties). AGP's androidJdkImage/jlink
+// transform breaks on JDK 25/26, so the daemon is pinned to JDK 17 (DRE-58);
+// Foojay downloads it when no local JDK 17 is auto-detected (e.g. Homebrew paths).
+plugins {
+    id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0"
+}
+
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {

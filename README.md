@@ -30,11 +30,15 @@ Its web/PWA UI is **not** the client; the client is native. Stack rationale:
 | Domain model | `core/domain/` | Pure Kotlin/JVM (`:core:domain`) — the shared safety math & rules |
 
 Gradle (Kotlin DSL) + version catalog at `gradle/libs.versions.toml`.
-**JDK 17** (host JDK 17+). **Android SDK required** for `:app` (compileSdk 35).
+**JDK 17** is the build JDK. **Android SDK required** for `:app` (compileSdk 35).
 
 ## Prerequisites
 
-- **JDK 17** (Temurin recommended; host JDK 17+ also fine).
+- **JDK 17** (the Gradle daemon build JDK). A higher host JDK is fine — the
+  daemon is auto-pinned to JDK 17 via `gradle/gradle-daemon-jvm.properties`
+  + the Foojay resolver; Gradle auto-detects a local JDK 17 or downloads one
+  if none is found. This matters because AGP's `androidJdkImage`/`jlink`
+  transform (used by every `:app` unit test) fails on JDK 25/26 ([DRE-58](/DRE/issues/DRE-58)).
 - **Android SDK** with `platforms;android-35` and `build-tools;35.0.0`.
   Set `sdk.dir` in `local.properties` (gitignored, machine-specific).
 - Python 3 (only for the PoC reference build validator).
@@ -42,7 +46,7 @@ Gradle (Kotlin DSL) + version catalog at `gradle/libs.versions.toml`.
 macOS quick start (Homebrew):
 
 ```bash
-brew install openjdk@17
+brew install openjdk@17   # optional — Gradle auto-downloads JDK 17 if absent
 # Android SDK via Android Studio's SDK Manager, or `sdkmanager`.
 ```
 
@@ -116,8 +120,9 @@ medical claim is a **bug**, not a feature.
 
 GitHub Actions CI is **retired** ([DRE-27](/DRE/issues/DRE-27)) — the
 `Ihavesoul/humanlive` account has a billing lock, and the board directed
-local verification. Before pushing, build and test under **JDK 17** on the
-host:
+local verification. The Gradle daemon is auto-pinned to **JDK 17**
+(`gradle/gradle-daemon-jvm.properties`, [DRE-58](/DRE/issues/DRE-58)), so no
+manual `JAVA_HOME` is needed. Before pushing, build and test:
 
 - JVM tests: `./gradlew :core:domain:test :server:test`
 - Native build: `./gradlew :app:assembleDebug`
