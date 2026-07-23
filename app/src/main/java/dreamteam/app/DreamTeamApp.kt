@@ -456,6 +456,10 @@ private fun TodayScreen(
         Column(modifier.fillMaxSize().padding(16.dp)) { Text("Профиль не найден."); Button(onClick = {}) {} }
         return
     }
+    // M7-B (DRE-73): the export handoff needs an Android Context (file write +
+    // FileProvider URI + ACTION_SEND); hoisted out of the item lambda per the
+    // established [LocalContext] pattern at the app root.
+    val shareContext = LocalContext.current
     // Same offline-first read + recompute keys as PlanScreen: a newly logged
     // symptom (escalation) or weight point (rapid-loss trend) is reflected the
     // next time this screen composes — same inputs → same plan.
@@ -514,6 +518,15 @@ private fun TodayScreen(
         // M6-D (stretch) ([DRE-66](/DRE/issues/DRE-66)): one-tap entry to the
         // read-only evidence-sources view — full catalog transparency.
         item { OutlinedButton(onClick = onEvidenceSources, modifier = Modifier.fillMaxWidth()) { Text(EvidenceSourcesStrings.TITLE) } }
+        // M7-B ([DRE-73](/DRE/issues/DRE-73)): "Export my data" — hand the
+        // deterministic export envelope to the system share/save sheet via a
+        // FileProvider content URI. Pure byte-production via [exportActionDocument]
+        // (the SAME M7-A serialization path — no second path), then the Android
+        // handoff edge ([launchDataExport]). Fully offline: no network anywhere.
+        // The non-medical caption is surfaced in-app; the disclaimer is also in
+        // the file envelope. A gate-blocked profile still exports (plan == null).
+        item { Text(ExportUiStrings.CAPTION, fontWeight = FontWeight.Light, fontStyle = FontStyle.Italic) }
+        item { OutlinedButton(onClick = { launchDataExport(shareContext, db) }, modifier = Modifier.fillMaxWidth()) { Text(ExportUiStrings.BUTTON) } }
     }
 }
 

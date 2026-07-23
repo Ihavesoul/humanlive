@@ -18,6 +18,23 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!--
+          M7-B (DRE-73): FileProvider so the "Export my data" action can hand the
+          deterministic export file to the system share/save sheet via a content
+          URI. Standard Android component (androidx.core), NOT a new external
+          dependency — reuses the androidx.core already on the classpath. Only
+          the app's own cache export dir is exposed; grant is per-launch.
+        -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/export_file_paths" />
+        </provider>
     </application>
 
 </manifest>

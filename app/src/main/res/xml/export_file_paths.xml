@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  M7-B (DRE-73): FileProvider path config for the data-export handoff.
+  Exposes only the app's own cache root, where [launchDataExport] writes the
+  deterministic dreamteam-export.json before ACTION_SEND. No other dir is
+  reachable through this provider.
+-->
+<paths>
+    <cache-path
+        name="exports"
+        path="." />
+</paths>

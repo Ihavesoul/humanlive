@@ -142,6 +142,35 @@ internal fun exportPlanFrom(outcome: LocalPlanOutcome): ExportedPlan? =
     (outcome as? LocalPlanOutcome.Ok)?.let { ExportedPlan(it.plans.training, it.plans.nutrition) }
 
 /**
+ * M7-B ([DRE-73](/DRE/issues/DRE-73)): the **pure byte-production** the "Export
+ * my data" Compose action calls immediately before the Android handoff edge
+ * ([launchDataExport]). One serialization path, no second core: regenerate the
+ * safety-gated plan ([regenerateLocalPlans] → [exportPlanFrom]) over the same
+ * symptom/progress snapshots, then assemble the document ([buildExportDocument])
+ * from an already-read store snapshot. The export's bytes are exactly
+ * [encodeExportDocument] of this document — same determinism + completeness
+ * guarantees as M7-A; a gate-blocked profile yields `plan == null` here too, so
+ * the UI path never emits a non-gated plan.
+ *
+ * Pure over fixed inputs (no Android, no I/O) so a JVM test can drive the ACTION
+ * and assert the produced bytes decode back with every store row present — per
+ * the repo's established edge-vs-core split (the FileProvider/ACTION_SEND handoff
+ * is device-level plumbing, the same way the symptom-log SQLite edge is not
+ * JVM-pinned; the pure core it delegates to is what's pinned).
+ */
+internal fun exportActionDocument(
+    profile: Profile,
+    workouts: List<WorkoutCompletion>,
+    symptoms: List<SymptomEntry>,
+    progress: List<ProgressRow>,
+    today: String,
+    generatedAt: String,
+): ExportDocument {
+    val plan = exportPlanFrom(regenerateLocalPlans(profile, today, symptoms, progress))
+    return buildExportDocument(profile, workouts, symptoms, progress, plan, generatedAt)
+}
+
+/**
  * Deterministic JSON encoder for [ExportDocument]. `encodeDefaults` so every
  * schema field is always present (additive schema, no silent omission of
  * defaulted/null fields); `prettyPrint` for human-inspectability. Key order is
