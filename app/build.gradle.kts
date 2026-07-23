@@ -35,6 +35,21 @@ android {
     buildFeatures {
         compose = true
     }
+    // Offline-first evidence catalog (M6-A / DRE-67): the repo-root `data/` dir
+    // is the single source of truth for the catalog (ADR 0001). Bundle it as
+    // Android *assets* so the app reads evidence_catalog.json offline via
+    // AssetManager (loadEvidenceResolver), and onto the *test* classpath so the
+    // pure resolver's JVM unit test reads it via getResourceAsStream — one copy
+    // of the data, no drift (the same one-line srcDir pattern the server uses
+    // for its classpath resource).
+    sourceSets {
+        getByName("main") {
+            assets.srcDir(rootProject.layout.projectDirectory.dir("data"))
+        }
+        getByName("test") {
+            resources.srcDir(rootProject.layout.projectDirectory.dir("data"))
+        }
+    }
     // JVM unit tests for client→domain wiring (DRE-52). Run as plain JUnit 5 on
     // the host JDK with a stubbed android.jar — no device/Robolectric needed,
     // because the unit under test (ClientAdaptation) is pure Kotlin with no
