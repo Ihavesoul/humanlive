@@ -14,6 +14,7 @@ typealias EvidenceId = String
 typealias ExerciseId = String
 typealias UserId = String
 typealias PlanId = String
+typealias NutritionPlanId = String
 typealias RuleId = String
 typealias SymptomId = String
 typealias ProgressId = String
