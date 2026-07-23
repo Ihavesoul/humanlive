@@ -46,6 +46,7 @@ import dreamteam.domain.training.BaselineProgram
 import dreamteam.domain.training.GeneratedPlan
 import dreamteam.domain.training.DeterministicPlanGenerator
 import dreamteam.domain.training.PlanWeek
+import dreamteam.domain.training.TrainingPlan
 import dreamteam.domain.nutrition.GeneratedNutritionPlan
 import dreamteam.domain.nutrition.NutritionPlan
 import java.time.LocalDate
@@ -107,6 +108,55 @@ private fun generateLocalPlan(
     // trigger (was emptyList() — the DRE-52 deferral).
     progress: List<ProgressRow>,
 ): PlanResult {
+    // M7-A ([DRE-72](/DRE/issues/DRE-72)): delegate to the shared regeneration
+    // core so there is ONE gate setup — the on-screen plan and the exported plan
+    // are produced by the same code path and can never drift. The mapping below
+    // preserves the exact prior UI semantics (red-flag vs gateway headlines).
+    return when (val o = regenerateLocalPlans(profile, today, symptoms, progress)) {
+        is LocalPlanOutcome.Ok ->
+            PlanResult.Ok(o.plans.training.weeks.first(), o.plans.nutrition, o.plans.safety, o.plans.signal)
+        is LocalPlanOutcome.RedFlag -> PlanResult.Blocked(SafetyBlockStrings.REDFLAG_HEADLINE)
+        is LocalPlanOutcome.GatewayBlocked -> PlanResult.Blocked(SafetyBlockStrings.GATEWAY_HEADLINE, o.ruleIds)
+    }
+}
+
+/**
+ * Outcome of regenerating the local deterministic plans through the gate.
+ * [Ok] carries the full surfaced [TrainingPlan] (all weeks) + the gate-Ok
+ * [NutritionPlan]; the two block paths mirror the two gates the UI distinguishes.
+ */
+internal sealed interface LocalPlanOutcome {
+    data class Ok(val plans: LocalPlans) : LocalPlanOutcome
+    /** Medical-safety red-flag gate blocked before generation (no SafetyRule → no ruleIds). */
+    data object RedFlag : LocalPlanOutcome
+    /** The assignment gateway blocked — nothing surfaced; [ruleIds] are the triggers. */
+    data class GatewayBlocked(val ruleIds: List<RuleId>) : LocalPlanOutcome
+}
+
+/** The freshly regenerated deterministic plans + the gate/signal context the UI reuses. */
+internal data class LocalPlans(
+    val training: TrainingPlan,
+    /** null when the nutrition gate blocks (training still surfaced). */
+    val nutrition: NutritionPlan?,
+    val safety: SafetyEvaluation,
+    val signal: AdaptationSignal,
+)
+
+/**
+ * The shared regeneration core: the SAME deterministic, safety-gated path the UI
+ * ([generateLocalPlan]) and the data export (M7-A / [DRE-72](/DRE/issues/DRE-72))
+ * use. Runs the medical-safety red-flag gate, then the assignment gateway, then
+ * the nutrition gate — exactly the wiring the app has always used. Pure given
+ * (profile, today, symptoms, progress): same inputs → same plans, offline-first,
+ * no network. The export's `plan` section is [Ok.plans], so it is computed fresh,
+ * never a stale cache (the plan-is-computed invariant in [LocalDatabase]).
+ */
+internal fun regenerateLocalPlans(
+    profile: Profile,
+    today: String,
+    symptoms: List<SymptomEntry>,
+    progress: List<ProgressRow>,
+): LocalPlanOutcome {
     val medical = MedicalSafety(
         scoliosisReported = profile.scoliosisReported,
         redFlags = profile.redFlags,
@@ -114,10 +164,9 @@ private fun generateLocalPlan(
         clinicianCurveSpecificPlanAvailable = false,
     )
     val safety = SafetyGate.evaluate(medical)
-    // M6-C: the medical-safety gate (a different gate from the rule engine) has
-    // no SafetyRule → no ruleIds → no citations; the headline routes to
-    // assessment. Scan-clean support framing ([SafetyBlockStrings.REDFLAG_HEADLINE]).
-    if (!safety.allowTrainingGeneration) return PlanResult.Blocked(SafetyBlockStrings.REDFLAG_HEADLINE)
+    // M6-C: the medical-safety gate has no SafetyRule → no ruleIds → no
+    // citations; the headline routes to assessment. Scan-clean support framing.
+    if (!safety.allowTrainingGeneration) return LocalPlanOutcome.RedFlag
     val context = ScreeningContext(
         allowedExerciseIds = BaselineProgram.exerciseIds,
         allowedEvidenceIds = BaselineProgram.evidenceIds,
@@ -128,21 +177,18 @@ private fun generateLocalPlan(
     val signal = localAdaptationSignal(symptoms, progress)
     return when (val g = DeterministicPlanGenerator(gateway).generate(userId = "local", createdAt = today, adaptation = signal)) {
         is GeneratedPlan.Ok -> {
-            // M4-C: surface the FULL deterministic NutritionPlan (target + meal
-            // structure) behind its own nutrition-appropriate gate. Only a
-            // gate-Ok plan reaches the UI; a block surfaces nothing for
-            // nutrition (training still renders). Same inputs → same plan.
+            // M4-C: surface the FULL deterministic NutritionPlan behind its own
+            // nutrition-appropriate gate. Only a gate-Ok plan is included; a
+            // block yields null (training still surfaced). Same inputs → same plan.
             val nutritionPlan = when (val n = localNutritionPlan(profile, today)) {
                 is GeneratedNutritionPlan.Ok -> n.plan
                 is GeneratedNutritionPlan.Blocked -> null
             }
-            PlanResult.Ok(g.plan.weeks.first(), nutritionPlan, safety, signal)
+            LocalPlanOutcome.Ok(LocalPlans(g.plan, nutritionPlan, safety, signal))
         }
-        // M6-C ([DRE-69](/DRE/issues/DRE-69)): carry the triggering rule ids so
-        // the block card can resolve their citations (ruleIds → SafetyRule →
-        // evidenceRefs → readable citation). The gate's block behavior is
-        // unchanged — nothing is surfaced as guidance (surfaced == []).
-        is GeneratedPlan.Blocked -> PlanResult.Blocked(SafetyBlockStrings.GATEWAY_HEADLINE, g.ruleIds)
+        // M6-C: carry the triggering rule ids so the block card can resolve their
+        // citations. The gate's block behavior is unchanged — nothing is surfaced.
+        is GeneratedPlan.Blocked -> LocalPlanOutcome.GatewayBlocked(g.ruleIds)
     }
 }
 

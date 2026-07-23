@@ -4,6 +4,12 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+    // M7-A ([DRE-72](/DRE/issues/DRE-72)): surface the kotlinx.serialization
+    // compiler plugin already in the repo (it runs in :core:domain) so the
+    // export serializer can @Serializable the :app data classes + the versioned
+    // ExportDocument. NOT a new dependency — same Kotlin plugin + the
+    // kotlinx-serialization-json runtime already on the classpath (M6-A).
+    alias(libs.plugins.kotlin.serialization)
 }
 
 android {

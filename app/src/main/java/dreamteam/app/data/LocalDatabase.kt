@@ -4,6 +4,7 @@ import android.content.ContentValues
 import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
+import kotlinx.serialization.Serializable
 
 /**
  * On-device offline-first store for the native client. Plain [SQLiteOpenHelper]
@@ -96,6 +97,33 @@ class LocalDatabase(context: Context) : SQLiteOpenHelper(context, NAME, null, VE
             buildList { while (c.moveToNext()) add(ProgressRow(c.getString(0), c.getDouble(1))) }
         }
     }
+
+    /**
+     * M7-A ([DRE-72](/DRE/issues/DRE-72)): every workout-completion row, in a
+     * stable deterministic order (session_id, exercise_id) for export. Unlike
+     * [completedExercises] (a per-session id set for the UI checkbox state),
+     * this is the verbatim row set the export copies out — none silently dropped.
+     */
+    fun allWorkouts(): List<WorkoutCompletion> = readableDatabase.useProfileRow { db ->
+        db.query(
+            TABLE_WORKOUT, arrayOf(COL_SESSION, COL_EXERCISE, COL_DONE_ON),
+            null, null, null, null, "$COL_SESSION, $COL_EXERCISE",
+        ).use { c ->
+            buildList { while (c.moveToNext()) add(WorkoutCompletion(c.getString(0), c.getString(1), c.getString(2))) }
+        }
+    }
+
+    /**
+     * M7-A (DRE-72): every symptom row, newest-first (the order [recentSymptoms]
+     * preserves). Unbounded read for export completeness — a default-limit change
+     * on [recentSymptoms] can never silently truncate an export.
+     */
+    fun allSymptoms(): List<SymptomEntry> =
+        readableDatabase.useProfileRow { it.query(TABLE_SYMPTOM, arrayOf(COL_RECORDED_ON, COL_TEXT), null, null, null, null, "$COL_RECORDED_ON DESC").use { c -> buildList { while (c.moveToNext()) add(SymptomEntry(c.getString(0), c.getString(1))) } } }
+
+    /** M7-A (DRE-72): every progress row, newest-first (mirrors [recentProgress]). */
+    fun allProgress(): List<ProgressRow> =
+        readableDatabase.useProfileRow { it.query(TABLE_PROGRESS, arrayOf(COL_RECORDED_ON, COL_WEIGHT), null, null, null, null, "$COL_RECORDED_ON DESC").use { c -> buildList { while (c.moveToNext()) add(ProgressRow(c.getString(0), c.getDouble(1))) } } }
 
     // writableDatabase/readableDatabase return a cached handle the helper manages;
     // we close nothing manually (the helper is app-scoped).
@@ -193,6 +221,7 @@ class LocalDatabase(context: Context) : SQLiteOpenHelper(context, NAME, null, VE
     }
 }
 
+@Serializable
 data class Profile(
     val sex: String,
     val age: Int,
@@ -204,6 +233,7 @@ data class Profile(
     val createdOn: String,
 )
 
+@Serializable
 data class SymptomEntry(val recordedOn: String, val text: String)
 
 /**
@@ -213,4 +243,13 @@ data class SymptomEntry(val recordedOn: String, val text: String)
  * (the progress analogue of [dreamteam.app.clientSymptoms]). Weight only — the
  * MVP field the RapidWeightLoss adaptation trigger needs; no body-fat/waist yet.
  */
+@Serializable
 data class ProgressRow(val recordedOn: String, val weightKg: Double)
+
+/**
+ * M7-A ([DRE-72](/DRE/issues/DRE-72)): one verbatim workout_log row for export —
+ * (session_id, exercise_id, done_on). The raw completion record the user logged;
+ * no interpretation added. [doneOn] is the user's done-date string verbatim.
+ */
+@Serializable
+data class WorkoutCompletion(val sessionId: String, val exerciseId: String, val doneOn: String)
