@@ -61,7 +61,7 @@ import java.time.LocalDate
  * blocks the plan and routes to assessment — the gate is structural, the user
  * cannot skip it.
  */
-private enum class Screen { Onboarding, Today, Plan, Symptoms, Progress }
+private enum class Screen { Onboarding, Today, Plan, Symptoms, Progress, History }
 
 /**
  * Outcome of the local deterministic generation, mirroring the server's. [Ok.signal]
@@ -158,6 +158,15 @@ fun DreamTeamApp(db: LocalDatabase) {
                 onSymptoms = { screen = Screen.Symptoms },
                 onProgress = { screen = Screen.Progress },
                 onPlan = { screen = Screen.Plan },
+                // M5-C (DRE-63): one-tap entry to the read-only history/trend view.
+                onHistory = { screen = Screen.History },
+            )
+            // M5-C (DRE-63): the read-only history/trend screen — shows logged
+            // progress + symptoms + the deterministic trend, no interpretation.
+            Screen.History -> HistoryScreen(
+                modifier = Modifier.padding(padding),
+                db = db,
+                onBack = { screen = Screen.Today },
             )
             Screen.Plan -> PlanScreen(
                 modifier = Modifier.padding(padding),
@@ -332,6 +341,8 @@ private fun TodayScreen(
     onSymptoms: () -> Unit,
     onProgress: () -> Unit,
     onPlan: () -> Unit,
+    // M5-C (DRE-63): entry to the read-only history/trend view.
+    onHistory: () -> Unit,
 ) {
     val p = profile ?: run {
         Column(modifier.fillMaxSize().padding(16.dp)) { Text("Профиль не найден."); Button(onClick = {}) {} }
@@ -390,6 +401,37 @@ private fun TodayScreen(
         item { OutlinedButton(onClick = onProgress, modifier = Modifier.fillMaxWidth()) { Text(TodayStrings.LOG_PROGRESS) } }
         item { OutlinedButton(onClick = onSymptoms, modifier = Modifier.fillMaxWidth()) { Text(TodayStrings.LOG_SYMPTOM) } }
         item { OutlinedButton(onClick = onPlan, modifier = Modifier.fillMaxWidth()) { Text(TodayStrings.FULL_PLAN) } }
+        // M5-C ([DRE-63](/DRE/issues/DRE-63)): one-tap entry to the read-only
+        // history/trend view — the visibility half of the retention loop.
+        item { OutlinedButton(onClick = onHistory, modifier = Modifier.fillMaxWidth()) { Text(HistoryStrings.TITLE) } }
+    }
+}
+
+/**
+ * M5-C ([DRE-63](/DRE/issues/DRE-63)): the read-only history/trend screen —
+ * shows the logged progress points + symptoms + the deterministic trend, with
+ * NO interpretation. Reads only ([LocalDatabase.recentProgress] +
+ * [LocalDatabase.recentSymptoms]) — the same offline-first reads
+ * [PlanScreen]/[TodayScreen] use — and renders via the pure
+ * [progressHistoryView] + [symptomHistoryView]. **Never writes, never calls the
+ * generator, never bypasses the gate** — it only reflects what is logged,
+ * framed as support/transparency, not a diagnosis.
+ */
+@Composable
+private fun HistoryScreen(modifier: Modifier, db: LocalDatabase, onBack: () -> Unit) {
+    val progress = db.recentProgress()
+    val symptoms = db.recentSymptoms()
+    val view = remember(progress) { progressHistoryView(progress) }
+    val symptomLines = remember(symptoms) { symptomHistoryView(symptoms) }
+    LazyColumn(modifier = modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        item { Text(HistoryStrings.TITLE, fontWeight = FontWeight.Bold) }
+        item { Text(HistoryStrings.SUPPORT, fontWeight = FontWeight.Light) }
+        item { Text(view.trendLine, fontWeight = FontWeight.SemiBold) }
+        item { Text(HistoryStrings.WEIGHT_SECTION, fontWeight = FontWeight.SemiBold) }
+        items(view.points) { p -> Text("• ${p.date}: ${p.weightKg} кг") }
+        item { Text(HistoryStrings.SYMPTOMS_SECTION, fontWeight = FontWeight.SemiBold) }
+        items(symptomLines) { Text(it) }
+        item { OutlinedButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) { Text(HistoryStrings.BACK) } }
     }
 }
 

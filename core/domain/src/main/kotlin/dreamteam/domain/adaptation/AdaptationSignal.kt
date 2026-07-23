@@ -142,21 +142,34 @@ private fun detectSymptomEscalation(symptoms: List<Symptom>): Boolean {
     return latest.currentSymptoms.any { it !in priorUnion }
 }
 
-private fun detectRapidWeightLoss(progress: List<ProgressEntry>): Boolean {
-    if (progress.size < 2) return false
+/**
+ * The deterministic weekly fractional weight-change rate `r` the RapidWeightLoss
+ * trigger consumes: `r = (last - first) / first / weeks`, over ≥1 week of span.
+ * Pure; returns null when a rate can't be established (<2 points, non-positive
+ * start weight, <1 week span, or unparseable dates). The history/trend view
+ * (M5-C [DRE-63](/DRE/issues/DRE-63)) shows EXACTLY this number, so the trend on
+ * screen can never drift from the signal the plan uses — one function, two
+ * callers (the signal and the view read the same number).
+ */
+fun weeklyWeightRate(progress: List<ProgressEntry>): Double? {
+    if (progress.size < 2) return null
     val sorted = progress.sortedBy { it.recordedOn }
     val first = sorted.first()
     val last = sorted.last()
-    if (first.weightKg <= 0.0) return false
+    if (first.weightKg <= 0.0) return null
     val weeks = try {
         Duration.between(
             LocalDate.parse(first.recordedOn).atStartOfDay(),
             LocalDate.parse(last.recordedOn).atStartOfDay(),
         ).toDays() / 7.0
     } catch (e: Exception) {
-        return false // unparseable date → cannot establish a trend → no signal
+        return null // unparseable date → cannot establish a trend → no rate
     }
-    if (weeks < MIN_TREND_WEEKS) return false
-    val weeklyRate = (last.weightKg - first.weightKg) / first.weightKg / weeks
-    return weeklyRate < RAPID_LOSS_PER_WEEK
+    if (weeks < MIN_TREND_WEEKS) return null
+    return (last.weightKg - first.weightKg) / first.weightKg / weeks
+}
+
+private fun detectRapidWeightLoss(progress: List<ProgressEntry>): Boolean {
+    val rate = weeklyWeightRate(progress) ?: return false // compute once
+    return rate < RAPID_LOSS_PER_WEEK
 }
