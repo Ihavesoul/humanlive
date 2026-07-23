@@ -2,13 +2,16 @@ package dreamteam.server.persistence
 
 import dreamteam.domain.EvidenceId
 import dreamteam.domain.ExerciseId
+import dreamteam.domain.NutritionPlanId
 import dreamteam.domain.PlanId
 import dreamteam.domain.UserId
 import dreamteam.domain.evidence.EvidenceSource
 import dreamteam.domain.exercise.Exercise
+import dreamteam.domain.nutrition.NutritionPlan
 import dreamteam.domain.nutrition.NutritionTarget
 import dreamteam.domain.persistence.EvidenceSourceRepository
 import dreamteam.domain.persistence.ExerciseRepository
+import dreamteam.domain.persistence.NutritionPlanRepository
 import dreamteam.domain.persistence.NutritionRepository
 import dreamteam.domain.persistence.ProgressRepository
 import dreamteam.domain.persistence.SafetyRuleRepository
@@ -123,6 +126,8 @@ internal class SqliteStore(jdbcUrl: String, private val key: EncryptionKey) : Au
             "CREATE TABLE IF NOT EXISTS progress_entry (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, seq INTEGER NOT NULL, payload BLOB NOT NULL)",
             "CREATE TABLE IF NOT EXISTS symptom (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, seq INTEGER NOT NULL, payload BLOB NOT NULL)",
             "CREATE TABLE IF NOT EXISTS nutrition_target (user_id TEXT PRIMARY KEY, payload BLOB NOT NULL)",
+            "CREATE TABLE IF NOT EXISTS nutrition_plan (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, payload BLOB NOT NULL)",
+            "CREATE TABLE IF NOT EXISTS current_nutrition_plan (user_id TEXT PRIMARY KEY, plan_id TEXT NOT NULL)",
         )
     }
 }
@@ -282,8 +287,48 @@ internal class SqliteNutritionRepository(store: SqliteStore) : NutritionReposito
     override fun save(target: NutritionTarget) = table.put(target.userId, encodeJson(target))
 }
 
+internal class SqliteNutritionPlanRepository(private val store: SqliteStore) : NutritionPlanRepository {
+    override fun currentFor(userId: UserId): NutritionPlan? =
+        store.queryOne(
+            "SELECT p.payload FROM current_nutrition_plan c JOIN nutrition_plan p ON p.id = c.plan_id WHERE c.user_id = ?",
+            { it.getBytes(1) }, userId,
+        )?.let(store::decrypt)?.let { decodeJson<NutritionPlan>(it) }
+
+    override fun byId(id: NutritionPlanId): NutritionPlan? =
+        store.queryOne("SELECT payload FROM nutrition_plan WHERE id = ?", { it.getBytes(1) }, id)
+            ?.let(store::decrypt)?.let { decodeJson<NutritionPlan>(it) }
+
+    /**
+     * All retained nutrition-plan versions for a user, oldest-first by
+     * `createdAt` — mirrors [SqliteTrainingPlanRepository.historyFor]. Per-user
+     * history is tiny (one row per recalc), so decoding each payload to order by
+     * the in-payload `createdAt` is cheap; no schema column needed (ADR 0003).
+     */
+    override fun historyFor(userId: UserId): List<NutritionPlan> =
+        store.queryList(
+            "SELECT payload FROM nutrition_plan WHERE user_id = ?",
+            { it.getBytes(1) }, userId,
+        ).map(store::decrypt).map { decodeJson<NutritionPlan>(it) }
+            .sortedBy { it.createdAt }
+
+    override fun save(plan: NutritionPlan) {
+        // Mirror the training-half semantics: store by id (history kept), bump
+        // the per-user "current" pointer so last save wins as current.
+        store.update(
+            "INSERT INTO nutrition_plan (id, user_id, payload) VALUES (?, ?, ?) " +
+                "ON CONFLICT(id) DO UPDATE SET user_id = excluded.user_id, payload = excluded.payload",
+            plan.id, plan.userId, store.encrypt(encodeJson(plan)),
+        )
+        store.update(
+            "INSERT INTO current_nutrition_plan (user_id, plan_id) VALUES (?, ?) " +
+                "ON CONFLICT(user_id) DO UPDATE SET plan_id = excluded.plan_id",
+            plan.userId, plan.id,
+        )
+    }
+}
+
 /**
- * The durable bundle: one encrypted SQLite file, eight repos behind the ports.
+ * The durable bundle: one encrypted SQLite file, nine repos behind the ports.
  * Construct via [open]; close to release the connection (the file survives for
  * the next open — that is the whole point of "not in-memory").
  */
@@ -297,6 +342,7 @@ class SqliteRepositories internal constructor(
     val progress: ProgressRepository,
     val symptoms: SymptomRepository,
     val nutrition: NutritionRepository,
+    val nutritionPlans: NutritionPlanRepository,
 ) : AutoCloseable {
     override fun close() = store.close()
 
@@ -317,6 +363,7 @@ class SqliteRepositories internal constructor(
                 SqliteProgressRepository(store),
                 SqliteSymptomRepository(store),
                 SqliteNutritionRepository(store),
+                SqliteNutritionPlanRepository(store),
             )
         }
     }

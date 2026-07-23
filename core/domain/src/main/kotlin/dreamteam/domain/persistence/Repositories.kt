@@ -2,6 +2,7 @@ package dreamteam.domain.persistence
 
 import dreamteam.domain.EvidenceId
 import dreamteam.domain.ExerciseId
+import dreamteam.domain.NutritionPlanId
 import dreamteam.domain.PlanId
 import dreamteam.domain.ProgressId
 import dreamteam.domain.RuleId
@@ -9,6 +10,7 @@ import dreamteam.domain.SymptomId
 import dreamteam.domain.UserId
 import dreamteam.domain.evidence.EvidenceSource
 import dreamteam.domain.exercise.Exercise
+import dreamteam.domain.nutrition.NutritionPlan
 import dreamteam.domain.nutrition.NutritionTarget
 import dreamteam.domain.progress.ProgressEntry
 import dreamteam.domain.safety.SafetyRule
@@ -79,4 +81,19 @@ interface SymptomRepository {
 interface NutritionRepository {
     fun currentFor(userId: UserId): NutritionTarget?
     fun save(target: NutritionTarget)
+}
+
+interface NutritionPlanRepository {
+    fun currentFor(userId: UserId): NutritionPlan?
+    fun byId(id: NutritionPlanId): NutritionPlan?
+    /**
+     * Every retained nutrition-plan version for a user, oldest-first by
+     * `createdAt` — for audit / rollback. The active version is the one
+     * [currentFor] returns (the last [save]d). Versions are append-mostly: a
+     * recalculation saves under a new id, so prior plans are retained, never
+     * silently overwritten — mirroring [TrainingPlanRepository.historyFor]
+     * (M4-B / [DRE-56](/DRE/issues/DRE-56)).
+     */
+    fun historyFor(userId: UserId): List<NutritionPlan>
+    fun save(plan: NutritionPlan)
 }

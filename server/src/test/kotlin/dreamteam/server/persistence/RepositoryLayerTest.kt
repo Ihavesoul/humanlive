@@ -2,6 +2,7 @@ package dreamteam.server.persistence
 
 import dreamteam.domain.persistence.EvidenceSourceRepository
 import dreamteam.domain.persistence.ExerciseRepository
+import dreamteam.domain.persistence.NutritionPlanRepository
 import dreamteam.domain.persistence.NutritionRepository
 import org.junit.jupiter.api.Test
 
@@ -32,5 +33,11 @@ class RepositoryLayerTest {
         val symptoms = InMemorySymptomRepository()
         val nutrition: NutritionRepository = InMemoryNutritionRepository()
         userPlanProgressSymptomNutritionContract(users, plans, progress, symptoms, nutrition)
+    }
+
+    @Test
+    fun `versioned nutrition plan round-trips through its port`() {
+        val nutritionPlans: NutritionPlanRepository = InMemoryNutritionPlanRepository()
+        nutritionPlanContract(nutritionPlans)
     }
 }

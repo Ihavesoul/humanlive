@@ -3,9 +3,11 @@ package dreamteam.server.persistence
 import dreamteam.domain.UserId
 import dreamteam.domain.evidence.EvidenceSource
 import dreamteam.domain.exercise.Exercise
+import dreamteam.domain.nutrition.NutritionPlan
 import dreamteam.domain.nutrition.NutritionTarget
 import dreamteam.domain.persistence.EvidenceSourceRepository
 import dreamteam.domain.persistence.ExerciseRepository
+import dreamteam.domain.persistence.NutritionPlanRepository
 import dreamteam.domain.persistence.NutritionRepository
 import dreamteam.domain.persistence.ProgressRepository
 import dreamteam.domain.persistence.SafetyRuleRepository
@@ -97,4 +99,17 @@ class InMemoryNutritionRepository : NutritionRepository {
     private val currentByUser = ConcurrentHashMap<UserId, NutritionTarget>()
     override fun currentFor(userId: UserId): NutritionTarget? = currentByUser[userId]
     override fun save(target: NutritionTarget) { currentByUser[target.userId] = target }
+}
+
+class InMemoryNutritionPlanRepository : NutritionPlanRepository {
+    private val byId = ConcurrentHashMap<String, NutritionPlan>()
+    private val currentByUser = ConcurrentHashMap<UserId, String>()
+    override fun currentFor(userId: UserId): NutritionPlan? = currentByUser[userId]?.let { byId[it] }
+    override fun byId(id: String): NutritionPlan? = byId[id]
+    override fun historyFor(userId: UserId): List<NutritionPlan> =
+        byId.values.filter { it.userId == userId }.sortedBy { it.createdAt }
+    override fun save(plan: NutritionPlan) {
+        byId[plan.id] = plan
+        currentByUser[plan.userId] = plan.id
+    }
 }

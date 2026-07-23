@@ -2,9 +2,13 @@ package dreamteam.server.persistence
 
 import dreamteam.domain.evidence.EvidenceSource
 import dreamteam.domain.exercise.Exercise
+import dreamteam.domain.nutrition.Meal
+import dreamteam.domain.nutrition.NutritionGoal
+import dreamteam.domain.nutrition.NutritionPlan
 import dreamteam.domain.nutrition.NutritionTarget
 import dreamteam.domain.persistence.EvidenceSourceRepository
 import dreamteam.domain.persistence.ExerciseRepository
+import dreamteam.domain.persistence.NutritionPlanRepository
 import dreamteam.domain.persistence.NutritionRepository
 import dreamteam.domain.persistence.ProgressRepository
 import dreamteam.domain.persistence.SymptomRepository
@@ -111,4 +115,59 @@ internal fun userPlanProgressSymptomNutritionContract(
     )
     nutrition.save(target)
     nutrition.currentFor("user-1") shouldBe target
+}
+
+/**
+ * M4-B ([DRE-56](/DRE/issues/DRE-56)): the versioned `NutritionPlanRepository`
+ * contract — mirrors [userPlanProgressSymptomNutritionContract]'s training-plan
+ * versioning. Append-mostly: a second save under a NEW id retains the prior
+ * version and bumps the current pointer; [NutritionPlanRepository.historyFor]
+ * lists every retained version oldest-first for audit/rollback.
+ */
+internal fun nutritionPlanContract(plans: NutritionPlanRepository) {
+    val plan = sampleNutritionPlan(id = "user-1@2026-07-21", createdAt = "2026-07-21")
+    plans.save(plan)
+    plans.currentFor("user-1") shouldBe plan
+    plans.byId("user-1@2026-07-21") shouldBe plan
+
+    // Append-mostly versioning: a second save under a NEW id retains the prior
+    // version and bumps the current pointer; historyFor lists every retained
+    // version, ordered oldest-first by createdAt (audit/rollback).
+    val plan2 = sampleNutritionPlan(id = "user-1@2026-07-28", createdAt = "2026-07-28", targetKcal = 2500)
+    plans.save(plan2)
+    plans.currentFor("user-1") shouldBe plan2
+    plans.byId("user-1@2026-07-28") shouldBe plan2
+    plans.historyFor("user-1") shouldContainExactlyInAnyOrder listOf(plan, plan2)
+    plans.historyFor("user-1").sortedBy { it.createdAt } shouldBe listOf(plan, plan2)
+
+    // A different user's history is isolated.
+    val other = sampleNutritionPlan(id = "user-2@2026-07-21", createdAt = "2026-07-21", userId = "user-2")
+    plans.save(other)
+    plans.historyFor("user-1") shouldContainExactlyInAnyOrder listOf(plan, plan2)
+    plans.historyFor("user-2") shouldBe listOf(other)
+}
+
+/** Builds a fully evidence-linked [NutritionPlan] for contract tests. */
+private fun sampleNutritionPlan(
+    id: String,
+    createdAt: String,
+    userId: String = "user-1",
+    targetKcal: Int = 2300,
+): NutritionPlan {
+    val target = NutritionTarget(
+        userId = userId, targetKcal = targetKcal, proteinG = 170, fatG = 75, carbohydrateG = 236,
+        evidenceRefs = listOf("ENERGY-ESTIMATION"), recordedOn = createdAt,
+    )
+    return NutritionPlan(
+        id = id,
+        userId = userId,
+        goal = NutritionGoal.RECOMP,
+        target = target,
+        structure = listOf(
+            Meal("breakfast", "Завтрак", 0.30, 690, 51, 22, 71),
+            Meal("lunch", "Обед", 0.30, 690, 51, 22, 71),
+        ),
+        evidenceRefs = listOf("ENERGY-ESTIMATION", "MORTON-PROTEIN-2018"),
+        createdAt = createdAt,
+    )
 }

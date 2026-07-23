@@ -2,6 +2,9 @@ package dreamteam.server.persistence
 
 import dreamteam.domain.evidence.EvidenceSource
 import dreamteam.domain.exercise.Exercise
+import dreamteam.domain.nutrition.Meal
+import dreamteam.domain.nutrition.NutritionGoal
+import dreamteam.domain.nutrition.NutritionPlan
 import dreamteam.domain.nutrition.NutritionTarget
 import dreamteam.domain.progress.ProgressEntry
 import dreamteam.domain.symptom.Symptom
@@ -44,6 +47,7 @@ class SqliteRepositoryContractTest {
         open().use { r ->
             evidenceExerciseContract(r.evidence, r.exercises)
             userPlanProgressSymptomNutritionContract(r.users, r.plans, r.progress, r.symptoms, r.nutrition)
+            nutritionPlanContract(r.nutritionPlans)
         }
     }
 
@@ -110,6 +114,37 @@ class SqliteRepositoryContractTest {
             r.symptoms.recentFor("user-1", 10).size shouldBe 1
             r.symptoms.byId("s1")?.currentSymptoms shouldBe listOf("lumbar tension")
             r.nutrition.currentFor("user-1") shouldBe target
+        }
+    }
+
+    @Test
+    fun `nutrition plan versioning survives a restart - not in-memory`() {
+        // M4-B ([DRE-56](/DRE/issues/DRE-56)): append-mostly versioning must be
+        // durable. Save two versions under new ids, close the store, reopen at
+        // the same file: both versions are retained, ordered oldest-first, and
+        // the current pointer points at the last save. If the store were
+        // in-memory, every read here would be empty.
+        val plan1 = NutritionPlan(
+            id = "user-1@2026-07-21", userId = "user-1", goal = NutritionGoal.RECOMP,
+            target = NutritionTarget(
+                userId = "user-1", targetKcal = 2300, proteinG = 170, fatG = 75, carbohydrateG = 236,
+                evidenceRefs = listOf("ENERGY-ESTIMATION"), recordedOn = "2026-07-21",
+            ),
+            structure = listOf(Meal("breakfast", "Завтрак", 0.30, 690, 51, 22, 71)),
+            evidenceRefs = listOf("ENERGY-ESTIMATION"), createdAt = "2026-07-21",
+        )
+        val plan2 = plan1.copy(id = "user-1@2026-07-28", createdAt = "2026-07-28")
+
+        open().use { r ->
+            r.nutritionPlans.save(plan1)
+            r.nutritionPlans.save(plan2)
+        }
+
+        open().use { r ->
+            r.nutritionPlans.currentFor("user-1") shouldBe plan2
+            r.nutritionPlans.byId("user-1@2026-07-21") shouldBe plan1
+            r.nutritionPlans.byId("user-1@2026-07-28") shouldBe plan2
+            r.nutritionPlans.historyFor("user-1").sortedBy { it.createdAt } shouldBe listOf(plan1, plan2)
         }
     }
 
