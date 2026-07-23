@@ -61,7 +61,7 @@ import java.time.LocalDate
  * blocks the plan and routes to assessment — the gate is structural, the user
  * cannot skip it.
  */
-private enum class Screen { Onboarding, Plan, Symptoms, Progress }
+private enum class Screen { Onboarding, Today, Plan, Symptoms, Progress }
 
 /**
  * Outcome of the local deterministic generation, mirroring the server's. [Ok.signal]
@@ -134,7 +134,7 @@ private fun generateLocalPlan(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DreamTeamApp(db: LocalDatabase) {
-    var screen by remember { mutableStateOf(if (db.loadProfile() == null) Screen.Onboarding else Screen.Plan) }
+    var screen by remember { mutableStateOf(if (db.loadProfile() == null) Screen.Onboarding else Screen.Today) }
     var profile by remember { mutableStateOf(db.loadProfile()) }
 
     Scaffold(topBar = {
@@ -144,8 +144,20 @@ fun DreamTeamApp(db: LocalDatabase) {
             Screen.Onboarding -> OnboardingScreen(
                 modifier = Modifier.padding(padding),
                 onPlanReady = { p ->
-                    db.saveProfile(p); profile = p; screen = Screen.Plan
+                    db.saveProfile(p); profile = p; screen = Screen.Today
                 },
+            )
+            // M5-B ([DRE-62](/DRE/issues/DRE-62)): Today is the landing screen —
+            // the whole daily loop (today's session + nutrition + adaptation +
+            // one-tap logging) on one screen. Plan stays reachable as the
+            // full-week view.
+            Screen.Today -> TodayScreen(
+                modifier = Modifier.padding(padding),
+                db = db,
+                profile = profile,
+                onSymptoms = { screen = Screen.Symptoms },
+                onProgress = { screen = Screen.Progress },
+                onPlan = { screen = Screen.Plan },
             )
             Screen.Plan -> PlanScreen(
                 modifier = Modifier.padding(padding),
@@ -153,16 +165,17 @@ fun DreamTeamApp(db: LocalDatabase) {
                 profile = profile,
                 onSymptoms = { screen = Screen.Symptoms },
                 onProgress = { screen = Screen.Progress },
+                onBack = { screen = Screen.Today },
             )
             Screen.Symptoms -> SymptomsScreen(
                 modifier = Modifier.padding(padding),
                 db = db,
-                onBack = { screen = Screen.Plan },
+                onBack = { screen = Screen.Today },
             )
             Screen.Progress -> ProgressScreen(
                 modifier = Modifier.padding(padding),
                 db = db,
-                onBack = { screen = Screen.Plan },
+                onBack = { screen = Screen.Today },
             )
         }
     }
@@ -226,7 +239,7 @@ private fun OnboardingScreen(modifier: Modifier, onPlanReady: (Profile) -> Unit)
 }
 
 @Composable
-private fun PlanScreen(modifier: Modifier, db: LocalDatabase, profile: Profile?, onSymptoms: () -> Unit, onProgress: () -> Unit) {
+private fun PlanScreen(modifier: Modifier, db: LocalDatabase, profile: Profile?, onSymptoms: () -> Unit, onProgress: () -> Unit, onBack: () -> Unit) {
     val p = profile ?: run {
         Column(modifier.fillMaxSize().padding(16.dp)) { Text("Профиль не найден."); Button(onClick = {}) {} }
         return
@@ -240,6 +253,7 @@ private fun PlanScreen(modifier: Modifier, db: LocalDatabase, profile: Profile?,
     val result = remember(p, symptoms, progress) { generateLocalPlan(p, LocalDate.now().toString(), symptoms, progress) }
 
     LazyColumn(modifier = modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        item { OutlinedButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) { Text(TodayStrings.BACK_TO_TODAY) } }
         when (result) {
             is PlanResult.Blocked -> item {
                 Card(modifier = Modifier.fillMaxWidth()) { Text(result.reason, modifier = Modifier.padding(12.dp)) }
@@ -292,6 +306,90 @@ private fun PlanScreen(modifier: Modifier, db: LocalDatabase, profile: Profile?,
         item {
             OutlinedButton(onClick = onProgress, modifier = Modifier.fillMaxWidth()) { Text("Записать прогресс") }
         }
+    }
+}
+
+/**
+ * M5-B ([DRE-62](/DRE/issues/DRE-62)): the retention landing screen — the whole
+ * daily loop on ONE screen. Composes existing pieces, **no new domain logic, no
+ * new persistence**: today's session (picked by day-of-week from the same
+ * deterministic week [PlanScreen] renders via [generateLocalPlan]), today's
+ * nutrition line ([nutritionPlanView], M4-C), the week's adaptation note
+ * ([adaptationNote], M3-C — null on None), and one-tap entry to the progress +
+ * symptom loggers. A logged entry is reflected on return (the plan is
+ * recomputed from the same symptom/progress snapshots [PlanScreen] uses).
+ *
+ * Everything here is input/transparent display behind
+ * [dreamteam.domain.safety.SafetyGuardedGateway]: the gate is unchanged,
+ * composing the view never bypasses it. Framing is support/transparency only —
+ * no diagnosis, no "у вас …", no treatment/cure.
+ */
+@Composable
+private fun TodayScreen(
+    modifier: Modifier,
+    db: LocalDatabase,
+    profile: Profile?,
+    onSymptoms: () -> Unit,
+    onProgress: () -> Unit,
+    onPlan: () -> Unit,
+) {
+    val p = profile ?: run {
+        Column(modifier.fillMaxSize().padding(16.dp)) { Text("Профиль не найден."); Button(onClick = {}) {} }
+        return
+    }
+    // Same offline-first read + recompute keys as PlanScreen: a newly logged
+    // symptom (escalation) or weight point (rapid-loss trend) is reflected the
+    // next time this screen composes — same inputs → same plan.
+    val symptoms = db.recentSymptoms()
+    val progress = db.recentProgress()
+    val today = LocalDate.now()
+    val result = remember(p, symptoms, progress) { generateLocalPlan(p, today.toString(), symptoms, progress) }
+
+    LazyColumn(modifier = modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        when (result) {
+            is PlanResult.Blocked -> item {
+                Card(modifier = Modifier.fillMaxWidth()) { Text(result.reason, modifier = Modifier.padding(12.dp)) }
+            }
+            is PlanResult.Ok -> {
+                // Today's session is a pure pick from the SAME week PlanScreen
+                // renders — no second source of truth.
+                val session = todaySession(result.week, today)
+                item { Text(todayDateLine(session), fontWeight = FontWeight.Bold) }
+                item { Text(TodayStrings.TRAINING, fontWeight = FontWeight.SemiBold) }
+                session?.let { s -> item { SessionCard(db = db, session = s) } }
+                item { Text(TodayStrings.NUTRITION, fontWeight = FontWeight.SemiBold) }
+                result.nutritionPlan?.let { plan ->
+                    item {
+                        val view = remember(plan) { nutritionPlanView(plan) }
+                        Card(modifier = Modifier.fillMaxWidth()) {
+                            Column(Modifier.padding(12.dp)) {
+                                Text(view.targetLine, fontWeight = FontWeight.SemiBold)
+                                view.meals.forEach { m -> Text("${m.label}: ${m.line}", fontWeight = FontWeight.Light) }
+                                Text(view.evidenceLine, fontWeight = FontWeight.Light)
+                                Text(view.disclaimer, fontWeight = FontWeight.Light, fontStyle = FontStyle.Italic)
+                            }
+                        }
+                    }
+                }
+                item { Text(TodayStrings.ADAPTATION, fontWeight = FontWeight.SemiBold) }
+                // On AdaptationSignal.None → null → nothing (baseline shows as today).
+                adaptationNote(result.signal)?.let { note ->
+                    item {
+                        Card(modifier = Modifier.fillMaxWidth()) {
+                            Column(Modifier.padding(12.dp)) {
+                                Text(note.indicator, fontWeight = FontWeight.SemiBold)
+                                Text(note.reason, fontWeight = FontWeight.Light)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        // One-tap logging + full plan are always reachable.
+        item { Text(TodayStrings.LOG_HINT, fontWeight = FontWeight.Light) }
+        item { OutlinedButton(onClick = onProgress, modifier = Modifier.fillMaxWidth()) { Text(TodayStrings.LOG_PROGRESS) } }
+        item { OutlinedButton(onClick = onSymptoms, modifier = Modifier.fillMaxWidth()) { Text(TodayStrings.LOG_SYMPTOM) } }
+        item { OutlinedButton(onClick = onPlan, modifier = Modifier.fillMaxWidth()) { Text(TodayStrings.FULL_PLAN) } }
     }
 }
 
