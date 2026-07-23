@@ -32,6 +32,7 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.unit.dp
 import dreamteam.app.data.LocalDatabase
 import dreamteam.app.data.Profile
+import dreamteam.app.data.ProgressRow
 import dreamteam.app.data.SymptomEntry
 import dreamteam.domain.adaptation.AdaptationSignal
 import dreamteam.domain.safety.ContraindicationStubs
@@ -60,7 +61,7 @@ import java.time.LocalDate
  * blocks the plan and routes to assessment — the gate is structural, the user
  * cannot skip it.
  */
-private enum class Screen { Onboarding, Plan, Symptoms }
+private enum class Screen { Onboarding, Plan, Symptoms, Progress }
 
 /**
  * Outcome of the local deterministic generation, mirroring the server's. [Ok.signal]
@@ -90,7 +91,14 @@ private sealed interface PlanResult {
  * unblocks, or bypasses [SafetyGuardedGateway]). A red-flag profile still blocks
  * here, before any signal is considered.
  */
-private fun generateLocalPlan(profile: Profile, today: String, symptoms: List<SymptomEntry>): PlanResult {
+private fun generateLocalPlan(
+    profile: Profile,
+    today: String,
+    symptoms: List<SymptomEntry>,
+    // M5-A (DRE-61): real logged body-weight rows now feed the RapidWeightLoss
+    // trigger (was emptyList() — the DRE-52 deferral).
+    progress: List<ProgressRow>,
+): PlanResult {
     val medical = MedicalSafety(
         scoliosisReported = profile.scoliosisReported,
         redFlags = profile.redFlags,
@@ -106,7 +114,7 @@ private fun generateLocalPlan(profile: Profile, today: String, symptoms: List<Sy
         conditionFlags = if (profile.scoliosisReported) setOf("scoliosis_flagged") else emptySet(),
     )
     val gateway = SafetyGuardedGateway(context, StructuralSafetyRules.all + ContraindicationStubs.all)
-    val signal = localAdaptationSignal(symptoms)
+    val signal = localAdaptationSignal(symptoms, progress)
     return when (val g = DeterministicPlanGenerator(gateway).generate(userId = "local", createdAt = today, adaptation = signal)) {
         is GeneratedPlan.Ok -> {
             // M4-C: surface the FULL deterministic NutritionPlan (target + meal
@@ -144,8 +152,14 @@ fun DreamTeamApp(db: LocalDatabase) {
                 db = db,
                 profile = profile,
                 onSymptoms = { screen = Screen.Symptoms },
+                onProgress = { screen = Screen.Progress },
             )
             Screen.Symptoms -> SymptomsScreen(
+                modifier = Modifier.padding(padding),
+                db = db,
+                onBack = { screen = Screen.Plan },
+            )
+            Screen.Progress -> ProgressScreen(
                 modifier = Modifier.padding(padding),
                 db = db,
                 onBack = { screen = Screen.Plan },
@@ -212,16 +226,18 @@ private fun OnboardingScreen(modifier: Modifier, onPlanReady: (Profile) -> Unit)
 }
 
 @Composable
-private fun PlanScreen(modifier: Modifier, db: LocalDatabase, profile: Profile?, onSymptoms: () -> Unit) {
+private fun PlanScreen(modifier: Modifier, db: LocalDatabase, profile: Profile?, onSymptoms: () -> Unit, onProgress: () -> Unit) {
     val p = profile ?: run {
         Column(modifier.fillMaxSize().padding(16.dp)) { Text("Профиль не найден."); Button(onClick = {}) {} }
         return
     }
     // Local, offline-first read; cheap SQLite query, no network. Keying the plan
-    // on the symptom snapshot means a newly logged symptom (escalation) is
-    // reflected the next time this screen composes — same inputs → same plan.
+    // on the symptom + progress snapshots means a newly logged symptom (escalation)
+    // or weight point (rapid-loss trend) is reflected the next time this screen
+    // composes — same inputs → same plan.
     val symptoms = db.recentSymptoms()
-    val result = remember(p, symptoms) { generateLocalPlan(p, LocalDate.now().toString(), symptoms) }
+    val progress = db.recentProgress()
+    val result = remember(p, symptoms, progress) { generateLocalPlan(p, LocalDate.now().toString(), symptoms, progress) }
 
     LazyColumn(modifier = modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         when (result) {
@@ -272,6 +288,10 @@ private fun PlanScreen(modifier: Modifier, db: LocalDatabase, profile: Profile?,
         item {
             OutlinedButton(onClick = onSymptoms, modifier = Modifier.fillMaxWidth()) { Text("Записать симптом") }
         }
+        // M5-A (DRE-61): entry to the progress logger next to the symptom logger.
+        item {
+            OutlinedButton(onClick = onProgress, modifier = Modifier.fillMaxWidth()) { Text("Записать прогресс") }
+        }
     }
 }
 
@@ -313,5 +333,44 @@ private fun SymptomsScreen(modifier: Modifier, db: LocalDatabase, onBack: () -> 
         Spacer(Modifier.size(0.dp))
         Text("Недавние записи:", fontWeight = FontWeight.SemiBold)
         symptoms.forEach { s: SymptomEntry -> Text("• ${s.recordedOn}: ${s.text}") }
+    }
+}
+
+/**
+ * M5-A ([DRE-61](/DRE/issues/DRE-61)): offline-first body-weight logger, mirroring
+ * [SymptomsScreen] + [LocalDatabase.appendProgress]/[LocalDatabase.recentProgress].
+ * MVP field set: **body weight (kg)** — the one input the RapidWeightLoss
+ * adaptation trigger consumes. Framed as support data ("запишите вес"), never a
+ * diagnosis or claim. Like symptom logging, the plan is recomputed on return to
+ * [PlanScreen] so the trend feeds the same loop the symptoms already feed.
+ */
+@Composable
+private fun ProgressScreen(modifier: Modifier, db: LocalDatabase, onBack: () -> Unit) {
+    var weight by remember { mutableStateOf("") }
+    var rows by remember { mutableStateOf(db.recentProgress()) }
+    Column(modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(
+            "Запишите вес (кг). Тренд — не одна точка — влияет на объём тренировок. " +
+                "Приложение поддерживает, не диагностирует.",
+            fontWeight = FontWeight.Medium,
+        )
+        OutlinedTextField(
+            value = weight,
+            onValueChange = { weight = it },
+            label = { Text("Вес, кг") },
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Button(onClick = {
+            val kg = weight.trim().replace(',', '.').toDoubleOrNull()
+            if (kg != null && kg > 0.0) {
+                db.appendProgress(kg, LocalDate.now().toString())
+                weight = ""
+                rows = db.recentProgress()
+            }
+        }) { Text("Записать") }
+        OutlinedButton(onClick = onBack) { Text("Назад к плану") }
+        Spacer(Modifier.size(0.dp))
+        Text("Недавние записи:", fontWeight = FontWeight.SemiBold)
+        rows.forEach { r: ProgressRow -> Text("• ${r.recordedOn}: ${r.weightKg} кг") }
     }
 }

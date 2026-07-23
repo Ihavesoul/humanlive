@@ -78,6 +78,25 @@ class LocalDatabase(context: Context) : SQLiteOpenHelper(context, NAME, null, VE
         }
     }
 
+    /**
+     * M5-A ([DRE-61](/DRE/issues/DRE-61)): append a body-weight progress point.
+     * Mirrors [appendSymptom]. Body weight is the MVP field the adaptation loop's
+     * RapidWeightLoss trigger consumes (Decision_Rules `r < -0.0075`); a single
+     * point is trend noise, the *trend* is the signal. No diagnosis is stored —
+     * this is raw user-measured input, framed as support data, not medical.
+     */
+    fun appendProgress(weightKg: Double, recordedOn: String) = writableDatabase.useProfileRow { db ->
+        val cv = ContentValues().apply { put(COL_RECORDED_ON, recordedOn); put(COL_WEIGHT, weightKg) }
+        db.insert(TABLE_PROGRESS, null, cv)
+    }
+
+    /** Newest-first [ProgressRow]s for the local adaptation signal + UI list. */
+    fun recentProgress(limit: Int = 20): List<ProgressRow> = readableDatabase.useProfileRow { db ->
+        db.query(TABLE_PROGRESS, arrayOf(COL_RECORDED_ON, COL_WEIGHT), null, null, null, null, "$COL_RECORDED_ON DESC", limit.toString()).use { c ->
+            buildList { while (c.moveToNext()) add(ProgressRow(c.getString(0), c.getDouble(1))) }
+        }
+    }
+
     // writableDatabase/readableDatabase return a cached handle the helper manages;
     // we close nothing manually (the helper is app-scoped).
     private inline fun <T> SQLiteDatabase.useProfileRow(block: (SQLiteDatabase) -> T): T = block(this)
@@ -119,19 +138,44 @@ class LocalDatabase(context: Context) : SQLiteOpenHelper(context, NAME, null, VE
             )
             """.trimIndent(),
         )
+        // M5-A (DRE-61): additive table. New on a v2 install; onUpgrade adds it
+        // for existing installs without touching prior rows.
+        db.execSQL(
+            """
+            CREATE TABLE $TABLE_PROGRESS(
+                $COL_ID INTEGER PRIMARY KEY AUTOINCREMENT,
+                $COL_RECORDED_ON TEXT NOT NULL,
+                $COL_WEIGHT REAL NOT NULL
+            )
+            """.trimIndent(),
+        )
     }
 
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
-        // ponytail: no migrations yet (v1 baseline). When v2 lands, migrate here
-        // — never drop health-signal data silently.
+        // M5-A (DRE-61): v1 → v2 adds the progress table ADDITIVELY. No prior
+        // table is touched, no row is dropped — health-signal data (symptom/workout
+        // logs) is retained for audit/rollback, as in M3-B/M4-B. Future bumps keep
+        // stacking additive `if (oldVersion < N)` branches here; never ALTER-down.
+        if (oldVersion < 2) {
+            db.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS $TABLE_PROGRESS(
+                    $COL_ID INTEGER PRIMARY KEY AUTOINCREMENT,
+                    $COL_RECORDED_ON TEXT NOT NULL,
+                    $COL_WEIGHT REAL NOT NULL
+                )
+                """.trimIndent(),
+            )
+        }
     }
 
     companion object {
         private const val NAME = "dreamteam.db"
-        private const val VERSION = 1
+        private const val VERSION = 2 // M5-A (DRE-61): +progress_log (additive v1→v2).
         private const val TABLE_PROFILE = "profile"
         private const val TABLE_WORKOUT = "workout_log"
         private const val TABLE_SYMPTOM = "symptom_log"
+        private const val TABLE_PROGRESS = "progress_log" // M5-A (DRE-61)
         private const val COL_ID = "id"
         private const val COL_SEX = "sex"
         private const val COL_AGE = "age"
@@ -161,3 +205,12 @@ data class Profile(
 )
 
 data class SymptomEntry(val recordedOn: String, val text: String)
+
+/**
+ * A locally-logged body-weight measurement (M5-A / [DRE-61](/DRE/issues/DRE-61)).
+ * App-local row mirrored on [SymptomEntry]; bridged to the domain
+ * [dreamteam.domain.progress.ProgressEntry] by [dreamteam.app.clientProgress]
+ * (the progress analogue of [dreamteam.app.clientSymptoms]). Weight only — the
+ * MVP field the RapidWeightLoss adaptation trigger needs; no body-fat/waist yet.
+ */
+data class ProgressRow(val recordedOn: String, val weightKg: Double)
