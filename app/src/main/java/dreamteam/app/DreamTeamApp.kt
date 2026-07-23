@@ -35,14 +35,13 @@ import dreamteam.app.data.LocalDatabase
 import dreamteam.app.data.Profile
 import dreamteam.app.data.ProgressRow
 import dreamteam.app.data.SymptomEntry
+import dreamteam.domain.RuleId
 import dreamteam.domain.adaptation.AdaptationSignal
-import dreamteam.domain.safety.ContraindicationStubs
 import dreamteam.domain.safety.MedicalSafety
 import dreamteam.domain.safety.SafetyEvaluation
 import dreamteam.domain.safety.SafetyGate
 import dreamteam.domain.safety.SafetyGuardedGateway
 import dreamteam.domain.safety.ScreeningContext
-import dreamteam.domain.safety.StructuralSafetyRules
 import dreamteam.domain.training.BaselineProgram
 import dreamteam.domain.training.GeneratedPlan
 import dreamteam.domain.training.DeterministicPlanGenerator
@@ -80,7 +79,15 @@ private sealed interface PlanResult {
         val safety: SafetyEvaluation,
         val signal: AdaptationSignal,
     ) : PlanResult
-    data class Blocked(val reason: String) : PlanResult
+    /**
+     * A gate block. [reason] is the support-framed headline; [ruleIds] are the
+     * triggering rules so the render layer can resolve their citations (M6-C,
+     * [DRE-69](/DRE/issues/DRE-69)). Empty for the medical-safety red-flag path
+     * (a different gate — no [dreamteam.domain.safety.SafetyRule]); the rule-
+     * engine path carries the verdict's rule ids. Citations EXPLAIN the block;
+     * nothing is surfaced as guidance either way.
+     */
+    data class Blocked(val reason: String, val ruleIds: List<RuleId> = emptyList()) : PlanResult
 }
 
 /**
@@ -107,14 +114,17 @@ private fun generateLocalPlan(
         clinicianCurveSpecificPlanAvailable = false,
     )
     val safety = SafetyGate.evaluate(medical)
-    if (!safety.allowTrainingGeneration) return PlanResult.Blocked("Красный флаг: обратитесь за медицинской оценкой. Приложение не ставит диагноз.")
+    // M6-C: the medical-safety gate (a different gate from the rule engine) has
+    // no SafetyRule → no ruleIds → no citations; the headline routes to
+    // assessment. Scan-clean support framing ([SafetyBlockStrings.REDFLAG_HEADLINE]).
+    if (!safety.allowTrainingGeneration) return PlanResult.Blocked(SafetyBlockStrings.REDFLAG_HEADLINE)
     val context = ScreeningContext(
         allowedExerciseIds = BaselineProgram.exerciseIds,
         allowedEvidenceIds = BaselineProgram.evidenceIds,
         sideSpecificLockEngaged = !safety.allowSideSpecificContent,
         conditionFlags = if (profile.scoliosisReported) setOf("scoliosis_flagged") else emptySet(),
     )
-    val gateway = SafetyGuardedGateway(context, StructuralSafetyRules.all + ContraindicationStubs.all)
+    val gateway = SafetyGuardedGateway(context, CLIENT_SAFETY_RULES)
     val signal = localAdaptationSignal(symptoms, progress)
     return when (val g = DeterministicPlanGenerator(gateway).generate(userId = "local", createdAt = today, adaptation = signal)) {
         is GeneratedPlan.Ok -> {
@@ -128,7 +138,34 @@ private fun generateLocalPlan(
             }
             PlanResult.Ok(g.plan.weeks.first(), nutritionPlan, safety, signal)
         }
-        is GeneratedPlan.Blocked -> PlanResult.Blocked("План заблокирован шлюзом безопасности: ${g.ruleIds.joinToString()}.")
+        // M6-C ([DRE-69](/DRE/issues/DRE-69)): carry the triggering rule ids so
+        // the block card can resolve their citations (ruleIds → SafetyRule →
+        // evidenceRefs → readable citation). The gate's block behavior is
+        // unchanged — nothing is surfaced as guidance (surfaced == []).
+        is GeneratedPlan.Blocked -> PlanResult.Blocked(SafetyBlockStrings.GATEWAY_HEADLINE, g.ruleIds)
+    }
+}
+
+/**
+ * M6-C ([DRE-69](/DRE/issues/DRE-69)): the shared block card both [PlanScreen]
+ * and [TodayScreen] render. Shows the support-framed headline + the BLOCKING
+ * rule's citations ("Основание:" + a resolved citation or the blocked-until-
+ * sourced placeholder) so a block is transparent, not opaque. Citations EXPLAIN
+ * the block — they are not rendered guidance; the gate's `surfaced == []`
+ * invariant is unchanged. Pure render via [safetyBlockExplanation] (no logic in
+ * the tree), Android I/O only at the edge (the resolver loaded at the root).
+ */
+@Composable
+private fun BlockCard(result: PlanResult.Blocked, resolver: EvidenceResolver) {
+    val explanation = remember(result) { safetyBlockExplanation(result.reason, result.ruleIds, CLIENT_SAFETY_RULES, resolver) }
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(explanation.reason, fontWeight = FontWeight.Medium)
+            if (explanation.citations.isNotEmpty()) {
+                Text(SafetyBlockStrings.CITATION_LABEL, fontWeight = FontWeight.Light)
+                explanation.citations.forEach { c -> Text("• ${c.line}", fontWeight = FontWeight.Light) }
+            }
+        }
     }
 }
 
@@ -275,9 +312,7 @@ private fun PlanScreen(modifier: Modifier, db: LocalDatabase, profile: Profile?,
     LazyColumn(modifier = modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         item { OutlinedButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) { Text(TodayStrings.BACK_TO_TODAY) } }
         when (result) {
-            is PlanResult.Blocked -> item {
-                Card(modifier = Modifier.fillMaxWidth()) { Text(result.reason, modifier = Modifier.padding(12.dp)) }
-            }
+            is PlanResult.Blocked -> item { BlockCard(result, resolver) }
             is PlanResult.Ok -> {
                 item {
                     Card(modifier = Modifier.fillMaxWidth()) {
@@ -373,9 +408,7 @@ private fun TodayScreen(
 
     LazyColumn(modifier = modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         when (result) {
-            is PlanResult.Blocked -> item {
-                Card(modifier = Modifier.fillMaxWidth()) { Text(result.reason, modifier = Modifier.padding(12.dp)) }
-            }
+            is PlanResult.Blocked -> item { BlockCard(result, resolver) }
             is PlanResult.Ok -> {
                 // Today's session is a pure pick from the SAME week PlanScreen
                 // renders — no second source of truth.
