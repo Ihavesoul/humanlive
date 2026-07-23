@@ -28,6 +28,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.unit.dp
 import dreamteam.app.data.LocalDatabase
 import dreamteam.app.data.Profile
@@ -44,7 +45,8 @@ import dreamteam.domain.training.BaselineProgram
 import dreamteam.domain.training.GeneratedPlan
 import dreamteam.domain.training.DeterministicPlanGenerator
 import dreamteam.domain.training.PlanWeek
-import dreamteam.domain.nutrition.NutritionTarget
+import dreamteam.domain.nutrition.GeneratedNutritionPlan
+import dreamteam.domain.nutrition.NutritionPlan
 import java.time.LocalDate
 
 /**
@@ -68,7 +70,11 @@ private enum class Screen { Onboarding, Plan, Symptoms }
 private sealed interface PlanResult {
     data class Ok(
         val week: PlanWeek,
-        val nutrition: NutritionTarget,
+        // M4-C ([DRE-57](/DRE/issues/DRE-57)): the full surfaced NutritionPlan
+        // (target + meal structure + evidence refs), or null when the nutrition
+        // gate blocks — only a gate-Ok plan is rendered. Offline-first: produced
+        // locally from the profile by [localNutritionPlan].
+        val nutritionPlan: NutritionPlan?,
         val safety: SafetyEvaluation,
         val signal: AdaptationSignal,
     ) : PlanResult
@@ -102,7 +108,17 @@ private fun generateLocalPlan(profile: Profile, today: String, symptoms: List<Sy
     val gateway = SafetyGuardedGateway(context, StructuralSafetyRules.all + ContraindicationStubs.all)
     val signal = localAdaptationSignal(symptoms)
     return when (val g = DeterministicPlanGenerator(gateway).generate(userId = "local", createdAt = today, adaptation = signal)) {
-        is GeneratedPlan.Ok -> PlanResult.Ok(g.plan.weeks.first(), g.nutrition, safety, signal)
+        is GeneratedPlan.Ok -> {
+            // M4-C: surface the FULL deterministic NutritionPlan (target + meal
+            // structure) behind its own nutrition-appropriate gate. Only a
+            // gate-Ok plan reaches the UI; a block surfaces nothing for
+            // nutrition (training still renders). Same inputs → same plan.
+            val nutritionPlan = when (val n = localNutritionPlan(profile, today)) {
+                is GeneratedNutritionPlan.Ok -> n.plan
+                is GeneratedNutritionPlan.Blocked -> null
+            }
+            PlanResult.Ok(g.plan.weeks.first(), nutritionPlan, safety, signal)
+        }
         is GeneratedPlan.Blocked -> PlanResult.Blocked("План заблокирован шлюзом безопасности: ${g.ruleIds.joinToString()}.")
     }
 }
@@ -217,7 +233,20 @@ private fun PlanScreen(modifier: Modifier, db: LocalDatabase, profile: Profile?,
                     Card(modifier = Modifier.fillMaxWidth()) {
                         Column(Modifier.padding(12.dp)) {
                             Text("Неделя ${result.week.weekNumber} · ${result.week.phase}", fontWeight = FontWeight.Bold)
-                            Text("Цель: ${result.nutrition.targetKcal} ккал · Б${result.nutrition.proteinG} Ж${result.nutrition.fatG} У${result.nutrition.carbohydrateG}")
+                            // M4-C ([DRE-57](/DRE/issues/DRE-57)): render the full surfaced
+                            // NutritionPlan via the pure [nutritionPlanView] (extracted so its
+                            // strings are banned-phrase-tested, [NutritionPlanViewTest]): target +
+                            // deterministic meal structure + the cataloged evidence ids + an
+                            // explicit support-not-treatment disclaimer. No diagnosis / prescription /
+                            // claim. null (gate-blocked) renders nothing for nutrition. Offline-first:
+                            // produced locally from the profile, no network to view it.
+                            result.nutritionPlan?.let { plan ->
+                                val view = remember(plan) { nutritionPlanView(plan) }
+                                Text(view.targetLine, fontWeight = FontWeight.SemiBold)
+                                view.meals.forEach { m -> Text("${m.label}: ${m.line}", fontWeight = FontWeight.Light) }
+                                Text(view.evidenceLine, fontWeight = FontWeight.Light)
+                                Text(view.disclaimer, fontWeight = FontWeight.Light, fontStyle = FontStyle.Italic)
+                            }
                             if (result.safety.warnings.isNotEmpty()) Text(result.safety.warnings.joinToString(" "))
                             // M3-C: surface a de-load as a plain "объём снижен" indicator + the
                             // support-framed reason (authored in M3-A). No diagnosis, no "у вас …",
