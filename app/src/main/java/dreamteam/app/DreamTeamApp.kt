@@ -61,7 +61,7 @@ import java.time.LocalDate
  * blocks the plan and routes to assessment — the gate is structural, the user
  * cannot skip it.
  */
-private enum class Screen { Onboarding, Today, Plan, Symptoms, Progress, History }
+private enum class Screen { Onboarding, Today, Plan, Symptoms, Progress, History, EvidenceSources }
 
 /**
  * Outcome of the local deterministic generation, mirroring the server's. [Ok.signal]
@@ -207,12 +207,22 @@ fun DreamTeamApp(db: LocalDatabase) {
                 onPlan = { screen = Screen.Plan },
                 // M5-C (DRE-63): one-tap entry to the read-only history/trend view.
                 onHistory = { screen = Screen.History },
+                // M6-D (DRE-66): one-tap entry to the read-only evidence-sources view.
+                onEvidenceSources = { screen = Screen.EvidenceSources },
             )
             // M5-C (DRE-63): the read-only history/trend screen — shows logged
             // progress + symptoms + the deterministic trend, no interpretation.
             Screen.History -> HistoryScreen(
                 modifier = Modifier.padding(padding),
                 db = db,
+                onBack = { screen = Screen.Today },
+            )
+            // M6-D (stretch) ([DRE-66](/DRE/issues/DRE-66)): the read-only
+            // evidence-sources screen — the full allowlisted catalog, each entry
+            // as citation + evidenceLevel + keyFinding, no interpretation.
+            Screen.EvidenceSources -> EvidenceSourcesScreen(
+                modifier = Modifier.padding(padding),
+                resolver = resolver,
                 onBack = { screen = Screen.Today },
             )
             Screen.Plan -> PlanScreen(
@@ -393,6 +403,8 @@ private fun TodayScreen(
     onPlan: () -> Unit,
     // M5-C (DRE-63): entry to the read-only history/trend view.
     onHistory: () -> Unit,
+    // M6-D (DRE-66): entry to the read-only evidence-sources view.
+    onEvidenceSources: () -> Unit,
 ) {
     val p = profile ?: run {
         Column(modifier.fillMaxSize().padding(16.dp)) { Text("Профиль не найден."); Button(onClick = {}) {} }
@@ -453,6 +465,9 @@ private fun TodayScreen(
         // M5-C ([DRE-63](/DRE/issues/DRE-63)): one-tap entry to the read-only
         // history/trend view — the visibility half of the retention loop.
         item { OutlinedButton(onClick = onHistory, modifier = Modifier.fillMaxWidth()) { Text(HistoryStrings.TITLE) } }
+        // M6-D (stretch) ([DRE-66](/DRE/issues/DRE-66)): one-tap entry to the
+        // read-only evidence-sources view — full catalog transparency.
+        item { OutlinedButton(onClick = onEvidenceSources, modifier = Modifier.fillMaxWidth()) { Text(EvidenceSourcesStrings.TITLE) } }
     }
 }
 

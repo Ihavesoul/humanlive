@@ -46,6 +46,15 @@ internal class EvidenceResolver(catalog: List<EvidenceSource>) {
     /** Resolve an id to its catalog source, or `null` for a dangling/ghost id. */
     fun resolveEvidence(id: EvidenceId): EvidenceSource? = byId[id]
 
+    /**
+     * The full catalog in decoded order (M6-D / [DRE-66](/DRE/issues/DRE-66)): a
+     * read-only enumeration so the evidence-sources screen can render the whole
+     * allowlist the app draws on. `associateBy` keeps a LinkedHashMap, so order
+     * is the catalog's insertion order (deterministic). No second source of
+     * truth — the same decoded list [resolveEvidence] resolves against.
+     */
+    fun allSources(): List<EvidenceSource> = byId.values.toList()
+
     companion object {
         /** Decode + build the resolver from raw catalog JSON (the exact server decode). */
         fun fromJson(rawJson: String): EvidenceResolver =
