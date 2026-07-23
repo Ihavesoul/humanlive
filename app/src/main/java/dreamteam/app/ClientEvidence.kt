@@ -61,3 +61,56 @@ internal class EvidenceResolver(catalog: List<EvidenceSource>) {
  */
 internal fun loadEvidenceResolver(assets: AssetManager): EvidenceResolver =
     EvidenceResolver.fromJson(assets.open("evidence_catalog.json").use { it.readBytes().decodeToString() })
+
+/**
+ * M6-B ([DRE-68](/DRE/issues/DRE-68)): the pure render of a surfaced
+ * [dreamteam.domain.EvidenceLinked] ref against the catalog — a readable
+ * citation (author/year + keyFinding + evidenceLevel) for a resolved id, or a
+ * blocked-until-sourced placeholder for a ghost id. Never an invented citation
+ * (honors EvidenceLinked). Shared by the nutrition + training views so both
+ * surfaces use ONE render path; pure + JVM-testable (the
+ * [nutritionPlanView] pattern), Android I/O only at [loadEvidenceResolver].
+ *
+ * [line] carries the user-facing text so the Compose surface only does
+ * `Text(line)` — no formatting logic in the tree. [evidenceLevel] is the
+ * catalog's controlled-vocabulary value rendered VERBATIM: a label, NOT an
+ * appraisal of study quality (this slice does not vet studies; the Evidence &
+ * Research Analyst owns the catalog). Rendering it raw keeps the label honest
+ * and avoids a level→translation map that could drift from the catalog.
+ */
+internal data class ResolvedCitation(
+    val id: EvidenceId,
+    /** A catalog entry was found — `false` means [line] is the placeholder. */
+    val resolved: Boolean,
+    val line: String,
+)
+
+/**
+ * The blocked-until-sourced placeholder for an id that resolves to no catalog
+ * entry. Honors EvidenceLinked: a ref with no source surfaces a transparency
+ * line, never a fabricated citation. In practice M6-A's 0-dangling invariant
+ * means surfaced refs always resolve; this is the defensive contract.
+ */
+internal const val EVIDENCE_NOT_SOURCED =
+    "источник не каталогизирован — рекомендация без подтверждённой ссылки"
+
+/**
+ * Resolve each ref to a readable citation, or to [EVIDENCE_NOT_SOURCED] for a
+ * ghost id. Pure; mirrors the M6-A `resolveEvidence(id) == null` → placeholder
+ * contract. One entry per ref, in order, so the surface renders one line each.
+ */
+internal fun resolveCitations(
+    refs: List<EvidenceId>,
+    resolver: EvidenceResolver,
+): List<ResolvedCitation> = refs.map { id ->
+    val src = resolver.resolveEvidence(id)
+    if (src != null) {
+        ResolvedCitation(
+            id = id,
+            resolved = true,
+            line = "${src.citation} (уровень: ${src.evidenceLevel}) — ${src.keyFinding}",
+        )
+    } else {
+        ResolvedCitation(id = id, resolved = false, line = EVIDENCE_NOT_SOURCED)
+    }
+}

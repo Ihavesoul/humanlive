@@ -68,6 +68,12 @@ class TodayViewTest {
             .shouldBeInstanceOf<GeneratedNutritionPlan.Ok>().plan
     }
 
+    // M6-B: the offline-first resolver over the bundled catalog (classpath read —
+    // byte-identical to the bundled asset). [nutritionPlanView] now renders
+    // readable citations against it.
+    private val resolver: EvidenceResolver =
+        EvidenceResolver.fromJson(TodayViewTest::class.java.getResourceAsStream("/evidence_catalog.json")!!.use { it.readBytes().decodeToString() })
+
     @Test
     fun `todaySession picks the session matching the date's weekday and stays in the rendered week`() {
         val w = week()
@@ -142,14 +148,17 @@ class TodayViewTest {
     @Test
     fun `no rendered Today string contains a banned medical-claim phrase`() {
         val w = week()
-        val nutritionView = nutritionPlanView(plan())
+        val nutritionView = nutritionPlanView(plan(), resolver)
         // Every weekday's date line (carries the baseline session labels verbatim).
         val dateLines = (0..6).map { dow ->
             todayDateLine(todaySession(w, LocalDate.of(2026, 7, 19).plusDays(dow.toLong())))
         }
-        // The composed nutrition view strings (already pinned in NutritionPlanViewTest;
-        // scanned here too because Today composes them).
-        val nutritionStrings = listOf(nutritionView.targetLine, nutritionView.evidenceLine, nutritionView.disclaimer) +
+        // The composed nutrition view strings the APP authors (target line, meal
+        // labels, disclaimer). M6-B: the verbatim catalog citation ROWS are NOT
+        // crude-substring-scanned — they legitimately carry study vocabulary
+        // ("health", "prescription", "treatment") inside study titles/findings;
+        // the claim guard for catalog text is the always-present disclaimer.
+        val nutritionStrings = listOf(nutritionView.targetLine, nutritionView.disclaimer) +
             nutritionView.meals.flatMap { listOf(it.label, it.line) }
         // Every real domain DeLoad reason surfaced via adaptationNote (derived, not
         // copied, so the scan reads the authored strings — mirrors AdaptationNoteTest).

@@ -88,17 +88,19 @@ internal fun localNutritionPlan(
 }
 
 /**
- * What [PlanScreen] shows for a surfaced [NutritionPlan]: a plain, support-framed
- * render — the daily target line, the deterministic meal rows, the cataloged
- * evidence ids (the traceable link into the evidence library — no invented
- * citations, ADR 0001 §1; the catalog is the durable source of truth), and an
- * explicit no-medical-claim disclaimer. Pure (no Android, no I/O) so a JVM test
- * pins render-from-signal + no-claim, mirroring [adaptationNote].
+ * What [PlanScreen]/[TodayScreen] show for a surfaced [NutritionPlan]: a plain,
+ * support-framed render — the daily target line, the deterministic meal rows, a
+ * READABLE citation per evidence ref (M6-B: resolved via [resolveCitations] —
+ * author/year + keyFinding + evidenceLevel, no invented citation; a ghost id
+ * renders the blocked-until-sourced placeholder), and an explicit no-medical-
+ * claim disclaimer. Pure (no Android, no I/O) so a JVM test pins render-from-
+ * signal + no-claim, mirroring [adaptationNote].
  */
 internal data class NutritionPlanView(
     val targetLine: String,
     val meals: List<MealRow>,
-    val evidenceLine: String,
+    /** M6-B: one READABLE citation per evidence ref (resolved), not raw ids. */
+    val evidenceRows: List<ResolvedCitation>,
     /** Always-present support-not-treatment disclaimer (M4-C invariant). */
     val disclaimer: String,
 )
@@ -106,7 +108,7 @@ internal data class NutritionPlanView(
 /** One deterministic meal slot's rendered line (label is the authored RU slot label). */
 internal data class MealRow(val label: String, val line: String)
 
-internal fun nutritionPlanView(plan: NutritionPlan): NutritionPlanView {
+internal fun nutritionPlanView(plan: NutritionPlan, resolver: EvidenceResolver): NutritionPlanView {
     val t = plan.target
     val targetLine = "Цель на день: ${t.targetKcal} ккал · Б${t.proteinG} Ж${t.fatG} У${t.carbohydrateG}"
     val meals = plan.structure.map { m ->
@@ -115,9 +117,11 @@ internal fun nutritionPlanView(plan: NutritionPlan): NutritionPlanView {
             line = "${m.targetKcal} ккал · Б${m.proteinG} Ж${m.fatG} У${m.carbohydrateG}",
         )
     }
-    val evidenceLine = "Основа: ${plan.evidenceRefs.joinToString()}"
+    // M6-B: render READABLE citations (author/year + keyFinding + evidenceLevel)
+    // per ref, not raw ids. A ghost id → blocked-until-sourced placeholder.
+    val evidenceRows = resolveCitations(plan.evidenceRefs, resolver)
     val disclaimer =
         "План питания — это поддержка, а не предписание и не замена врача или диетолога. " +
             "Учитывайте индивидуальные особенности и аллергии."
-    return NutritionPlanView(targetLine, meals, evidenceLine, disclaimer)
+    return NutritionPlanView(targetLine, meals, evidenceRows, disclaimer)
 }

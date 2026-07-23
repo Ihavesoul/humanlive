@@ -27,6 +27,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.unit.dp
@@ -136,6 +137,14 @@ private fun generateLocalPlan(
 fun DreamTeamApp(db: LocalDatabase) {
     var screen by remember { mutableStateOf(if (db.loadProfile() == null) Screen.Onboarding else Screen.Today) }
     var profile by remember { mutableStateOf(db.loadProfile()) }
+    // M6-B ([DRE-68](/DRE/issues/DRE-68)): the offline-first evidence resolver,
+    // decoded once from the bundled catalog asset (single Android-I/O point) so
+    // the nutrition + training views render READABLE citations, not raw ids. No
+    // network; pure render below ([resolveCitations] / [nutritionPlanView]).
+    // [LocalContext.current] is read outside the remember lambda — it is a
+    // @Composable read and cannot live inside it.
+    val appContext = LocalContext.current
+    val resolver = remember { loadEvidenceResolver(appContext.assets) }
 
     Scaffold(topBar = {
         TopAppBar(title = { Text("DreamTeam") })
@@ -155,6 +164,7 @@ fun DreamTeamApp(db: LocalDatabase) {
                 modifier = Modifier.padding(padding),
                 db = db,
                 profile = profile,
+                resolver = resolver,
                 onSymptoms = { screen = Screen.Symptoms },
                 onProgress = { screen = Screen.Progress },
                 onPlan = { screen = Screen.Plan },
@@ -172,6 +182,7 @@ fun DreamTeamApp(db: LocalDatabase) {
                 modifier = Modifier.padding(padding),
                 db = db,
                 profile = profile,
+                resolver = resolver,
                 onSymptoms = { screen = Screen.Symptoms },
                 onProgress = { screen = Screen.Progress },
                 onBack = { screen = Screen.Today },
@@ -248,7 +259,7 @@ private fun OnboardingScreen(modifier: Modifier, onPlanReady: (Profile) -> Unit)
 }
 
 @Composable
-private fun PlanScreen(modifier: Modifier, db: LocalDatabase, profile: Profile?, onSymptoms: () -> Unit, onProgress: () -> Unit, onBack: () -> Unit) {
+private fun PlanScreen(modifier: Modifier, db: LocalDatabase, profile: Profile?, resolver: EvidenceResolver, onSymptoms: () -> Unit, onProgress: () -> Unit, onBack: () -> Unit) {
     val p = profile ?: run {
         Column(modifier.fillMaxSize().padding(16.dp)) { Text("Профиль не найден."); Button(onClick = {}) {} }
         return
@@ -280,10 +291,13 @@ private fun PlanScreen(modifier: Modifier, db: LocalDatabase, profile: Profile?,
                             // claim. null (gate-blocked) renders nothing for nutrition. Offline-first:
                             // produced locally from the profile, no network to view it.
                             result.nutritionPlan?.let { plan ->
-                                val view = remember(plan) { nutritionPlanView(plan) }
+                                val view = remember(plan) { nutritionPlanView(plan, resolver) }
                                 Text(view.targetLine, fontWeight = FontWeight.SemiBold)
                                 view.meals.forEach { m -> Text("${m.label}: ${m.line}", fontWeight = FontWeight.Light) }
-                                Text(view.evidenceLine, fontWeight = FontWeight.Light)
+                                // M6-B: render READABLE citations (author/year + keyFinding +
+                                // evidenceLevel) per ref, not raw ids; a ghost id renders the
+                                // blocked-until-sourced placeholder.
+                                view.evidenceRows.forEach { c -> Text("• ${c.line}", fontWeight = FontWeight.Light) }
                                 Text(view.disclaimer, fontWeight = FontWeight.Light, fontStyle = FontStyle.Italic)
                             }
                             if (result.safety.warnings.isNotEmpty()) Text(result.safety.warnings.joinToString(" "))
@@ -304,7 +318,7 @@ private fun PlanScreen(modifier: Modifier, db: LocalDatabase, profile: Profile?,
                     }
                 }
                 items(result.week.sessions) { session ->
-                    SessionCard(db = db, session = session)
+                    SessionCard(db = db, session = session, resolver = resolver)
                 }
             }
         }
@@ -338,6 +352,7 @@ private fun TodayScreen(
     modifier: Modifier,
     db: LocalDatabase,
     profile: Profile?,
+    resolver: EvidenceResolver,
     onSymptoms: () -> Unit,
     onProgress: () -> Unit,
     onPlan: () -> Unit,
@@ -367,16 +382,17 @@ private fun TodayScreen(
                 val session = todaySession(result.week, today)
                 item { Text(todayDateLine(session), fontWeight = FontWeight.Bold) }
                 item { Text(TodayStrings.TRAINING, fontWeight = FontWeight.SemiBold) }
-                session?.let { s -> item { SessionCard(db = db, session = s) } }
+                session?.let { s -> item { SessionCard(db = db, session = s, resolver = resolver) } }
                 item { Text(TodayStrings.NUTRITION, fontWeight = FontWeight.SemiBold) }
                 result.nutritionPlan?.let { plan ->
                     item {
-                        val view = remember(plan) { nutritionPlanView(plan) }
+                        val view = remember(plan) { nutritionPlanView(plan, resolver) }
                         Card(modifier = Modifier.fillMaxWidth()) {
                             Column(Modifier.padding(12.dp)) {
                                 Text(view.targetLine, fontWeight = FontWeight.SemiBold)
                                 view.meals.forEach { m -> Text("${m.label}: ${m.line}", fontWeight = FontWeight.Light) }
-                                Text(view.evidenceLine, fontWeight = FontWeight.Light)
+                                // M6-B: READABLE citations per ref, not raw ids.
+                                view.evidenceRows.forEach { c -> Text("• ${c.line}", fontWeight = FontWeight.Light) }
                                 Text(view.disclaimer, fontWeight = FontWeight.Light, fontStyle = FontStyle.Italic)
                             }
                         }
@@ -436,7 +452,7 @@ private fun HistoryScreen(modifier: Modifier, db: LocalDatabase, onBack: () -> U
 }
 
 @Composable
-private fun SessionCard(db: LocalDatabase, session: dreamteam.domain.training.PlanSession) {
+private fun SessionCard(db: LocalDatabase, session: dreamteam.domain.training.PlanSession, resolver: EvidenceResolver) {
     var completed by remember(session.id) { mutableStateOf(db.completedExercises(session.id)) }
     val today = LocalDate.now().toString()
     Card(modifier = Modifier.fillMaxWidth()) {
@@ -452,6 +468,14 @@ private fun SessionCard(db: LocalDatabase, session: dreamteam.domain.training.Pl
                         },
                     )
                     Text("$name — ${a.sets}×${a.repScheme}" + (a.rir?.let { " @${it} RIR" } ?: ""))
+                }
+                // M6-B ([DRE-68](/DRE/issues/DRE-68)): surface each assignment's
+                // evidenceRefs as READABLE citations (author/year + keyFinding +
+                // evidenceLevel) via the same render path as nutrition — was surfaced
+                // as nothing before. A ghost id renders the blocked-until-sourced
+                // placeholder; no invented citation.
+                resolveCitations(a.evidenceRefs, resolver).forEach { c ->
+                    Text("  • ${c.line}", fontWeight = FontWeight.Light)
                 }
             }
             Spacer(Modifier.height(4.dp))

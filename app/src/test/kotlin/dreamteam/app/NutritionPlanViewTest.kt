@@ -20,15 +20,21 @@ import org.junit.jupiter.api.Test
  * Mirrors [AdaptationNoteTest] (M3-C, [DRE-53](/DRE/issues/DRE-53)):
  *
  * 1. **Renders from the surfaced plan:** [nutritionPlanView] emits the daily
- *    target line, one row per meal slot, the cataloged evidence ids, and an
- *    always-present disclaimer — each carrying the gate-Ok plan's data verbatim.
- *    A null (gate-blocked) plan renders nothing (no surface) — that branch is
- *    owned by PlanScreen; here the rendered view is a pure function of the plan.
- * 2. **No medical claim:** none of the strings the surface can ever render —
- *    across representative real plans (with/without body-fat % → Cunningham vs
- *    Mifflin resting energy; RECOMP vs FAT_LOSS) plus the disclaimer and every
- *    authored meal label/evidence id — contain a banned diagnostic / treatment /
- *    cure phrase. The surface is support, never diagnosis or prescription.
+ *    target line, one row per meal slot, a READABLE citation per evidence ref
+ *    (M6-B: resolved via the catalog — author/year + keyFinding + evidenceLevel,
+ *    not raw ids), and an always-present disclaimer — each carrying the gate-Ok
+ *    plan's data verbatim. A null (gate-blocked) plan renders nothing (no
+ *    surface) — that branch is owned by PlanScreen; here the rendered view is a
+ *    pure function of the plan.
+ * 2. **No medical claim:** none of the strings the APP AUTHORS (not the verbatim
+ *    catalog text) — across representative real plans (with/without body-fat % →
+ *    Cunningham vs Mifflin resting energy; RECOMP vs FAT_LOSS) plus the disclaimer
+ *    and every authored meal label — contain a banned diagnostic / treatment /
+ *    cure phrase. The catalog citation text is vetted evidence vocabulary and is
+ *    NOT crude-substring-scanned: it legitimately contains study words
+ *    ("health", "prescription", "treatment") inside study titles/findings. The
+ *    catalog-side claim guard is the always-present support disclaimer +
+ *    rendering catalog text verbatim (no invented claim).
  *
  * The rendered text is a pure function of the plan, so a JVM assertion over it
  * is the smallest sufficient check of the Compose surface without a device or
@@ -59,6 +65,12 @@ class NutritionPlanViewTest {
         NutritionPlanGenerator(gateway()).generate(userId = "seed-user", body = body, goal = goal, recordedOn = "2026-07-23")
             .shouldBeInstanceOf<GeneratedNutritionPlan.Ok>().plan
 
+    // M6-B: the offline-first resolver over the bundled catalog, as a JVM test
+    // reads it (classpath — app/build.gradle.kts adds repo-root `data/` as a test
+    // resource). Byte-identical to the bundled asset [loadEvidenceResolver] decodes.
+    private val resolver: EvidenceResolver =
+        EvidenceResolver.fromJson(NutritionPlanViewTest::class.java.getResourceAsStream("/evidence_catalog.json")!!.use { it.readBytes().decodeToString() })
+
     // Representative plans the UI can render: every energy-equation branch and
     // goal variant, so the banned-phrase scan covers the real authored strings.
     private val representativePlans: List<NutritionPlan> = listOf(
@@ -84,7 +96,7 @@ class NutritionPlanViewTest {
     @Test
     fun `the view renders the daily target line from the plan target verbatim`() {
         val p = plan(withBodyFat, NutritionGoal.RECOMP)
-        val view = nutritionPlanView(p)
+        val view = nutritionPlanView(p, resolver)
 
         view.targetLine shouldBe
             "Цель на день: ${p.target.targetKcal} ккал · Б${p.target.proteinG} Ж${p.target.fatG} У${p.target.carbohydrateG}"
@@ -93,7 +105,7 @@ class NutritionPlanViewTest {
     @Test
     fun `the view renders one row per meal slot carrying the structure verbatim`() {
         val p = plan(withBodyFat, NutritionGoal.RECOMP)
-        val view = nutritionPlanView(p)
+        val view = nutritionPlanView(p, resolver)
 
         view.meals.map { it.label } shouldContainExactly p.structure.map { it.label }
         view.meals.forEachIndexed { i, row ->
@@ -105,19 +117,30 @@ class NutritionPlanViewTest {
     }
 
     @Test
-    fun `the view renders the cataloged evidence ids as the traceable link`() {
+    fun `the view renders a READABLE citation per evidence ref - not raw ids (M6-B)`() {
         val p = plan(withBodyFat, NutritionGoal.RECOMP)
-        val view = nutritionPlanView(p)
+        val view = nutritionPlanView(p, resolver)
 
-        view.evidenceLine shouldBe "Основа: ${p.evidenceRefs.joinToString()}"
-        // Every cited id is in the provisioned allowlist (no invented citations).
+        // One resolved row per ref, in order.
+        view.evidenceRows.map { it.id } shouldContainExactly p.evidenceRefs
+        view.evidenceRows.forEach { row -> row.resolved shouldBe true }
+        // M6-B core guarantee: each rendered line shows a REAL citation (it is
+        // NOT the bare id the old `"Основа: ..."` join showed) and carries the
+        // evidenceLevel label + keyFinding. Asserted against a known nutrition
+        // id present in every RECOMP plan (protein guidance).
+        val proteinRow = view.evidenceRows.first { it.id == "MORTON-PROTEIN-2018" }
+        ("Morton" in proteinRow.line) shouldBe true // author
+        ("уровень: high" in proteinRow.line) shouldBe true // evidenceLevel label
+        // The line is the full readable citation, never the raw id alone.
+        (proteinRow.line.length > "MORTON-PROTEIN-2018".length) shouldBe true
+        // Every cited id is still in the provisioned allowlist (no invented citations).
         p.evidenceRefs.forEach { (it in NUTRITION_EVIDENCE_IDS) shouldBe true }
     }
 
     @Test
     fun `the view always carries a non-empty support-not-treatment disclaimer`() {
         representativePlans.forEach { p ->
-            val disclaimer = nutritionPlanView(p).disclaimer
+            val disclaimer = nutritionPlanView(p, resolver).disclaimer
             disclaimer.isNotBlank() shouldBe true
             // Support framing is explicit; medical authority is explicitly denied.
             ("поддержка" in disclaimer.lowercase()) shouldBe true
@@ -125,10 +148,15 @@ class NutritionPlanViewTest {
     }
 
     @Test
-    fun `no rendered nutrition string contains a banned medical-claim phrase`() {
+    fun `no APP-authored nutrition string contains a banned medical-claim phrase`() {
+        // M6-B note: the crude substring scan covers ONLY strings the app authors
+        // (target line, meal labels, disclaimer) — NOT the verbatim catalog
+        // citation rows, which legitimately carry study vocabulary
+        // ("health", "prescription", "treatment") inside study titles/findings.
+        // Crude-scanning catalog text would false-positive on vetted evidence.
         val rendered: List<String> = representativePlans.flatMap { p ->
-            val view = nutritionPlanView(p)
-            listOf(view.targetLine, view.evidenceLine, view.disclaimer) + view.meals.flatMap { listOf(it.label, it.line) }
+            val view = nutritionPlanView(p, resolver)
+            listOf(view.targetLine, view.disclaimer) + view.meals.flatMap { listOf(it.label, it.line) }
         }
         rendered.forEach { text ->
             val lower = text.lowercase()
