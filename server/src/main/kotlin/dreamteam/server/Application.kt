@@ -270,6 +270,13 @@ fun Application.module(jdbcUrl: String = resolveJdbcUrl(), key: EncryptionKey = 
                         io.ktor.http.HttpStatusCode.Conflict,
                         CoachBlockedResponse(status = "blocked_red_flag", safety = result.safety),
                     )
+                    is CoachReport.Unavailable -> call.respond(
+                        // Graceful degrade (DRE-99): the gateway blocked the baseline
+                        // plan, not a red flag. 503 + a clean body so the client keeps
+                        // the original plan instead of getting a 500 ClassCastException.
+                        io.ktor.http.HttpStatusCode.ServiceUnavailable,
+                        CoachUnavailableResponse(status = "plan_unavailable", originalPlanId = result.originalPlanId),
+                    )
                     is CoachReport.Ok -> call.respond(result) // sealed type serializes to phone-readable JSON
                 }
             }
@@ -332,6 +339,16 @@ data class CoachExplainResponse(
 data class CoachBlockedResponse(
     val status: String,
     val safety: SafetyEvaluation,
+)
+
+/**
+ * The phone-readable graceful-degrade response (503) — the gateway blocked the
+ * baseline plan (not a red flag); the UI keeps the original plan (DRE-99).
+ */
+@Serializable
+data class CoachUnavailableResponse(
+    val status: String,
+    @SerialName("original_plan_id") val originalPlanId: String,
 )
 
 /**

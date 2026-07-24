@@ -75,9 +75,10 @@ class Coach(
      * "оригинал vs адаптация" with the original retained.
      *
      * A red-flag profile → [CoachReport.Blocked] (medical-safety gate; no
-     * provider call). Otherwise the adapted plan is gate-Ok (a gate block on the
-     * *deterministic* baseline cannot happen — the baseline is the safe subset —
-     * but the gateway is still run, so a future rule tightening is honored).
+     * provider call). Otherwise the adapted plan is gate-Ok; if a future rule
+     * tightening ever blocked a baseline movement, [report] degrades to
+     * [CoachReport.Unavailable] (keep the original plan) rather than crash or
+     * leak a hole — the red-flag gate still passed, so it is not a medical block.
      */
     fun report(
         userId: UserId,
@@ -103,10 +104,19 @@ class Coach(
             planId = adaptedPlanId,
             adaptation = signal,
         )
-        // The baseline is the scoliosis-safe PoC subset, so this is always Ok in
-        // practice — but the gateway is the chokepoint; a future rule change that
-        // blocks a baseline movement surfaces here as a block, not a silent hole.
-        val adaptedPlan = (generated as GeneratedPlan.Ok).plan
+        // Exhaustive over GeneratedPlan (DRE-99). The baseline is the scoliosis-safe
+        // PoC subset, so this is Ok in practice — but the gateway is the chokepoint:
+        // a future rule change that blocks a baseline movement degrades here to a
+        // clean [CoachReport.Unavailable] (keep the original plan), never a 500 and
+        // never an unsafe plan surfaced. The red-flag gate already passed, so this
+        // is not a medical block.
+        val adaptedPlan: TrainingPlan = when (generated) {
+            is GeneratedPlan.Ok -> generated.plan
+            is GeneratedPlan.Blocked -> return CoachReport.Unavailable(
+                originalPlanId = originalPlanId,
+                reasons = generated.reasons,
+            )
+        }
 
         val fallback = fallbackReport(adaptedPlan, originalPlanId, notes, signal)
         val enriched = enrichReport(fallback, medical, safety, notes, symptoms)
@@ -311,6 +321,21 @@ sealed interface CoachReport {
     /** Pre-LLM medical-safety gate blocked — route to assessment, no plan surfaced. */
     @Serializable
     data class Blocked(val safety: SafetyEvaluation) : CoachReport
+
+    /**
+     * Graceful degrade (DRE-99): the pre-LLM red-flag gate *passed*, but the
+     * [dreamteam.domain.safety.SafetyGuardedGateway] blocked a baseline movement
+     * (e.g. a future safety-rule tightening marked a baseline exercise as
+     * contraindicated), so the all-or-nothing gateway refused the plan rather
+     * than leak a hole. NOT a medical block — do not route to assessment. The UI
+     * offers "keep the original plan"; [reasons] is gateway block detail for
+     * server-side logging/audit and is never rendered as guidance.
+     */
+    @Serializable
+    data class Unavailable(
+        @SerialName("original_plan_id") val originalPlanId: String,
+        val reasons: List<String>,
+    ) : CoachReport
 }
 
 /** A short, plain-language per-exercise cue in a [CoachReport]. */

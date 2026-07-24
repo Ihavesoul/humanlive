@@ -3,6 +3,9 @@ package dreamteam.domain.coach
 import dreamteam.domain.adaptation.AdaptationSignal
 import dreamteam.domain.progress.ProgressEntry
 import dreamteam.domain.safety.MedicalSafety
+import dreamteam.domain.safety.SafetyGuardedGateway
+import dreamteam.domain.safety.ScreeningContext
+import dreamteam.domain.safety.StructuralSafetyRules
 import dreamteam.domain.symptom.Symptom
 import dreamteam.domain.training.BaselineProgram
 import io.kotest.matchers.collections.shouldBeEmpty
@@ -60,6 +63,32 @@ class CoachTest {
         )
         report.shouldBeInstanceOf<CoachReport.Blocked>()
         provider.calls shouldBe 0 // #1: the gate is pre-LLM; the provider was never contacted.
+    }
+
+    @Test
+    fun `a gateway block on the baseline degrades to Unavailable instead of throwing (DRE-99)`() {
+        // Simulates a future rule tightening that blocks a baseline movement: a
+        // hole in the structural allowlist (split_squat removed) -> the
+        // deterministic generator returns GeneratedPlan.Blocked -> report degrades
+        // to a clean Unavailable (keep the original plan): never a
+        // ClassCastException/500 and never an unsafe plan surfaced. The red-flag
+        // gate passed, so this is NOT a medical CoachReport.Blocked.
+        val holeyContext = ScreeningContext(
+            allowedExerciseIds = BaselineProgram.exerciseIds - "split_squat",
+            allowedEvidenceIds = BaselineProgram.evidenceIds,
+        )
+        val blockingGateway = SafetyGuardedGateway(holeyContext, StructuralSafetyRules.all)
+        val coach = Coach(gatewayFor = { _, _ -> blockingGateway })
+
+        val report = coach.report(
+            userId = "local", createdAt = "2026-07-25",
+            medical = cleanMedical, originalPlanId = "baseline-12w",
+            notes = painNotes,
+        )
+
+        val unavailable = report.shouldBeInstanceOf<CoachReport.Unavailable>()
+        unavailable.originalPlanId shouldBe "baseline-12w" // preserved for "keep original"
+        unavailable.reasons.shouldNotBeEmpty() // gateway block detail (logged, never guidance)
     }
 
     @Test

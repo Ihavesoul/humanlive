@@ -731,6 +731,14 @@ private fun CoachReportDialog(
             title = { Text(CoachStrings.REPORT_TITLE) },
             text = { Text(CoachStrings.REDFLAG_BLOCK) },
         )
+        is dreamteam.domain.coach.CoachReport.Unavailable -> AlertDialog(
+            // DRE-99 graceful degrade: gateway blocked the baseline plan (not a
+            // red flag). The original plan is kept; only the close action runs.
+            onDismissRequest = { onChoose(false) },
+            confirmButton = { TextButton(onClick = { onChoose(false) }) { Text("Закрыть") } },
+            title = { Text(CoachStrings.REPORT_TITLE) },
+            text = { Text(CoachStrings.PLAN_UNAVAILABLE) },
+        )
         is dreamteam.domain.coach.CoachReport.Ok -> {
             val view = remember(report) { coachReportView(report) }
             val adaptedSession = remember(report, original) { adaptedSessionOf(report, original) }

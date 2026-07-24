@@ -150,10 +150,12 @@ internal object CoachStrings {
     const val SOURCE_LLM = "коуч (LLM)"
     const val SOURCE_FALLBACK = "коуч (офлайн-план)"
     const val REDFLAG_BLOCK = "Красный флаг: обратитесь за медицинской оценкой. Приложение поддерживает, а не заменяет врача."
+    /** DRE-99 graceful degrade: the gateway blocked the baseline plan; keep the original. */
+    const val PLAN_UNAVAILABLE = "Не удалось подготовить адаптацию плана. Оригинал сохранён — продолжайте по нему. Приложение поддерживает, а не заменяет врача."
 
     val all: List<String> = listOf(
         ASK_AI, REPORT_CTA, EXPLAIN_TITLE, REPORT_TITLE, ORIGINAL_LABEL, ADAPTATION_LABEL,
         ADAPTATION_DEFAULT_HINT, APPLY_ADAPTATION, KEEP_ORIGINAL, APPLIED_ADAPTATION, KEPT_ORIGINAL,
-        SOURCE_LLM, SOURCE_FALLBACK, REDFLAG_BLOCK,
+        SOURCE_LLM, SOURCE_FALLBACK, REDFLAG_BLOCK, PLAN_UNAVAILABLE,
     )
 }
