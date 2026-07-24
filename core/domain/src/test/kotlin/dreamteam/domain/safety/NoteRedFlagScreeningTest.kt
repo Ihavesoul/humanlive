@@ -35,6 +35,18 @@ class NoteRedFlagScreeningTest {
         derive("ночью побаливала спина").shouldBeEmpty()
     }
 
+    // --- Test 1b (DRE-107): phrase-anchor precision tightenings (gate-#2 condition) ---
+
+    @Test
+    fun `benign fatigue and equipment phrasing derive no red flag (DRE-107 anchors)`() {
+        // Bare «пах» collided with «впахал» → groin morphology anchors (пахов/в пах/паховая/паху).
+        derive("после тренировки немеют руки, впахал сегодня").shouldBeEmpty()
+        // Bare «седл» matched «седло велосипеда» → dropped; «седловидн» stays as the clinical anchor.
+        derive("седло велосипеда давит, немеет").shouldBeEmpty()
+        // «нога подкашива» is a common fatigue idiom → dropped from the foot-drop set.
+        derive("ноги подкашиваются от усталости").shouldBeEmpty()
+    }
+
     // --- Test 2: recall / cauda-equina constellation (highest acuity) ---
 
     @Test

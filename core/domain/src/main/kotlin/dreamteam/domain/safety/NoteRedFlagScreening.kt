@@ -39,8 +39,8 @@ object NoteRedFlagScreening {
 
     /** Numbness stems («онемен|немеет|онеме»). */
     private val NUMB = listOf("онемен", "немеет", "онеме")
-    /** Saddle/groin/perineal/genital distribution («промежност | пах | седл | между ног | генитал»). */
-    private val SADDLE_DISTRIBUTION = listOf("промежност", "пах", "седл", "между ног", "генитал")
+    /** Saddle/groin/perineal/genital distribution («промежност | пахов/в пах/паховая/паху | между ног | генитал»). Bare «пах»/«седл» dropped in DRE-107 (collided with впахал/пахнет and велосипедное седло); the clinical term «седловидн» stays as [bareSaddle]. */
+    private val SADDLE_DISTRIBUTION = listOf("промежност", "пахов", "в пах", "паховая", "паху", "между ног", "генитал")
     /** Bilateral lower-extremity numbness phrasing («обе ноги немеют | онемение обеих ног | немеют обе»). */
     private val BILATERAL_LE_NUMB = listOf("обе ноги немеют", "онемение обеих ног", "немеют обе")
     /** Bladder mention stem («моч»). */
@@ -59,8 +59,8 @@ object NoteRedFlagScreening {
     private val PROGRESS = listOf("нараста", "распространя")
     /** Neurological term stems («онемен | слабост | немеет»). */
     private val NEURO = listOf("онемен", "слабост", "немеет")
-    /** Foot-drop / progressive motor phrasing. */
-    private val FOOT_DROP = listOf("нога подкашива", "волочит ног", "стопа падает", "не могу встать на носки")
+    /** Foot-drop / progressive motor phrasing. DRE-107: «нога подкашива» dropped (fatigue idiom FP), «отвисает стопа» added. */
+    private val FOOT_DROP = listOf("волочит ног", "стопа падает", "отвисает стопа", "не могу встать на носки")
     /** Strict "wakes from sleep" night-pain phrasing («боль будит ночью» / «просыпаюсь от бол…»). */
     private val NIGHT_PAIN_STRICT = listOf("боль будит ночью", "просыпаюсь от бол")
 
