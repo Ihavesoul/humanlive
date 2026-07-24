@@ -229,6 +229,13 @@ fun DreamTeamApp(db: LocalDatabase) {
     // @Composable read and cannot live inside it.
     val appContext = LocalContext.current
     val resolver = remember { loadEvidenceResolver(appContext.assets) }
+    // M8-A ([DRE-80](/DRE/issues/DRE-80)): the offline-first exercise-library
+    // resolver, decoded once from the bundled `exercises.json` asset (single
+    // Android-I/O point, same `data/` srcDir as the evidence catalog) so each
+    // exercise renders a tappable references card (video / how-to / images /
+    // evidence) — no naked links. No network; pure render below
+    // ([resolveExerciseReferences] / [ReferencesCard]).
+    val exerciseLibrary = remember { loadExerciseLibrary(appContext.assets) }
 
     Scaffold(topBar = {
         TopAppBar(title = { Text("DreamTeam") })
@@ -249,6 +256,7 @@ fun DreamTeamApp(db: LocalDatabase) {
                 db = db,
                 profile = profile,
                 resolver = resolver,
+                exerciseLibrary = exerciseLibrary,
                 onSymptoms = { screen = Screen.Symptoms },
                 onProgress = { screen = Screen.Progress },
                 onPlan = { screen = Screen.Plan },
@@ -277,6 +285,7 @@ fun DreamTeamApp(db: LocalDatabase) {
                 db = db,
                 profile = profile,
                 resolver = resolver,
+                exerciseLibrary = exerciseLibrary,
                 onSymptoms = { screen = Screen.Symptoms },
                 onProgress = { screen = Screen.Progress },
                 onBack = { screen = Screen.Today },
@@ -353,7 +362,7 @@ private fun OnboardingScreen(modifier: Modifier, onPlanReady: (Profile) -> Unit)
 }
 
 @Composable
-private fun PlanScreen(modifier: Modifier, db: LocalDatabase, profile: Profile?, resolver: EvidenceResolver, onSymptoms: () -> Unit, onProgress: () -> Unit, onBack: () -> Unit) {
+private fun PlanScreen(modifier: Modifier, db: LocalDatabase, profile: Profile?, resolver: EvidenceResolver, exerciseLibrary: ExerciseLibraryResolver, onSymptoms: () -> Unit, onProgress: () -> Unit, onBack: () -> Unit) {
     val p = profile ?: run {
         Column(modifier.fillMaxSize().padding(16.dp)) { Text("Профиль не найден."); Button(onClick = {}) {} }
         return
@@ -410,7 +419,7 @@ private fun PlanScreen(modifier: Modifier, db: LocalDatabase, profile: Profile?,
                     }
                 }
                 items(result.week.sessions) { session ->
-                    SessionCard(db = db, session = session, resolver = resolver)
+                    SessionCard(db = db, session = session, resolver = resolver, exerciseLibrary = exerciseLibrary)
                 }
             }
         }
@@ -445,6 +454,7 @@ private fun TodayScreen(
     db: LocalDatabase,
     profile: Profile?,
     resolver: EvidenceResolver,
+    exerciseLibrary: ExerciseLibraryResolver,
     onSymptoms: () -> Unit,
     onProgress: () -> Unit,
     onPlan: () -> Unit,
@@ -478,7 +488,7 @@ private fun TodayScreen(
                 val session = todaySession(result.week, today)
                 item { Text(todayDateLine(session), fontWeight = FontWeight.Bold) }
                 item { Text(TodayStrings.TRAINING, fontWeight = FontWeight.SemiBold) }
-                session?.let { s -> item { SessionCard(db = db, session = s, resolver = resolver) } }
+                session?.let { s -> item { SessionCard(db = db, session = s, resolver = resolver, exerciseLibrary = exerciseLibrary) } }
                 item { Text(TodayStrings.NUTRITION, fontWeight = FontWeight.SemiBold) }
                 result.nutritionPlan?.let { plan ->
                     item {
@@ -560,7 +570,7 @@ private fun HistoryScreen(modifier: Modifier, db: LocalDatabase, onBack: () -> U
 }
 
 @Composable
-private fun SessionCard(db: LocalDatabase, session: dreamteam.domain.training.PlanSession, resolver: EvidenceResolver) {
+private fun SessionCard(db: LocalDatabase, session: dreamteam.domain.training.PlanSession, resolver: EvidenceResolver, exerciseLibrary: ExerciseLibraryResolver) {
     var completed by remember(session.id) { mutableStateOf(db.completedExercises(session.id)) }
     val today = LocalDate.now().toString()
     Card(modifier = Modifier.fillMaxWidth()) {
@@ -577,14 +587,18 @@ private fun SessionCard(db: LocalDatabase, session: dreamteam.domain.training.Pl
                     )
                     Text("$name — ${a.sets}×${a.repScheme}" + (a.rir?.let { " @${it} RIR" } ?: ""))
                 }
-                // M6-B ([DRE-68](/DRE/issues/DRE-68)): surface each assignment's
-                // evidenceRefs as READABLE citations (author/year + keyFinding +
-                // evidenceLevel) via the same render path as nutrition — was surfaced
-                // as nothing before. A ghost id renders the blocked-until-sourced
-                // placeholder; no invented citation.
-                resolveCitations(a.evidenceRefs, resolver).forEach { c ->
-                    Text("  • ${c.line}", fontWeight = FontWeight.Light)
+                // M8-A ([DRE-80](/DRE/issues/DRE-80)): consolidate this
+                // exercise's video / how-to / images / evidence into ONE
+                // tappable references card (0 naked links) — was a scatter of
+                // `Text("  • citation")` lines. Reuses the same M6-A/M6-B render
+                // path ([resolveExerciseReferences] → [resolveCitations]); media
+                // resolves by id off the bundled library (the data allowlist,
+                // never LLM). A ghost evidence id still renders the
+                // blocked-until-sourced placeholder — no invented citation.
+                val refs = remember(a.exerciseId) {
+                    resolveExerciseReferences(a.exerciseId, a.evidenceRefs, exerciseLibrary, resolver)
                 }
+                ReferencesCard(name = name, refs = refs)
                 // M8-B ([DRE-78](/DRE/issues/DRE-78)): free-text note per exercise in
                 // the execution log ("что вышло / что нет / боль"), persisted like the
                 // symptom/progress logs and read back by the coach (input for M8-C).
