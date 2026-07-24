@@ -90,7 +90,9 @@ class Coach(
         adaptedPlanId: String = "${userId}@${createdAt}",
     ): CoachReport {
         // #1: pre-LLM red-flag gate. Binding; the provider is never called when blocked.
-        val safety = SafetyGate.evaluate(medical)
+        // DRE-100: free-text note language is screened first and merged into the gate
+        // input, so a note-derived red flag blocks identically to a structured one.
+        val safety = SafetyGate.evaluate(medical, notes.map { it.note })
         if (!safety.allowTrainingGeneration) return CoachReport.Blocked(safety)
 
         val gateway = gatewayFor(medical, safety)

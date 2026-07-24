@@ -70,6 +70,34 @@ class CoachTest {
         provider.calls shouldBe 0
     }
 
+    // --- DRE-100: free-text note → red-flag escalation (note-derived flag blocks) ---
+
+    @Test
+    fun `a red-flag NOTE blocks Coach report BEFORE calling the provider`() {
+        // No structured red flag — the red flag is derived from the free-text note.
+        val provider = FakeProvider(canned = """{"summary_ru":"x","corrections":[]}""")
+        val report = coach(provider).report(
+            userId = "local", createdAt = "2026-07-25",
+            medical = cleanMedical, originalPlanId = "baseline-12w",
+            notes = listOf(CoachNote("split_squat", "онемение в промежности и недержание мочи")),
+        )
+        report.shouldBeInstanceOf<CoachReport.Blocked>()
+        provider.calls shouldBe 0 // #1: the gate ran pre-LLM on the note-derived flag.
+    }
+
+    @Test
+    fun `a non-red-flag pain note still produces a de-load (regression)`() {
+        // DRE-100 leaves the NOTE_PAIN de-load path intact for non-red-flag pain.
+        val report = coach().report(
+            userId = "local", createdAt = "2026-07-25",
+            medical = cleanMedical, originalPlanId = "baseline-12w",
+            notes = listOf(CoachNote("split_squat", "сильно стреляло в поясницу, боль")),
+        ) as CoachReport.Ok
+        // A 3-set build week drops to the de-load floor (2) under pain.
+        val buildWeek = report.adaptedPlan.weeks.first { it.weekNumber == 3 }
+        buildWeek.setsMain shouldBe 2
+    }
+
     @Test
     fun `with no provider the deterministic fallback is served and the plan is gated`() {
         val report = coach(provider = null).report(

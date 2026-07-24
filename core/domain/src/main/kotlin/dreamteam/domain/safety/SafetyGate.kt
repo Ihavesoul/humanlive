@@ -60,10 +60,27 @@ data class SafetyEvaluation(
  * Safety Reviewer decision; this gate treats every reported flag as gating.
  * The single [evaluate] entry point is the place to refine that, if ever.
  *
+ * **DRE-100:** the [evaluate] overload that takes free-text notes derives
+ * [RedFlag](s) via [NoteRedFlagScreening] and merges them into the medical
+ * input before this primitive runs, so a note-derived flag is indistinguishable
+ * from a structured one (block → route to assessment). Call that overload
+ * whenever free-text notes are available; the 1-arg [evaluate] below stays the
+ * pure primitive for callers with no note input (e.g. the single-exercise cue).
+ *
  * This app does not diagnose. A blocked gate means "route to assessment", not
  * "you have condition X".
  */
 object SafetyGate {
+
+    fun evaluate(medical: MedicalSafety, notes: List<String>): SafetyEvaluation {
+        val derived = NoteRedFlagScreening.derive(notes)
+        if (derived.isEmpty()) return evaluate(medical)
+        // ponytail: the gate only checks redFlags.isNotEmpty(), so merging derived
+        // flag serial-names into the medical input is the single unmissable hook.
+        val merged = medical.copy(redFlags = medical.redFlags + derived.map { it.serialName() })
+        return evaluate(merged)
+    }
+
     fun evaluate(safety: MedicalSafety): SafetyEvaluation {
         val redFlagGatePassed = safety.redFlags.isEmpty()
         val allowTrainingGeneration = redFlagGatePassed
@@ -94,5 +111,17 @@ object SafetyGate {
             allowSideSpecificContent = allowSideSpecificContent,
             warnings = warnings,
         )
+    }
+
+    /** The wire string a [RedFlag] carries in `medical_safety.red_flags` — its `@SerialName`. */
+    private fun RedFlag.serialName(): String = when (this) {
+        RedFlag.PROGRESSIVE_LEG_WEAKNESS -> "progressive_leg_weakness"
+        RedFlag.NUMBNESS_OR_SADDLE_ANAESTHESIA -> "numbness_or_saddle_anaesthesia"
+        RedFlag.BOWEL_OR_BLADDER_DYSFUNCTION -> "bowel_or_bladder_dysfunction"
+        RedFlag.NIGHT_PAIN -> "night_pain"
+        RedFlag.UNINTENTIONAL_WEIGHT_LOSS -> "unintentional_weight_loss"
+        RedFlag.FEVER -> "fever"
+        RedFlag.RECENT_MAJOR_TRAUMA -> "recent_major_trauma"
+        RedFlag.RAPID_NEUROLOGICAL_PROGRESSION -> "rapid_neurological_progression"
     }
 }
