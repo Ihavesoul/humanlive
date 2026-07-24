@@ -172,6 +172,18 @@ class TodayViewTest {
         }
     }
 
+    // M8-D ([DRE-90](/DRE/issues/DRE-90)): the app-shell chrome (nav labels +
+    // brand wordmark) is authored copy too, so it joins the banned-phrase scan —
+    // plain navigation nouns, but the guard stays complete (no new surface can
+    // ship an unscanned medical claim). Mirrors the per-object scan invariant.
+    @Test
+    fun `no rendered app-shell string contains a banned medical-claim phrase`() {
+        UiStrings.all.forEach { text ->
+            val lower = text.lowercase()
+            banned.forEach { b -> (b !in lower) shouldBe true }
+        }
+    }
+
     private fun symptom(i: Int, on: String, words: List<String>) =
         Symptom(id = "s$i", userId = "local", recordedOn = on, source = "client_log", currentSymptoms = words)
 

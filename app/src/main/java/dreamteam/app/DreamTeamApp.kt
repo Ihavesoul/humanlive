@@ -64,7 +64,16 @@ import java.time.LocalDate
  * blocks the plan and routes to assessment — the gate is structural, the user
  * cannot skip it.
  */
-private enum class Screen { Onboarding, Today, Plan, Symptoms, Progress, History, EvidenceSources }
+internal enum class Screen { Onboarding, Today, Plan, Symptoms, Progress, History, EvidenceSources }
+
+/**
+ * M8-D ([DRE-90](/DRE/issues/DRE-90)): the screens that show the bottom
+ * [AppNavigationBar]. The four read/main destinations. Onboarding owns the
+ * full screen (no nav until a profile exists); Symptoms/Progress are modal
+ * write flows with their own Back button, so they hide the bottom bar.
+ */
+internal val NAV_DESTINATION_SCREENS: Set<Screen> =
+    setOf(Screen.Today, Screen.Plan, Screen.History, Screen.EvidenceSources)
 
 /**
  * Outcome of the local deterministic generation, mirroring the server's. [Ok.signal]
@@ -238,9 +247,21 @@ fun DreamTeamApp(db: LocalDatabase) {
     // ([resolveExerciseReferences] / [ReferencesCard]).
     val exerciseLibrary = remember { loadExerciseLibrary(appContext.assets) }
 
-    Scaffold(topBar = {
-        TopAppBar(title = { Text("DreamTeam") })
-    }) { padding ->
+    Scaffold(
+        topBar = { TopAppBar(title = { Text(UiStrings.APP_NAME) }) },
+        bottomBar = {
+            // M8-D ([DRE-90](/DRE/issues/DRE-90)): the bottom nav is shown only
+            // on the four read/main destinations — Onboarding owns the full
+            // screen (no nav until a profile exists), and Symptoms/Progress are
+            // modal write flows that keep their own Back button. None of this
+            // changes the gate/plan/logic — it only re-points the existing
+            // `Screen` enum (the deterministic plan is recomputed per-screen
+            // as before).
+            if (screen in NAV_DESTINATION_SCREENS) {
+                AppNavigationBar(current = screen, onNavigate = { screen = it })
+            }
+        },
+    ) { padding ->
         when (screen) {
             Screen.Onboarding -> OnboardingScreen(
                 modifier = Modifier.padding(padding),
@@ -260,11 +281,6 @@ fun DreamTeamApp(db: LocalDatabase) {
                 exerciseLibrary = exerciseLibrary,
                 onSymptoms = { screen = Screen.Symptoms },
                 onProgress = { screen = Screen.Progress },
-                onPlan = { screen = Screen.Plan },
-                // M5-C (DRE-63): one-tap entry to the read-only history/trend view.
-                onHistory = { screen = Screen.History },
-                // M6-D (DRE-66): one-tap entry to the read-only evidence-sources view.
-                onEvidenceSources = { screen = Screen.EvidenceSources },
             )
             // M5-C (DRE-63): the read-only history/trend screen — shows logged
             // progress + symptoms + the deterministic trend, no interpretation.
@@ -289,7 +305,6 @@ fun DreamTeamApp(db: LocalDatabase) {
                 exerciseLibrary = exerciseLibrary,
                 onSymptoms = { screen = Screen.Symptoms },
                 onProgress = { screen = Screen.Progress },
-                onBack = { screen = Screen.Today },
             )
             Screen.Symptoms -> SymptomsScreen(
                 modifier = Modifier.padding(padding),
@@ -363,7 +378,7 @@ private fun OnboardingScreen(modifier: Modifier, onPlanReady: (Profile) -> Unit)
 }
 
 @Composable
-private fun PlanScreen(modifier: Modifier, db: LocalDatabase, profile: Profile?, resolver: EvidenceResolver, exerciseLibrary: ExerciseLibraryResolver, onSymptoms: () -> Unit, onProgress: () -> Unit, onBack: () -> Unit) {
+private fun PlanScreen(modifier: Modifier, db: LocalDatabase, profile: Profile?, resolver: EvidenceResolver, exerciseLibrary: ExerciseLibraryResolver, onSymptoms: () -> Unit, onProgress: () -> Unit) {
     val p = profile ?: run {
         Column(modifier.fillMaxSize().padding(16.dp)) { Text("Профиль не найден."); Button(onClick = {}) {} }
         return
@@ -377,14 +392,13 @@ private fun PlanScreen(modifier: Modifier, db: LocalDatabase, profile: Profile?,
     val result = remember(p, symptoms, progress) { generateLocalPlan(p, LocalDate.now().toString(), symptoms, progress) }
 
     LazyColumn(modifier = modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        item { OutlinedButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) { Text(TodayStrings.BACK_TO_TODAY) } }
         when (result) {
             is PlanResult.Blocked -> item { BlockCard(result, resolver) }
             is PlanResult.Ok -> {
                 item {
                     Card(modifier = Modifier.fillMaxWidth()) {
                         Column(Modifier.padding(12.dp)) {
-                            Text("Неделя ${result.week.weekNumber} · ${result.week.phase}", fontWeight = FontWeight.Bold)
+                            Text("Неделя ${result.week.weekNumber} · ${result.week.phase}", style = androidx.compose.material3.MaterialTheme.typography.titleLarge)
                             // M4-C ([DRE-57](/DRE/issues/DRE-57)): render the full surfaced
                             // NutritionPlan via the pure [nutritionPlanView] (extracted so its
                             // strings are banned-phrase-tested, [NutritionPlanViewTest]): target +
@@ -424,12 +438,14 @@ private fun PlanScreen(modifier: Modifier, db: LocalDatabase, profile: Profile?,
                 }
             }
         }
+        // M8-D ([DRE-90](/DRE/issues/DRE-90)): compact quick-actions row
+        // (matching Today) instead of a stacked link pair — same writes, less
+        // MD-viewer feel. The bottom nav carries the read destinations.
         item {
-            OutlinedButton(onClick = onSymptoms, modifier = Modifier.fillMaxWidth()) { Text("Записать симптом") }
-        }
-        // M5-A (DRE-61): entry to the progress logger next to the symptom logger.
-        item {
-            OutlinedButton(onClick = onProgress, modifier = Modifier.fillMaxWidth()) { Text("Записать прогресс") }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                androidx.compose.material3.FilledTonalButton(onClick = onProgress, modifier = Modifier.weight(1f)) { Text(TodayStrings.LOG_PROGRESS) }
+                androidx.compose.material3.FilledTonalButton(onClick = onSymptoms, modifier = Modifier.weight(1f)) { Text(TodayStrings.LOG_SYMPTOM) }
+            }
         }
     }
 }
@@ -458,11 +474,6 @@ private fun TodayScreen(
     exerciseLibrary: ExerciseLibraryResolver,
     onSymptoms: () -> Unit,
     onProgress: () -> Unit,
-    onPlan: () -> Unit,
-    // M5-C (DRE-63): entry to the read-only history/trend view.
-    onHistory: () -> Unit,
-    // M6-D (DRE-66): entry to the read-only evidence-sources view.
-    onEvidenceSources: () -> Unit,
 ) {
     val p = profile ?: run {
         Column(modifier.fillMaxSize().padding(16.dp)) { Text("Профиль не найден."); Button(onClick = {}) {} }
@@ -487,10 +498,10 @@ private fun TodayScreen(
                 // Today's session is a pure pick from the SAME week PlanScreen
                 // renders — no second source of truth.
                 val session = todaySession(result.week, today)
-                item { Text(todayDateLine(session), fontWeight = FontWeight.Bold) }
-                item { Text(TodayStrings.TRAINING, fontWeight = FontWeight.SemiBold) }
+                item { Text(todayDateLine(session), style = androidx.compose.material3.MaterialTheme.typography.headlineMedium) }
+                item { Text(TodayStrings.TRAINING, style = androidx.compose.material3.MaterialTheme.typography.labelMedium) }
                 session?.let { s -> item { SessionCard(db = db, session = s, resolver = resolver, exerciseLibrary = exerciseLibrary, profile = p) } }
-                item { Text(TodayStrings.NUTRITION, fontWeight = FontWeight.SemiBold) }
+                item { Text(TodayStrings.NUTRITION, style = androidx.compose.material3.MaterialTheme.typography.labelMedium) }
                 result.nutritionPlan?.let { plan ->
                     item {
                         val view = remember(plan) { nutritionPlanView(plan, resolver) }
@@ -505,7 +516,7 @@ private fun TodayScreen(
                         }
                     }
                 }
-                item { Text(TodayStrings.ADAPTATION, fontWeight = FontWeight.SemiBold) }
+                item { Text(TodayStrings.ADAPTATION, style = androidx.compose.material3.MaterialTheme.typography.labelMedium) }
                 // On AdaptationSignal.None → null → nothing (baseline shows as today).
                 adaptationNote(result.signal)?.let { note ->
                     item {
@@ -519,26 +530,24 @@ private fun TodayScreen(
                 }
             }
         }
-        // One-tap logging + full plan are always reachable.
-        item { Text(TodayStrings.LOG_HINT, fontWeight = FontWeight.Light) }
-        item { OutlinedButton(onClick = onProgress, modifier = Modifier.fillMaxWidth()) { Text(TodayStrings.LOG_PROGRESS) } }
-        item { OutlinedButton(onClick = onSymptoms, modifier = Modifier.fillMaxWidth()) { Text(TodayStrings.LOG_SYMPTOM) } }
-        item { OutlinedButton(onClick = onPlan, modifier = Modifier.fillMaxWidth()) { Text(TodayStrings.FULL_PLAN) } }
-        // M5-C ([DRE-63](/DRE/issues/DRE-63)): one-tap entry to the read-only
-        // history/trend view — the visibility half of the retention loop.
-        item { OutlinedButton(onClick = onHistory, modifier = Modifier.fillMaxWidth()) { Text(HistoryStrings.TITLE) } }
-        // M6-D (stretch) ([DRE-66](/DRE/issues/DRE-66)): one-tap entry to the
-        // read-only evidence-sources view — full catalog transparency.
-        item { OutlinedButton(onClick = onEvidenceSources, modifier = Modifier.fillMaxWidth()) { Text(EvidenceSourcesStrings.TITLE) } }
-        // M7-B ([DRE-73](/DRE/issues/DRE-73)): "Export my data" — hand the
-        // deterministic export envelope to the system share/save sheet via a
-        // FileProvider content URI. Pure byte-production via [exportActionDocument]
-        // (the SAME M7-A serialization path — no second path), then the Android
-        // handoff edge ([launchDataExport]). Fully offline: no network anywhere.
-        // The non-medical caption is surfaced in-app; the disclaimer is also in
-        // the file envelope. A gate-blocked profile still exports (plan == null).
-        item { Text(ExportUiStrings.CAPTION, fontWeight = FontWeight.Light, fontStyle = FontStyle.Italic) }
-        item { OutlinedButton(onClick = { launchDataExport(shareContext, db) }, modifier = Modifier.fillMaxWidth()) { Text(ExportUiStrings.BUTTON) } }
+        // M8-D ([DRE-90](/DRE/issues/DRE-90)): the read destinations (Plan /
+        // Journal / Sources) moved to the bottom [AppNavigationBar], so this tail
+        // now holds only the *writes* (progress / symptom) as a compact
+        // quick-actions row, plus the data-export handoff as a quieter text
+        // action. Fewer stacked link-buttons → less of the MD-viewer feel. The
+        // plan/logic is unchanged: a logged write still recomputes the
+        // deterministic plan on return (same snapshot keys as PlanScreen).
+        item { Text(TodayStrings.LOG_HINT, style = androidx.compose.material3.MaterialTheme.typography.bodySmall) }
+        item {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                androidx.compose.material3.FilledTonalButton(onClick = onProgress, modifier = Modifier.weight(1f)) { Text(TodayStrings.LOG_PROGRESS) }
+                androidx.compose.material3.FilledTonalButton(onClick = onSymptoms, modifier = Modifier.weight(1f)) { Text(TodayStrings.LOG_SYMPTOM) }
+            }
+        }
+        item { Text(ExportUiStrings.CAPTION, style = androidx.compose.material3.MaterialTheme.typography.bodySmall, fontStyle = FontStyle.Italic) }
+        item {
+            TextButton(onClick = { launchDataExport(shareContext, db) }, modifier = Modifier.fillMaxWidth()) { Text(ExportUiStrings.BUTTON) }
+        }
     }
 }
 
@@ -591,7 +600,7 @@ private fun SessionCard(
     var adaptationChoice by remember { mutableStateOf<Boolean?>(null) }
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text("${session.day} · ${session.label}", fontWeight = FontWeight.SemiBold)
+            Text("${session.day} · ${session.label}", style = androidx.compose.material3.MaterialTheme.typography.titleLarge)
             session.assignments.forEach { a ->
                 val name = BaselineProgram.exercises[a.exerciseId]?.name ?: a.exerciseId
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -601,7 +610,14 @@ private fun SessionCard(
                             if (checked) { db.logWorkout(session.id, a.exerciseId, today); completed = completed + a.exerciseId }
                         },
                     )
-                    Text("$name — ${a.sets}×${a.repScheme}" + (a.rir?.let { " @${it} RIR" } ?: ""))
+                    Column(Modifier.padding(start = 4.dp)) {
+                        Text(name, style = androidx.compose.material3.MaterialTheme.typography.titleMedium)
+                        Text(
+                            "${a.sets}×${a.repScheme}" + (a.rir?.let { " @${it} RIR" } ?: ""),
+                            style = androidx.compose.material3.MaterialTheme.typography.bodySmall,
+                            color = androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                 }
                 // M8-C ([DRE-89](/DRE/issues/DRE-89)): "Спросить у AI" — a short
                 // contextual cue for ONE exercise (NOT a chat, reviewer p.3.3).
@@ -631,7 +647,7 @@ private fun SessionCard(
                 ExerciseNoteField(db, session.id, a.exerciseId, today)
             }
             Spacer(Modifier.height(4.dp))
-            Text("Сделано: ${completed.size}/${session.assignments.size}", fontWeight = FontWeight.Light)
+            Text("Сделано: ${completed.size}/${session.assignments.size}", style = androidx.compose.material3.MaterialTheme.typography.bodySmall, color = androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant)
             // M8-C: inline feedback for the last original-vs-adaptation choice.
             adaptationChoice?.let { applied ->
                 Text(

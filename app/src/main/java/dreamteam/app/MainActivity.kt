@@ -3,12 +3,12 @@ package dreamteam.app
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.core.view.WindowCompat
 import dreamteam.app.data.LocalDatabase
+import dreamteam.app.ui.DreamTeamTheme
 
 /**
  * Native entry point. Jetpack Compose is the only UI surface (ADR 0002 / DRE-9).
@@ -25,7 +25,7 @@ class MainActivity : ComponentActivity() {
         db = LocalDatabase(applicationContext)
         WindowCompat.setDecorFitsSystemWindows(window, false)
         setContent {
-            MaterialTheme {
+            DreamTeamTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
                     DreamTeamApp(db)
                 }

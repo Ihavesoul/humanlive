@@ -59,8 +59,6 @@ internal object TodayStrings {
     const val TRAINING = "Тренировка сегодня"
     const val NUTRITION = "Питание сегодня"
     const val ADAPTATION = "Адаптация недели"
-    const val FULL_PLAN = "Весь план на неделю"
-    const val BACK_TO_TODAY = "Назад к сегодняшнему дню"
     const val LOG_SYMPTOM = "Записать симптом"
     const val LOG_PROGRESS = "Записать прогресс"
     const val REST_DAY = "Сегодня — день отдыха или лёгкой активности"
@@ -68,5 +66,5 @@ internal object TodayStrings {
         "Тренд ваших записей влияет на объём следующей недели. Это поддержка, а не замена врача."
 
     val all: List<String> =
-        listOf(TRAINING, NUTRITION, ADAPTATION, FULL_PLAN, BACK_TO_TODAY, LOG_SYMPTOM, LOG_PROGRESS, REST_DAY, LOG_HINT)
+        listOf(TRAINING, NUTRITION, ADAPTATION, LOG_SYMPTOM, LOG_PROGRESS, REST_DAY, LOG_HINT)
 }
