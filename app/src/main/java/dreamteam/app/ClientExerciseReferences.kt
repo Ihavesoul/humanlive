@@ -45,12 +45,13 @@ import kotlinx.serialization.Serializable
  *  - [loadExerciseLibrary] — the single Android-I/O point (mirrors
  *    [loadEvidenceResolver]); the Compose [ReferencesCard] only renders.
  *
- * Ships against the schema NOW: the library currently seeds every exercise with
- * empty media (population is M8-A1). The card renders the evidence citations
- * (always present — DRE-6) plus a transparent "materials pending" note, and
- * auto-shows video/steps/images the moment M8-A1 fills the same fields — zero
- * code change (the schema guard in `ExerciseMediaSchemaTest` pins the slot is
- * ready to receive that content).
+ * M8-A1 content is seeded (DRE-79): every exercise carries `how_to_steps_ru`,
+ * and most carry `video_url` / `image_refs` (Commons file-page URLs). The card
+ * auto-rendered them with zero code change — it reads whatever the allowlist
+ * carries. Exercises still without any media fall back to the transparent
+ * "materials pending" note (never silent, never a fabricated link); the schema
+ * guard in `ExerciseMediaSchemaTest` pins the slot is always ready to receive
+ * more.
  */
 
 /**
@@ -178,10 +179,9 @@ internal object ReferencesCardStrings {
  *
  * A card with no media and no citations renders nothing (defensive — in
  * practice every surfaced exercise carries evidence per DRE-6, so the evidence
- * block is always present). When media is not yet sourced (current seed), the
- * card shows the evidence + the transparent [ReferencesCardStrings.MEDIA_PENDING]
- * note, so the deliverable ("a card on every exercise") holds today and
- * auto-fills when M8-A1 populates the same fields.
+ * block is always present). Exercises without any media show the evidence + the
+ * transparent [ReferencesCardStrings.MEDIA_PENDING] note — so the deliverable
+ * ("a card on every exercise") holds whether or not media is sourced yet.
  */
 @Composable
 internal fun ReferencesCard(name: String, refs: ResolvedReferences, modifier: Modifier = Modifier) {

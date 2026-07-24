@@ -34,16 +34,17 @@ import org.junit.jupiter.api.Test
  *
  * Guarantees (the smallest thing that fails if M8-A breaks):
  * 1. Media resolves BY ID off the bundled library — video/steps/images land on
- *    the view when the catalog carries them (proven via a synthetic populated
- *    entry, since M8-A1 content is not yet seeded). Never invented: a missing
+ *    the view when the catalog carries them. Pinned two ways: a synthetic
+ *    populated entry (isolates the resolution mechanism) AND the real bundled
+ *    data (M8-A1 content is now seeded — DRE-79). Never invented: a missing
  *    exercise id yields empty media, not a fabricated URL (0 naked links).
  * 2. Evidence citations reuse the M6-A/M6-B render path — every surfaced ref is
  *    a readable citation row, never the raw id; a ghost id → the
  *    `EVIDENCE_NOT_SOURCED` placeholder (honors EvidenceLinked).
- * 3. A real surfaced exercise today (media empty in the seed) still renders its
- *    evidence citations + the transparent MEDIA_PENDING marker — the card is
- *    present on every exercise now and auto-fills when M8-A1 populates the same
- *    fields (zero code change).
+ * 3. A real surfaced exercise today renders its evidence citations; most now
+ *    also carry real how-to + media (M8-A1 seeded), and any exercise still
+ *    without media falls back to the transparent MEDIA_PENDING marker — so the
+ *    card is present on every exercise, empty media or not.
  * 4. The authored card strings carry NO banned medical-claim phrase.
  *
  * Claim guard: the card's authored STRINGS are scanned; the verbatim catalog
@@ -70,9 +71,8 @@ class ExerciseReferencesCardTest {
 
     @Test
     fun `media resolves by id off the library - video, steps, images land on the view`() {
-        // Synthetic populated entry — M8-A1 content is not seeded yet, so this
-        // proves the card wires catalog media straight through by id (the shape
-        // the schema guard in ExerciseMediaSchemaTest pins is ready to receive).
+        // Synthetic populated entry — isolates the resolution mechanism
+        // independent of which content the Evidence Analyst has seeded.
         val populated = ExerciseLibraryResolver(
             listOf(
                 ExerciseLibraryEntry(
@@ -173,10 +173,9 @@ class ExerciseReferencesCardTest {
 
         assignments.forEach { a ->
             val refs = resolveExerciseReferences(a.exerciseId, a.evidenceRefs, library, resolver)
-            // M8-A deliverable: a card on every exercise. Today media is empty
-            // (M8-A1 seed pending) so hasMedia is false, BUT evidence is always
-            // present (DRE-6) — so the card is never empty and the MEDIA_PENDING
-            // note carries the seed state transparently.
+            // M8-A deliverable: a card on every exercise. Evidence is always
+            // present (DRE-6) — so the card is never empty, whether or not the
+            // exercise carries media yet (those without fall back to MEDIA_PENDING).
             refs.citations.filter { it.resolved }.shouldNotBeEmpty()
             // The surfaced id is a real library member (resolves media slot, even if empty).
             library.resolveExercise(a.exerciseId) shouldNotBe null
@@ -185,6 +184,34 @@ class ExerciseReferencesCardTest {
         // A known surfaced id resolves against the bundled library.
         val allIds = assignments.map { it.exerciseId }.distinct()
         allIds.shouldContain("split_squat")
+    }
+
+    @Test
+    fun `real surfaced exercises now carry real media - the M8-A1 auto-fill landed`() {
+        // M8-A1 content is seeded (DRE-79): how_to_steps_ru on every exercise,
+        // video_url + image_refs on most. This pins the deliverable ("references
+        // card renders real video/how-to/images") against the ACTUAL bundled
+        // data — the smallest thing that fails if someone empties the media
+        // fields. Exercises without media still render via MEDIA_PENDING.
+        val assignments = surfacedTrainingAssignments()
+        assignments.shouldNotBeEmpty()
+
+        // At least one real surfaced exercise carries real media now.
+        val withMedia = assignments.filter {
+            resolveExerciseReferences(it.exerciseId, it.evidenceRefs, library, resolver).hasMedia
+        }
+        withMedia.shouldNotBeEmpty()
+
+        // pushup is surfaced; the Evidence Analyst noted its 2 image_refs
+        // (start/finish) — the multi-ref forEach path, plus a how-to list.
+        val pushupRefs = resolveExerciseReferences("pushup", listOf("KIKUCHI-PUSHUP-2017"), library, resolver)
+        pushupRefs.howToStepsRu.shouldNotBeEmpty()
+        pushupRefs.imageRefs.size shouldBe 2
+
+        // goblet_squat is surfaced and carries the demo video — a Commons
+        // file-page URL openUrl lands on with author + license (attribution).
+        val gobletRefs = resolveExerciseReferences("goblet_squat", listOf("ACSM-RT-2026"), library, resolver)
+        gobletRefs.videoUrl shouldNotBe null
     }
 
     @Test
