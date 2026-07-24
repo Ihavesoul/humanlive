@@ -19,6 +19,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -584,10 +585,40 @@ private fun SessionCard(db: LocalDatabase, session: dreamteam.domain.training.Pl
                 resolveCitations(a.evidenceRefs, resolver).forEach { c ->
                     Text("  • ${c.line}", fontWeight = FontWeight.Light)
                 }
+                // M8-B ([DRE-78](/DRE/issues/DRE-78)): free-text note per exercise in
+                // the execution log ("что вышло / что нет / боль"), persisted like the
+                // symptom/progress logs and read back by the coach (input for M8-C).
+                // Verbatim self-report; no interpretation, no diagnosis.
+                ExerciseNoteField(db, session.id, a.exerciseId, today)
             }
             Spacer(Modifier.height(4.dp))
             Text("Сделано: ${completed.size}/${session.assignments.size}", fontWeight = FontWeight.Light)
         }
+    }
+}
+
+/**
+ * M8-B ([DRE-78](/DRE/issues/DRE-78)): the per-exercise note field shown under an
+ * assignment in [SessionCard]. Loads the saved note (latest wins) so the user sees
+ * what they wrote, and upserts on save via [LocalDatabase.appendExerciseNote].
+ * Support-framed labels only ([ExerciseNoteStrings]); the note text itself is the
+ * user's own words, never scanned for medical claims (cf. symptom free-text).
+ */
+@Composable
+private fun ExerciseNoteField(db: LocalDatabase, sessionId: String, exerciseId: String, today: String) {
+    var note by remember(sessionId, exerciseId) { mutableStateOf(db.exerciseNote(sessionId, exerciseId) ?: "") }
+    Column(Modifier.fillMaxWidth().padding(start = 32.dp, top = 2.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        OutlinedTextField(
+            value = note,
+            onValueChange = { note = it },
+            label = { Text(ExerciseNoteStrings.LABEL) },
+            placeholder = { Text(ExerciseNoteStrings.HINT) },
+            singleLine = false,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        TextButton(
+            onClick = { if (note.isNotBlank()) db.appendExerciseNote(sessionId, exerciseId, note.trim(), today) },
+        ) { Text(ExerciseNoteStrings.SAVE) }
     }
 }
 

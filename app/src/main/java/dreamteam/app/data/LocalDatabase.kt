@@ -99,6 +99,54 @@ class LocalDatabase(context: Context) : SQLiteOpenHelper(context, NAME, null, VE
     }
 
     /**
+     * M8-B ([DRE-78](/DRE/issues/DRE-78)): upsert a free-text note for one exercise
+     * in one session ("что вышло / что нет / боль"). UNIQUE(session, exercise) +
+     * REPLACE ⇒ latest note wins (mirrors [logWorkout]'s per-(session, exercise)
+     * keying — a note is a field on the exercise, not an append-only time series).
+     * Stored verbatim as the user's self-report; no interpretation, no diagnosis.
+     */
+    fun appendExerciseNote(sessionId: String, exerciseId: String, note: String, recordedOn: String) =
+        writableDatabase.useProfileRow { db ->
+            val cv = ContentValues().apply {
+                put(COL_SESSION, sessionId)
+                put(COL_EXERCISE, exerciseId)
+                put(COL_TEXT, note)
+                put(COL_RECORDED_ON, recordedOn)
+            }
+            db.insertWithOnConflict(TABLE_EXERCISE_NOTE, null, cv, SQLiteDatabase.CONFLICT_REPLACE)
+        }
+
+    /** The current note for one (session, exercise), or null if none was saved. */
+    fun exerciseNote(sessionId: String, exerciseId: String): String? = readableDatabase.useProfileRow { db ->
+        db.query(
+            TABLE_EXERCISE_NOTE, arrayOf(COL_TEXT),
+            "$COL_SESSION=? AND $COL_EXERCISE=?", arrayOf(sessionId, exerciseId),
+            null, null, null, "1",
+        ).use { c -> if (c.moveToFirst()) c.getString(0) else null }
+    }
+
+    /** All notes for a session — the coach (M8-C) reads these as its per-exercise input. */
+    fun sessionExerciseNotes(sessionId: String): List<ExerciseNoteRow> = readableDatabase.useProfileRow { db ->
+        db.query(
+            TABLE_EXERCISE_NOTE, arrayOf(COL_EXERCISE, COL_TEXT, COL_RECORDED_ON),
+            "$COL_SESSION=?", arrayOf(sessionId),
+            null, null, "$COL_EXERCISE ASC",
+        ).use { c ->
+            buildList { while (c.moveToNext()) add(ExerciseNoteRow(sessionId, c.getString(0), c.getString(1), c.getString(2))) }
+        }
+    }
+
+    /** M8-B (DRE-78): every exercise-note row, exercise-then-date order, for export completeness. */
+    fun allExerciseNotes(): List<ExerciseNoteRow> = readableDatabase.useProfileRow { db ->
+        db.query(
+            TABLE_EXERCISE_NOTE, arrayOf(COL_SESSION, COL_EXERCISE, COL_TEXT, COL_RECORDED_ON),
+            null, null, null, null, "$COL_EXERCISE, $COL_RECORDED_ON",
+        ).use { c ->
+            buildList { while (c.moveToNext()) add(ExerciseNoteRow(c.getString(0), c.getString(1), c.getString(2), c.getString(3))) }
+        }
+    }
+
+    /**
      * M7-A ([DRE-72](/DRE/issues/DRE-72)): every workout-completion row, in a
      * stable deterministic order (session_id, exercise_id) for export. Unlike
      * [completedExercises] (a per-session id set for the UI checkbox state),
@@ -177,6 +225,21 @@ class LocalDatabase(context: Context) : SQLiteOpenHelper(context, NAME, null, VE
             )
             """.trimIndent(),
         )
+        // M8-B (DRE-78): additive table. Per-(session, exercise) note field;
+        // UNIQUE key ⇒ latest note wins (upsert via REPLACE, like workout_log).
+        db.execSQL(
+            """
+            CREATE TABLE $TABLE_EXERCISE_NOTE(
+                $COL_ID INTEGER PRIMARY KEY AUTOINCREMENT,
+                $COL_SESSION TEXT NOT NULL,
+                $COL_EXERCISE TEXT NOT NULL,
+                $COL_TEXT TEXT NOT NULL,
+                $COL_RECORDED_ON TEXT NOT NULL,
+                UNIQUE($COL_SESSION, $COL_EXERCISE)
+            )
+            """.trimIndent(),
+        )
+        db.execSQL("CREATE INDEX idx_exercise_note_session ON $TABLE_EXERCISE_NOTE($COL_SESSION)")
     }
 
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
@@ -195,15 +258,34 @@ class LocalDatabase(context: Context) : SQLiteOpenHelper(context, NAME, null, VE
                 """.trimIndent(),
             )
         }
+        // M8-B (DRE-78): v2 → v3 adds the exercise-note table ADDITIVELY. No prior
+        // table is touched, no row dropped — health-signal data (notes are
+        // pain/performance self-report) is retained for audit/rollback, as in M5-A.
+        if (oldVersion < 3) {
+            db.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS $TABLE_EXERCISE_NOTE(
+                    $COL_ID INTEGER PRIMARY KEY AUTOINCREMENT,
+                    $COL_SESSION TEXT NOT NULL,
+                    $COL_EXERCISE TEXT NOT NULL,
+                    $COL_TEXT TEXT NOT NULL,
+                    $COL_RECORDED_ON TEXT NOT NULL,
+                    UNIQUE($COL_SESSION, $COL_EXERCISE)
+                )
+                """.trimIndent(),
+            )
+            db.execSQL("CREATE INDEX IF NOT EXISTS idx_exercise_note_session ON $TABLE_EXERCISE_NOTE($COL_SESSION)")
+        }
     }
 
     companion object {
         private const val NAME = "dreamteam.db"
-        private const val VERSION = 2 // M5-A (DRE-61): +progress_log (additive v1→v2).
+        private const val VERSION = 3 // M8-B (DRE-78): +exercise_note_log (additive v2→v3).
         private const val TABLE_PROFILE = "profile"
         private const val TABLE_WORKOUT = "workout_log"
         private const val TABLE_SYMPTOM = "symptom_log"
         private const val TABLE_PROGRESS = "progress_log" // M5-A (DRE-61)
+        private const val TABLE_EXERCISE_NOTE = "exercise_note_log" // M8-B (DRE-78)
         private const val COL_ID = "id"
         private const val COL_SEX = "sex"
         private const val COL_AGE = "age"
@@ -253,3 +335,13 @@ data class ProgressRow(val recordedOn: String, val weightKg: Double)
  */
 @Serializable
 data class WorkoutCompletion(val sessionId: String, val exerciseId: String, val doneOn: String)
+
+/**
+ * M8-B ([DRE-78](/DRE/issues/DRE-78)): a free-text note the user attached to one
+ * exercise in one session — "что вышло / что нет / боль". Verbatim self-report
+ * (mirrors [SymptomEntry] / [ProgressRow]): no diagnosis, no interpretation. The
+ * coach (M8-C) reads these as its per-exercise input; the latest note per
+ * (session, exercise) wins ([LocalDatabase.appendExerciseNote] upserts via REPLACE).
+ */
+@Serializable
+data class ExerciseNoteRow(val sessionId: String, val exerciseId: String, val note: String, val recordedOn: String)

@@ -99,4 +99,21 @@ class AdaptationNoteTest {
             banned.forEach { b -> (b !in lower) shouldBe true }
         }
     }
+
+    // --- M8-B ([DRE-78](/DRE/issues/DRE-78)): exercise-note surface -------------------------
+    //
+    // The per-exercise note field ("что вышло / что нет / боль") is a new
+    // app-authored surface in the execution log. Its labels/hints must obey the
+    // same no-medical-claim invariant every other authored surface pins — the app
+    // invites a self-report, never diagnoses or treats. The user's note text is
+    // verbatim self-report and is deliberately NOT scanned (mirrors symptom/
+    // progress rows); only [ExerciseNoteStrings] (the app's own words) is checked.
+
+    @Test
+    fun `no exercise-note authored string contains a banned medical-claim phrase`() {
+        ExerciseNoteStrings.all.forEach { text ->
+            val lower = text.lowercase()
+            banned.forEach { b -> (b !in lower) shouldBe true }
+        }
+    }
 }
