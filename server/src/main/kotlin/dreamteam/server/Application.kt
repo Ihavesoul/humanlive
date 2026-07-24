@@ -1,16 +1,19 @@
 package dreamteam.server
 
 import dreamteam.domain.nutrition.NutritionTarget
-import dreamteam.domain.safety.ContraindicationStubs
-import dreamteam.domain.safety.MedicalSafety
+import dreamteam.domain.coach.Coach
+import dreamteam.domain.coach.CoachExplain
+import dreamteam.domain.coach.CoachNote
+import dreamteam.domain.coach.CoachReport
 import dreamteam.domain.safety.SafetyEvaluation
+import dreamteam.domain.safety.MedicalSafety
 import dreamteam.domain.safety.SafetyGate
 import dreamteam.domain.safety.SafetyGuardedGateway
-import dreamteam.domain.safety.ScreeningContext
-import dreamteam.domain.safety.StructuralSafetyRules
+import dreamteam.domain.safety.provisionedSafetyGateway
 import dreamteam.domain.training.DeterministicPlanGenerator
 import dreamteam.domain.training.GeneratedPlan
 import dreamteam.domain.training.TrainingPlan
+import dreamteam.server.coach.ZaiCoachProvider
 import dreamteam.server.persistence.EncryptionKey
 import dreamteam.server.persistence.EncryptionKeys
 import dreamteam.server.persistence.SqliteRepositories
@@ -26,6 +29,8 @@ import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.routing.route
 import io.ktor.server.routing.routing
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -70,6 +75,12 @@ fun Application.module(jdbcUrl: String = resolveJdbcUrl(), key: EncryptionKey = 
         json(Json { prettyPrint = true; ignoreUnknownKeys = true })
     }
     val deps = ServerDeps(jdbcUrl, key)
+    // M8-C ([DRE-89](/DRE/issues/DRE-89)): the AI coach. The [ZaiCoachProvider] is
+    // the ONLY LLM path in the system (#5: no LLM in the client). Env-gated — no
+    // `DREAMTEAM_ZAI_API_KEY` ⇒ the provider reports unavailable ⇒ the coach's
+    // deterministic fallback always stands (#4). Safety is in the domain layer
+    // ([dreamteam.domain.coach.Coach]), not in trusting this provider.
+    val coach = Coach(provider = ZaiCoachProvider())
 
     routing {
         // Infra liveness probe — no medical data, no claims.
@@ -200,6 +211,68 @@ fun Application.module(jdbcUrl: String = resolveJdbcUrl(), key: EncryptionKey = 
                     )
                 }
             }
+
+            // POST /v1/coach/explain — M8-C ([DRE-89](/DRE/issues/DRE-89))
+            // "Спросить у AI": a short contextual cue for ONE exercise (NOT a
+            // chat, per reviewer p.3.3). The client sends a structured request
+            // (#5: no LLM in the client); the server calls Z.AI (GLM, Max think)
+            // and returns a validated, phone-readable result. A red flag routes
+            // to assessment (409) before any provider call (#1); a provider that
+            // is absent/errors/times out ⇒ the deterministic fallback (#4).
+            post("/coach/explain") {
+                val request = call.receive<CoachExplainRequest>()
+                // The provider call blocks on the JDK HttpClient; run it off the
+                // Netty event loop so one slow Max-think call cannot stall peers.
+                val result = withContext(Dispatchers.IO) {
+                    coach.explain(exerciseId = request.exerciseId, medical = request.medicalSafety)
+                }
+                when (result) {
+                    is CoachExplain.Blocked -> call.respond(
+                        io.ktor.http.HttpStatusCode.Conflict,
+                        CoachBlockedResponse(status = "blocked_red_flag", safety = result.safety),
+                    )
+                    is CoachExplain.Ok -> call.respond(
+                        CoachExplainResponse(
+                            status = "ok",
+                            exerciseId = result.exerciseId,
+                            summaryRu = result.summaryRu,
+                            source = result.source.name.lowercase(),
+                        ),
+                    )
+                }
+            }
+
+            // POST /v1/coach/report — M8-C "Сообщить коучу" CTA: the end-of-
+            // workout report. The client sends the session's per-exercise notes
+            // (M8-B) + medical; the server augments with its own recent
+            // symptoms/progress logs for the user, then runs the coach. Returns
+            // summary_ru + corrections[] + the gate-produced adapted_plan, with
+            // the original_plan_id preserved so the UI can offer
+            // "оригинал vs адаптация" (adaptation = default). All safety-gated.
+            post("/coach/report") {
+                val request = call.receive<CoachReportRequest>()
+                val userId = request.userId.ifBlank { "seed-user" }
+                val progress = deps.progress.recentFor(userId, RECENT_LOG_LIMIT)
+                val symptoms = deps.symptoms.recentFor(userId, RECENT_LOG_LIMIT)
+                val result = withContext(Dispatchers.IO) {
+                    coach.report(
+                        userId = userId,
+                        createdAt = LocalDate.now().toString(),
+                        medical = request.medicalSafety,
+                        originalPlanId = request.originalPlanId,
+                        notes = request.notes,
+                        symptoms = symptoms,
+                        progress = progress,
+                    )
+                }
+                when (result) {
+                    is CoachReport.Blocked -> call.respond(
+                        io.ktor.http.HttpStatusCode.Conflict,
+                        CoachBlockedResponse(status = "blocked_red_flag", safety = result.safety),
+                    )
+                    is CoachReport.Ok -> call.respond(result) // sealed type serializes to phone-readable JSON
+                }
+            }
         }
     }
 }
@@ -226,28 +299,52 @@ data class BlockedResponse(
     @SerialName("rule_ids") val ruleIds: List<String> = emptyList(),
 )
 
+// ---- M8-C coach routes ([DRE-89](/DRE/issues/DRE-89)) ----------------------
+
+/** Request for POST /v1/coach/explain ("Спросить у AI" — one exercise cue). */
+@Serializable
+data class CoachExplainRequest(
+    @SerialName("user_id") val userId: String = "",
+    @SerialName("exercise_id") val exerciseId: String,
+    @SerialName("medical_safety") val medicalSafety: MedicalSafety = MedicalSafety(),
+)
+
+/** Request for POST /v1/coach/report ("Сообщить коучу" — end-of-workout report). */
+@Serializable
+data class CoachReportRequest(
+    @SerialName("user_id") val userId: String = "",
+    @SerialName("medical_safety") val medicalSafety: MedicalSafety = MedicalSafety(),
+    @SerialName("original_plan_id") val originalPlanId: String = "baseline-12w",
+    val notes: List<CoachNote> = emptyList(),
+)
+
+/** The phone-readable explain result (200). */
+@Serializable
+data class CoachExplainResponse(
+    val status: String,
+    @SerialName("exercise_id") val exerciseId: String,
+    @SerialName("summary_ru") val summaryRu: String,
+    val source: String, // "fallback" | "llm"
+)
+
+/** The phone-readable coach block response (409) — a pre-LLM red-flag block. */
+@Serializable
+data class CoachBlockedResponse(
+    val status: String,
+    val safety: SafetyEvaluation,
+)
+
 /**
- * Builds the provisioned gateway both plan routes share: the same screening
- * context (allowlists from the PoC baseline + scoliosis_flagged derivation) and
- * the same ACTIVE rules (structural allowlists + contraindications, DRE-10/24).
- * A flagged-scoliosis request proposing a heavy_axial_loading /
- * loaded_flexion_rotation movement is BLOCKED here regardless of which route
- * called it — adaptation and baseline share one gate, never a bypass.
+ * Builds the provisioned gateway both plan routes share. Delegates to the shared
+ * [provisionedSafetyGateway] so the plan routes, the M8-C coach, and the client
+ * all use ONE gate wiring — a flagged-scoliosis request proposing a
+ * heavy_axial_loading / loaded_flexion_rotation movement is BLOCKED here
+ * regardless of caller (adaptation and baseline share one gate, never a bypass).
  */
 private fun provisionedGateway(
     medical: MedicalSafety,
     safetyEval: SafetyEvaluation,
-): SafetyGuardedGateway {
-    val context = ScreeningContext(
-        redFlags = emptySet(), // red-flag gate already passed => none reported
-        sideSpecificLockEngaged = !safetyEval.allowSideSpecificContent,
-        allowedExerciseIds = dreamteam.domain.training.BaselineProgram.exerciseIds,
-        allowedEvidenceIds = dreamteam.domain.training.BaselineProgram.evidenceIds,
-        clinicianCurveSpecificPlanAvailable = medical.clinicianCurveSpecificPlanAvailable,
-        conditionFlags = if (medical.scoliosisReported) setOf("scoliosis_flagged") else emptySet(),
-    )
-    return SafetyGuardedGateway(context, StructuralSafetyRules.all + ContraindicationStubs.all)
-}
+): SafetyGuardedGateway = provisionedSafetyGateway(medical, safetyEval)
 
 /**
  * How many recent progress + symptom entries the recalc reads to derive the

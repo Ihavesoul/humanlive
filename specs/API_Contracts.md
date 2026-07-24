@@ -81,6 +81,46 @@ Takes a candidate response and returns:
 }
 ```
 
+## POST `/coach/explain` and `/coach/report` (M8-C — AI coach)
+
+The only LLM surface. The client sends a structured request (#5: no LLM in the
+client); the server calls Z.AI (GLM, Max think) and returns a **validated**,
+phone-readable JSON. A red flag ⇒ `409` pre-LLM (#1); a provider that is
+absent/errors/times out ⇒ the deterministic fallback stands in the `200` body
+(#4). The adapted plan is produced **exclusively** by the deterministic,
+safety-gated generator — the LLM only annotates `summary_ru`/`corrections`.
+
+`POST /v1/coach/explain` — one short contextual cue ("Спросить у AI"), not a chat.
+
+```json
+// request
+{ "user_id": "", "exercise_id": "split_squat",
+  "medical_safety": { "scoliosis_reported": true, "red_flags": [] } }
+// 200 response (fallback shown when Z.AI is unavailable)
+{ "status": "ok", "exercise_id": "split_squat",
+  "summary_ru": "Сплит-присед … держите нейтральное положение …",
+  "source": "fallback" }
+// 409 response (red flag)
+{ "status": "blocked_red_flag",
+  "safety": { "red_flag_gate_passed": false, "allow_training_generation": false, … } }
+```
+
+`POST /v1/coach/report` — end-of-workout report ("Сообщить коучу"). Returns
+`summary_ru` + per-exercise `corrections[]` + the gate-produced `adapted_plan`,
+with `original_plan_id` preserved for the original-vs-adaptation UI.
+
+```json
+// request
+{ "user_id": "", "medical_safety": { … }, "original_plan_id": "baseline-12w",
+  "notes": [ { "exercise_id": "split_squat", "note": "боль в колене" } ] }
+// 200 response (sealed [CoachReport.Ok]): { summary_ru, corrections[],
+//   adapted_plan, original_plan_id, source: "fallback"|"llm" }
+```
+
+Provider config (deployment secrets, never committed): `DREAMTEAM_ZAI_API_KEY`,
+`DREAMTEAM_ZAI_BASE_URL`, `DREAMTEAM_ZAI_MODEL` (target GLM 5.2 / Max think),
+`DREAMTEAM_ZAI_TIMEOUT_MS`.
+
 ## POST `/weekly-adjustment`
 
 Request:

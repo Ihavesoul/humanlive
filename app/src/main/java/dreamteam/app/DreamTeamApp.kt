@@ -14,6 +14,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -419,7 +420,7 @@ private fun PlanScreen(modifier: Modifier, db: LocalDatabase, profile: Profile?,
                     }
                 }
                 items(result.week.sessions) { session ->
-                    SessionCard(db = db, session = session, resolver = resolver, exerciseLibrary = exerciseLibrary)
+                    SessionCard(db = db, session = session, resolver = resolver, exerciseLibrary = exerciseLibrary, profile = p)
                 }
             }
         }
@@ -488,7 +489,7 @@ private fun TodayScreen(
                 val session = todaySession(result.week, today)
                 item { Text(todayDateLine(session), fontWeight = FontWeight.Bold) }
                 item { Text(TodayStrings.TRAINING, fontWeight = FontWeight.SemiBold) }
-                session?.let { s -> item { SessionCard(db = db, session = s, resolver = resolver, exerciseLibrary = exerciseLibrary) } }
+                session?.let { s -> item { SessionCard(db = db, session = s, resolver = resolver, exerciseLibrary = exerciseLibrary, profile = p) } }
                 item { Text(TodayStrings.NUTRITION, fontWeight = FontWeight.SemiBold) }
                 result.nutritionPlan?.let { plan ->
                     item {
@@ -570,9 +571,24 @@ private fun HistoryScreen(modifier: Modifier, db: LocalDatabase, onBack: () -> U
 }
 
 @Composable
-private fun SessionCard(db: LocalDatabase, session: dreamteam.domain.training.PlanSession, resolver: EvidenceResolver, exerciseLibrary: ExerciseLibraryResolver) {
+private fun SessionCard(
+    db: LocalDatabase,
+    session: dreamteam.domain.training.PlanSession,
+    resolver: EvidenceResolver,
+    exerciseLibrary: ExerciseLibraryResolver,
+    // M8-C ([DRE-89](/DRE/issues/DRE-89)): the coach needs the profile's medical
+    // subset to run the pre-LLM red-flag gate + side-specific lock (#1).
+    profile: Profile,
+) {
     var completed by remember(session.id) { mutableStateOf(db.completedExercises(session.id)) }
     val today = LocalDate.now().toString()
+    // M8-C: coach dialog state. explainFor = exercise id to cue; report = the
+    // gate-produced coach result of "Сообщить коучу". Null ⇒ no dialog.
+    var explainFor by remember { mutableStateOf<String?>(null) }
+    var report by remember { mutableStateOf<dreamteam.domain.coach.CoachReport?>(null) }
+    // The user's last choice in the original-vs-adaptation popup, shown inline as
+    // visible feedback (reviewer p.3.4: adaptation default-selected; original preserved).
+    var adaptationChoice by remember { mutableStateOf<Boolean?>(null) }
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text("${session.day} · ${session.label}", fontWeight = FontWeight.SemiBold)
@@ -587,6 +603,15 @@ private fun SessionCard(db: LocalDatabase, session: dreamteam.domain.training.Pl
                     )
                     Text("$name — ${a.sets}×${a.repScheme}" + (a.rir?.let { " @${it} RIR" } ?: ""))
                 }
+                // M8-C ([DRE-89](/DRE/issues/DRE-89)): "Спросить у AI" — a short
+                // contextual cue for ONE exercise (NOT a chat, reviewer p.3.3).
+                // Offline-first: runs the shared deterministic coach (no provider
+                // in the client → always the fallback, #4/#5). The server is the
+                // only LLM path; the live transport is a documented follow-up.
+                OutlinedButton(
+                    onClick = { explainFor = a.exerciseId },
+                    modifier = Modifier.fillMaxWidth(),
+                ) { Text(CoachStrings.ASK_AI) }
                 // M8-A ([DRE-80](/DRE/issues/DRE-80)): consolidate this
                 // exercise's video / how-to / images / evidence into ONE
                 // tappable references card (0 naked links) — was a scatter of
@@ -607,6 +632,119 @@ private fun SessionCard(db: LocalDatabase, session: dreamteam.domain.training.Pl
             }
             Spacer(Modifier.height(4.dp))
             Text("Сделано: ${completed.size}/${session.assignments.size}", fontWeight = FontWeight.Light)
+            // M8-C: inline feedback for the last original-vs-adaptation choice.
+            adaptationChoice?.let { applied ->
+                Text(
+                    if (applied) CoachStrings.APPLIED_ADAPTATION else CoachStrings.KEPT_ORIGINAL,
+                    fontWeight = FontWeight.Light,
+                )
+            }
+            // M8-C ([DRE-89](/DRE/issues/DRE-89)): "Сообщить коучу" CTA — the
+            // end-of-workout report. Reads the session's notes + the user's
+            // symptoms/progress, runs the gated coach, and opens the
+            // "оригинал vs адаптация" popup (adaptation = default, original
+            // preserved). All safety-gated: a red flag surfaces as a block, not a plan.
+            OutlinedButton(
+                onClick = {
+                    report = coachReportForSession(
+                        profile = profile,
+                        notes = coachNotesFromRows(db.sessionExerciseNotes(session.id)),
+                        symptoms = db.recentSymptoms(),
+                        progress = db.recentProgress(),
+                        today = today,
+                    )
+                },
+                modifier = Modifier.fillMaxWidth(),
+            ) { Text(CoachStrings.REPORT_CTA) }
+        }
+    }
+    // M8-C: the explain cue popup (one exercise).
+    explainFor?.let { exId ->
+        ExerciseCoachDialog(exerciseId = exId, profile = profile, onDismiss = { explainFor = null })
+    }
+    // M8-C: the report / original-vs-adaptation popup.
+    report?.let { r ->
+        CoachReportDialog(
+            report = r,
+            original = session,
+            onChoose = { applied -> adaptationChoice = applied; report = null },
+        )
+    }
+}
+
+/**
+ * M8-C: the "Спросить у AI" cue popup. Computes the deterministic coach cue and
+ * shows it phone-readably. A red-flag profile shows the block line instead.
+ */
+@Composable
+private fun ExerciseCoachDialog(exerciseId: String, profile: Profile, onDismiss: () -> Unit) {
+    val result = remember(exerciseId, profile) { coachExplainForExercise(exerciseId, profile) }
+    val body = when (result) {
+        is dreamteam.domain.coach.CoachExplain.Ok -> {
+            val v = coachExplainView(result)
+            "${v.summaryRu}\n(${v.sourceLabel})"
+        }
+        is dreamteam.domain.coach.CoachExplain.Blocked -> CoachStrings.REDFLAG_BLOCK
+    }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = { TextButton(onClick = onDismiss) { Text("Закрыть") } },
+        title = { Text(CoachStrings.EXPLAIN_TITLE) },
+        text = { Text(body) },
+    )
+}
+
+/**
+ * M8-C ([DRE-89](/DRE/issues/DRE-89)): the "оригинал vs адаптация" popup. Shows
+ * the coach's summary + per-exercise cues and a side-by-side of the original
+ * session vs the gate-produced adapted session, with **adaptation pre-selected**
+ * (reviewer p.3.4: APPLY_ADAPTATION is the primary Button, KEEP_ORIGINAL the
+ * secondary). The original is preserved by construction (the adapted plan gets a
+ * new id; the baseline is untouched). A red-flag report shows the block line.
+ */
+@Composable
+private fun CoachReportDialog(
+    report: dreamteam.domain.coach.CoachReport,
+    original: dreamteam.domain.training.PlanSession,
+    onChoose: (appliedAdaptation: Boolean) -> Unit,
+) {
+    when (report) {
+        is dreamteam.domain.coach.CoachReport.Blocked -> AlertDialog(
+            onDismissRequest = { onChoose(false) },
+            confirmButton = { TextButton(onClick = { onChoose(false) }) { Text("Закрыть") } },
+            title = { Text(CoachStrings.REPORT_TITLE) },
+            text = { Text(CoachStrings.REDFLAG_BLOCK) },
+        )
+        is dreamteam.domain.coach.CoachReport.Ok -> {
+            val view = remember(report) { coachReportView(report) }
+            val adaptedSession = remember(report, original) { adaptedSessionOf(report, original) }
+            AlertDialog(
+                onDismissRequest = { onChoose(true) }, // back-tap ⇒ keep the default (adaptation)
+                // Adaptation is the default-selected action (primary button).
+                confirmButton = { TextButton(onClick = { onChoose(true) }) { Text(CoachStrings.APPLY_ADAPTATION) } },
+                dismissButton = { TextButton(onClick = { onChoose(false) }) { Text(CoachStrings.KEEP_ORIGINAL) } },
+                title = { Text(CoachStrings.REPORT_TITLE) },
+                text = {
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text(view.summaryRu)
+                        view.corrections.forEach { c -> Text("• ${c.exerciseName}: ${c.noteRu}", fontWeight = FontWeight.Light) }
+                        Text(CoachStrings.ADAPTATION_DEFAULT_HINT, fontWeight = FontWeight.Medium)
+                        if (view.isDeLoad && adaptedSession != null) {
+                            Text(CoachStrings.ADAPTATION_LABEL, fontWeight = FontWeight.SemiBold)
+                            adaptedSession.assignments.take(6).forEach { a ->
+                                val n = BaselineProgram.exercises[a.exerciseId]?.name ?: a.exerciseId
+                                Text("  $n — ${a.sets}×${a.repScheme}", fontWeight = FontWeight.Light)
+                            }
+                            Text(CoachStrings.ORIGINAL_LABEL, fontWeight = FontWeight.SemiBold)
+                            original.assignments.take(6).forEach { a ->
+                                val n = BaselineProgram.exercises[a.exerciseId]?.name ?: a.exerciseId
+                                Text("  $n — ${a.sets}×${a.repScheme}", fontWeight = FontWeight.Light)
+                            }
+                        }
+                        Text("(${view.sourceLabel})", fontWeight = FontWeight.Light)
+                    }
+                },
+            )
         }
     }
 }
