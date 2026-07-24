@@ -15,7 +15,10 @@
     "evidence_ids": [
       "SLOW-BREATHING-2022",
       "DIAPHRAGMATIC-BREATHING-2019"
-    ]
+    ],
+    "video_url": null,
+    "how_to_steps_ru": [],
+    "image_refs": []
   },
   {
     "id": "wall_axial_elongation",
@@ -33,7 +36,10 @@
     "evidence_ids": [
       "MONTICONE-ADULT-SCOLIOSIS-2016",
       "SOSORT-GUIDELINES-2016"
-    ]
+    ],
+    "video_url": null,
+    "how_to_steps_ru": [],
+    "image_refs": []
   },
   {
     "id": "quadruped_rockback",
@@ -50,7 +56,10 @@
     "scoliosis_rule": "Не добиваться визуальной симметрии силой.",
     "evidence_ids": [
       "MONTICONE-ADULT-SCOLIOSIS-2016"
-    ]
+    ],
+    "video_url": null,
+    "how_to_steps_ru": [],
+    "image_refs": []
   },
   {
     "id": "split_squat",
@@ -68,7 +77,10 @@
     "evidence_ids": [
       "ACSM-RT-2026",
       "LOPEZ-LOAD-2021"
-    ]
+    ],
+    "video_url": null,
+    "how_to_steps_ru": [],
+    "image_refs": []
   },
   {
     "id": "goblet_squat",
@@ -86,7 +98,10 @@
     "evidence_ids": [
       "ACSM-RT-2026",
       "LOPEZ-LOAD-2021"
-    ]
+    ],
+    "video_url": null,
+    "how_to_steps_ru": [],
+    "image_refs": []
   },
   {
     "id": "bulgarian_split_squat",
@@ -104,7 +119,10 @@
     "evidence_ids": [
       "ACSM-RT-2026",
       "LOPEZ-LOAD-2021"
-    ]
+    ],
+    "video_url": null,
+    "how_to_steps_ru": [],
+    "image_refs": []
   },
   {
     "id": "reverse_lunge",
@@ -121,7 +139,10 @@
     "scoliosis_rule": "Одинаковый объём, без намеренного бокового наклона.",
     "evidence_ids": [
       "ACSM-RT-2026"
-    ]
+    ],
+    "video_url": null,
+    "how_to_steps_ru": [],
+    "image_refs": []
   },
   {
     "id": "b_stance_rdl",
@@ -139,7 +160,10 @@
     "evidence_ids": [
       "ACSM-RT-2026",
       "LOPEZ-LOAD-2021"
-    ]
+    ],
+    "video_url": null,
+    "how_to_steps_ru": [],
+    "image_refs": []
   },
   {
     "id": "single_leg_rdl_supported",
@@ -156,7 +180,10 @@
     "scoliosis_rule": "Не использовать как тест «ровности» таза.",
     "evidence_ids": [
       "ACSM-RT-2026"
-    ]
+    ],
+    "video_url": null,
+    "how_to_steps_ru": [],
+    "image_refs": []
   },
   {
     "id": "glute_bridge",
@@ -173,7 +200,10 @@
     "scoliosis_rule": "Одинаковый объём при одностороннем варианте.",
     "evidence_ids": [
       "ACSM-RT-2026"
-    ]
+    ],
+    "video_url": null,
+    "how_to_steps_ru": [],
+    "image_refs": []
   },
   {
     "id": "pushup",
@@ -191,7 +221,10 @@
     "evidence_ids": [
       "KIKUCHI-PUSHUP-2017",
       "ACSM-RT-2026"
-    ]
+    ],
+    "video_url": null,
+    "how_to_steps_ru": [],
+    "image_refs": []
   },
   {
     "id": "db_floor_press",
@@ -209,7 +242,10 @@
     "evidence_ids": [
       "ACSM-RT-2026",
       "LOPEZ-LOAD-2021"
-    ]
+    ],
+    "video_url": null,
+    "how_to_steps_ru": [],
+    "image_refs": []
   },
   {
     "id": "pike_pushup_optional",
@@ -226,7 +262,10 @@
     "scoliosis_rule": "Не использовать, если провоцирует ротацию/компрессию.",
     "evidence_ids": [
       "ACSM-RT-2026"
-    ]
+    ],
+    "video_url": null,
+    "how_to_steps_ru": [],
+    "image_refs": []
   },
   {
     "id": "one_arm_row_supported",
@@ -244,7 +283,10 @@
     "evidence_ids": [
       "ACSM-RT-2026",
       "LOPEZ-LOAD-2021"
-    ]
+    ],
+    "video_url": null,
+    "how_to_steps_ru": [],
+    "image_refs": []
   },
   {
     "id": "prone_ytw",
@@ -261,7 +303,10 @@
     "scoliosis_rule": "Симметрично; не пытаться «свести» рёбра силой.",
     "evidence_ids": [
       "ACSM-RT-2026"
-    ]
+    ],
+    "video_url": null,
+    "how_to_steps_ru": [],
+    "image_refs": []
   },
   {
     "id": "reverse_fly",
@@ -279,7 +324,10 @@
     "evidence_ids": [
       "ACSM-RT-2026",
       "LOPEZ-LOAD-2021"
-    ]
+    ],
+    "video_url": null,
+    "how_to_steps_ru": [],
+    "image_refs": []
   },
   {
     "id": "dead_bug",
@@ -297,7 +345,10 @@
     "evidence_ids": [
       "MONTICONE-ADULT-SCOLIOSIS-2016",
       "ALANAZI-ADULT-SCOLIOSIS-2018"
-    ]
+    ],
+    "video_url": null,
+    "how_to_steps_ru": [],
+    "image_refs": []
   },
   {
     "id": "bird_dog",
@@ -315,7 +366,10 @@
     "evidence_ids": [
       "MONTICONE-ADULT-SCOLIOSIS-2016",
       "ALANAZI-ADULT-SCOLIOSIS-2018"
-    ]
+    ],
+    "video_url": null,
+    "how_to_steps_ru": [],
+    "image_refs": []
   },
   {
     "id": "side_plank_equal",
@@ -332,7 +386,10 @@
     "scoliosis_rule": "Никакого одностороннего протокола без классификации дуги и назначения специалиста.",
     "evidence_ids": [
       "ALANAZI-ADULT-SCOLIOSIS-2018"
-    ]
+    ],
+    "video_url": null,
+    "how_to_steps_ru": [],
+    "image_refs": []
   },
   {
     "id": "suitcase_hold_equal",
@@ -349,7 +406,10 @@
     "scoliosis_rule": "Не делать только с одной стороны как «коррекцию».",
     "evidence_ids": [
       "ACSM-RT-2026"
-    ]
+    ],
+    "video_url": null,
+    "how_to_steps_ru": [],
+    "image_refs": []
   },
   {
     "id": "wall_hip_abduction",
@@ -366,7 +426,10 @@
     "scoliosis_rule": "Одинаковый объём.",
     "evidence_ids": [
       "MONTICONE-ADULT-SCOLIOSIS-2016"
-    ]
+    ],
+    "video_url": null,
+    "how_to_steps_ru": [],
+    "image_refs": []
   },
   {
     "id": "wall_slide",
@@ -383,7 +446,10 @@
     "scoliosis_rule": "Симметрично, без принуждения рёбер.",
     "evidence_ids": [
       "MONTICONE-ADULT-SCOLIOSIS-2016"
-    ]
+    ],
+    "video_url": null,
+    "how_to_steps_ru": [],
+    "image_refs": []
   },
   {
     "id": "brisk_walk",
@@ -400,7 +466,10 @@
     "scoliosis_rule": "Выбирать переносимый темп и обувь.",
     "evidence_ids": [
       "WHO-ACTIVITY-2020"
-    ]
+    ],
+    "video_url": null,
+    "how_to_steps_ru": [],
+    "image_refs": []
   },
   {
     "id": "gentle_yoga_flow",
@@ -417,7 +486,10 @@
     "scoliosis_rule": "Йога не заменяет PSSE и не задаёт сторону коррекции.",
     "evidence_ids": [
       "YOGA-LBP-2022"
-    ]
+    ],
+    "video_url": null,
+    "how_to_steps_ru": [],
+    "image_refs": []
   },
   {
     "id": "barbell_back_squat",
@@ -437,7 +509,10 @@
     "evidence_ids": [
       "ACSM-RT-2026",
       "LOPEZ-LOAD-2021"
-    ]
+    ],
+    "video_url": null,
+    "how_to_steps_ru": [],
+    "image_refs": []
   },
   {
     "id": "barbell_front_squat",
@@ -457,7 +532,10 @@
     "evidence_ids": [
       "ACSM-RT-2026",
       "LOPEZ-LOAD-2021"
-    ]
+    ],
+    "video_url": null,
+    "how_to_steps_ru": [],
+    "image_refs": []
   },
   {
     "id": "overhead_barbell_press",
@@ -477,7 +555,10 @@
     "evidence_ids": [
       "ACSM-RT-2026",
       "LOPEZ-LOAD-2021"
-    ]
+    ],
+    "video_url": null,
+    "how_to_steps_ru": [],
+    "image_refs": []
   },
   {
     "id": "barbell_deadlift",
@@ -497,7 +578,10 @@
     "evidence_ids": [
       "ACSM-RT-2026",
       "LOPEZ-LOAD-2021"
-    ]
+    ],
+    "video_url": null,
+    "how_to_steps_ru": [],
+    "image_refs": []
   },
   {
     "id": "barbell_good_morning",
@@ -517,7 +601,10 @@
     "evidence_ids": [
       "ACSM-RT-2026",
       "LOPEZ-LOAD-2021"
-    ]
+    ],
+    "video_url": null,
+    "how_to_steps_ru": [],
+    "image_refs": []
   },
   {
     "id": "heavy_farmer_carry",
@@ -537,7 +624,10 @@
     "evidence_ids": [
       "ACSM-RT-2026",
       "LOPEZ-LOAD-2021"
-    ]
+    ],
+    "video_url": null,
+    "how_to_steps_ru": [],
+    "image_refs": []
   },
   {
     "id": "loaded_russian_twist",
@@ -557,7 +647,10 @@
     "evidence_ids": [
       "ACSM-RT-2026",
       "LOPEZ-LOAD-2021"
-    ]
+    ],
+    "video_url": null,
+    "how_to_steps_ru": [],
+    "image_refs": []
   },
   {
     "id": "cable_woodchop",
@@ -577,7 +670,10 @@
     "evidence_ids": [
       "ACSM-RT-2026",
       "LOPEZ-LOAD-2021"
-    ]
+    ],
+    "video_url": null,
+    "how_to_steps_ru": [],
+    "image_refs": []
   },
   {
     "id": "landmine_rotation",
@@ -597,7 +693,10 @@
     "evidence_ids": [
       "ACSM-RT-2026",
       "LOPEZ-LOAD-2021"
-    ]
+    ],
+    "video_url": null,
+    "how_to_steps_ru": [],
+    "image_refs": []
   },
   {
     "id": "bent_rotational_row",
@@ -617,7 +716,10 @@
     "evidence_ids": [
       "ACSM-RT-2026",
       "LOPEZ-LOAD-2021"
-    ]
+    ],
+    "video_url": null,
+    "how_to_steps_ru": [],
+    "image_refs": []
   },
   {
     "id": "heavy_rotational_carry",
@@ -637,7 +739,10 @@
     "evidence_ids": [
       "ACSM-RT-2026",
       "LOPEZ-LOAD-2021"
-    ]
+    ],
+    "video_url": null,
+    "how_to_steps_ru": [],
+    "image_refs": []
   },
   {
     "id": "loaded_good_morning_rotation",
@@ -657,6 +762,9 @@
     "evidence_ids": [
       "ACSM-RT-2026",
       "LOPEZ-LOAD-2021"
-    ]
+    ],
+    "video_url": null,
+    "how_to_steps_ru": [],
+    "image_refs": []
   }
 ]

@@ -95,10 +95,16 @@ class EntityRoundTripTest {
             regression = "Shorter range.",
             scoliosisRule = "Do not force visual symmetry.",
             evidenceRefs = listOf("ACSM-RT-2026"),
+            // M8-B (DRE-86): media fields survive round-trip with populated values
+            // (defaults are covered by the other assertions; this pins non-default).
+            videoUrl = "https://example.net/split-squat",
+            howToStepsRu = listOf("Шаг один", "Шаг два"),
+            imageRefs = listOf("img/split_squat_1.png"),
         )
         val back = roundTrip(exercise)
         back shouldBe exercise
         back.evidenceRefs shouldBe listOf("ACSM-RT-2026") // evidence linkage survives
+        back.videoUrl shouldBe "https://example.net/split-squat" // M8-B: media survives
     }
 
     @Test
