@@ -2,6 +2,7 @@ package dreamteam.app
 
 import dreamteam.app.data.Profile
 import dreamteam.app.data.ProgressRow
+import dreamteam.app.data.ExerciseNoteRow
 import dreamteam.app.data.SymptomEntry
 import dreamteam.app.data.WorkoutCompletion
 import io.kotest.matchers.collections.shouldHaveSize
@@ -57,6 +58,11 @@ class ClientExportTest {
         WorkoutCompletion("week1-dayA-squat", "back_squat_goblet", "2026-07-21"),
         WorkoutCompletion("week1-dayB-hinge", "romanian_deadlift", "2026-07-22"),
     )
+    // M8-B-followup (DRE-87): per-exercise notes now export verbatim too.
+    private val exerciseNotes = listOf(
+        ExerciseNoteRow("week1-dayA-squat", "back_squat_goblet", "keep chest tall", "2026-07-21"),
+        ExerciseNoteRow("week1-dayB-hinge", "romanian_deadlift", "hip hinge soft at the bottom", "2026-07-22"),
+    )
 
     private fun regeneratedPlan(): ExportedPlan? =
         exportPlanFrom(regenerateLocalPlans(profile, today, symptoms, progress))
@@ -66,11 +72,11 @@ class ClientExportTest {
     @Test
     fun `every logged row survives the encode-decode round-trip verbatim`() {
         val plan = regeneratedPlan()
-        val doc = buildExportDocument(profile, workouts, symptoms, progress, plan, generatedAt = "2026-07-23T10:00:00Z")
+        val doc = buildExportDocument(profile, workouts, symptoms, progress, exerciseNotes, plan, generatedAt = "2026-07-23T10:00:00Z")
         val encoded = encodeExportDocument(doc)
         val decoded = exportJson.decodeFromString(ExportDocument.serializer(), encoded)
 
-        decoded.exportSchema shouldBe EXPORT_SCHEMA
+        decoded.exportSchema shouldBe EXPORT_SCHEMA // == 2 (M8-B-followup additive bump)
         decoded.appVersion shouldBe APP_VERSION
         decoded.generatedAt shouldBe "2026-07-23T10:00:00Z"
         decoded.disclaimer shouldBe ExportStrings.DISCLAIMER
@@ -78,16 +84,18 @@ class ClientExportTest {
         decoded.workoutLog shouldBe workouts // none dropped, verbatim
         decoded.symptomLog shouldBe symptoms
         decoded.progressLog shouldBe progress
+        decoded.exerciseNoteLog shouldBe exerciseNotes // none dropped, verbatim
         decoded.plan shouldBe plan
     }
 
     @Test
     fun `an empty store round-trips to empty logs, not nulls`() {
-        val doc = buildExportDocument(profile, emptyList(), emptyList(), emptyList(), plan = null, generatedAt = "t")
+        val doc = buildExportDocument(profile, emptyList(), emptyList(), emptyList(), emptyList(), plan = null, generatedAt = "t")
         val decoded = exportJson.decodeFromString(ExportDocument.serializer(), encodeExportDocument(doc))
         decoded.workoutLog shouldHaveSize 0
         decoded.symptomLog shouldHaveSize 0
         decoded.progressLog shouldHaveSize 0
+        decoded.exerciseNoteLog shouldHaveSize 0
         decoded.plan shouldBe null
     }
 
@@ -95,7 +103,7 @@ class ClientExportTest {
 
     @Test
     fun `the plan section equals the freshly regenerated deterministic plan`() {
-        val doc = buildExportDocument(profile, workouts, symptoms, progress, regeneratedPlan(), generatedAt = "t")
+        val doc = buildExportDocument(profile, workouts, symptoms, progress, exerciseNotes, regeneratedPlan(), generatedAt = "t")
         // The document's plan IS a fresh regeneration for the same profile/logs.
         doc.plan shouldBe regeneratedPlan()
         doc.plan shouldNotBe null
@@ -116,11 +124,12 @@ class ClientExportTest {
         val outcome = regenerateLocalPlans(redFlag, today, emptyList(), emptyList())
         outcome.shouldBeInstanceOf<LocalPlanOutcome.RedFlag>()
         exportPlanFrom(outcome) shouldBe null
-        val doc = buildExportDocument(redFlag, workouts, symptoms, progress, exportPlanFrom(outcome), generatedAt = "t")
+        val doc = buildExportDocument(redFlag, workouts, symptoms, progress, exerciseNotes, exportPlanFrom(outcome), generatedAt = "t")
         doc.plan shouldBe null
         // Profile + logs still export (portability does not depend on the gate).
         doc.profile shouldBe redFlag
         doc.symptomLog shouldBe symptoms
+        doc.exerciseNoteLog shouldBe exerciseNotes
     }
 
     // --- 3. determinism -----------------------------------------------------
@@ -128,19 +137,20 @@ class ClientExportTest {
     @Test
     fun `identical inputs encode to byte-identical JSON`() {
         val plan = regeneratedPlan()
-        val a = encodeExportDocument(buildExportDocument(profile, workouts, symptoms, progress, plan, generatedAt = "fixed-timestamp"))
-        val b = encodeExportDocument(buildExportDocument(profile, workouts, symptoms, progress, plan, generatedAt = "fixed-timestamp"))
+        val a = encodeExportDocument(buildExportDocument(profile, workouts, symptoms, progress, exerciseNotes, plan, generatedAt = "fixed-timestamp"))
+        val b = encodeExportDocument(buildExportDocument(profile, workouts, symptoms, progress, exerciseNotes, plan, generatedAt = "fixed-timestamp"))
         a shouldBe b // byte-for-byte (same generatedAt ⇒ identical)
     }
 
     @Test
     fun `the JSON key order is the stable envelope-first declaration order`() {
-        val json = encodeExportDocument(buildExportDocument(profile, workouts, symptoms, progress, regeneratedPlan(), generatedAt = "t"))
+        val json = encodeExportDocument(buildExportDocument(profile, workouts, symptoms, progress, exerciseNotes, regeneratedPlan(), generatedAt = "t"))
         // Envelope fields precede the user-data fields precede the plan section.
         // (indices are not absolute — pretty-print indents — only their order matters)
         val schemaAt = json.indexOf("\"exportSchema\"")
         val planAt = json.indexOf("\"plan\"")
         val progressAt = json.indexOf("\"progressLog\"")
+        val exerciseNoteAt = json.indexOf("\"exerciseNoteLog\"")
         (schemaAt < json.indexOf("\"appVersion\"")) shouldBe true
         (json.indexOf("\"appVersion\"") < json.indexOf("\"generatedAt\"")) shouldBe true
         (json.indexOf("\"generatedAt\"") < json.indexOf("\"disclaimer\"")) shouldBe true
@@ -148,7 +158,8 @@ class ClientExportTest {
         (json.indexOf("\"profile\"") < json.indexOf("\"workoutLog\"")) shouldBe true
         (json.indexOf("\"workoutLog\"") < json.indexOf("\"symptomLog\"")) shouldBe true
         (json.indexOf("\"symptomLog\"") < progressAt) shouldBe true
-        (progressAt < planAt) shouldBe true
+        (progressAt < exerciseNoteAt) shouldBe true
+        (exerciseNoteAt < planAt) shouldBe true
         // exportSchema is the very first key (nothing precedes it but the opening brace).
         (json.indexOf("{") < schemaAt) shouldBe true
     }

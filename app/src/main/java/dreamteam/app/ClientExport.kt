@@ -1,5 +1,6 @@
 package dreamteam.app
 
+import dreamteam.app.data.ExerciseNoteRow
 import dreamteam.app.data.LocalDatabase
 import dreamteam.app.data.Profile
 import dreamteam.app.data.ProgressRow
@@ -20,8 +21,9 @@ import kotlinx.serialization.json.Json
  *
  * What it copies out (verbatim — adds no interpretation, no diagnosis, no new
  * guidance): the stored [Profile], every `workout_log` completion, every
- * `symptom_log` row, every `progress_log` row (newest-first preserved), and the
- * **regenerated** deterministic [TrainingPlan] + [NutritionPlan] (computed, not
+ * `symptom_log` row, every `progress_log` row (newest-first preserved), every
+ * `exercise_note_log` row (M8-B), and the **regenerated** deterministic
+ * [TrainingPlan] + [NutritionPlan] (computed, not
  * cached — see [regenerateLocalPlans]). The export is the safety-gated plan the
  * app already produces; it never adds, weakens, or bypasses a [SafetyRule], and
  * a gate-blocked profile exports `plan = null` (the export never contains a
@@ -39,7 +41,7 @@ import kotlinx.serialization.json.Json
  */
 
 /** Additive-only export schema version. A future field is added, never renumbered. */
-internal const val EXPORT_SCHEMA: Int = 1
+internal const val EXPORT_SCHEMA: Int = 2 // M8-B-followup (DRE-87): +exerciseNoteLog (v1→v2).
 
 /**
  * Hand-synced with `:app` `versionName` ([app/build.gradle.kts]). ponytail: wire
@@ -77,6 +79,7 @@ internal data class ExportDocument(
     val workoutLog: List<WorkoutCompletion>,
     val symptomLog: List<SymptomEntry>,
     val progressLog: List<ProgressRow>,
+    val exerciseNoteLog: List<ExerciseNoteRow>,
     val plan: ExportedPlan?,
 )
 
@@ -94,6 +97,7 @@ internal fun buildExportDocument(
     workouts: List<WorkoutCompletion>,
     symptoms: List<SymptomEntry>,
     progress: List<ProgressRow>,
+    exerciseNotes: List<ExerciseNoteRow>,
     plan: ExportedPlan?,
     generatedAt: String,
     appVersion: String = APP_VERSION,
@@ -107,6 +111,7 @@ internal fun buildExportDocument(
     workoutLog = workouts,
     symptomLog = symptoms,
     progressLog = progress,
+    exerciseNoteLog = exerciseNotes,
     plan = plan,
 )
 
@@ -129,6 +134,7 @@ internal fun exportUserData(
     workouts = db.allWorkouts(),
     symptoms = db.allSymptoms(),
     progress = db.allProgress(),
+    exerciseNotes = db.allExerciseNotes(),
     plan = plan,
     generatedAt = generatedAt,
 )
@@ -163,11 +169,12 @@ internal fun exportActionDocument(
     workouts: List<WorkoutCompletion>,
     symptoms: List<SymptomEntry>,
     progress: List<ProgressRow>,
+    exerciseNotes: List<ExerciseNoteRow>,
     today: String,
     generatedAt: String,
 ): ExportDocument {
     val plan = exportPlanFrom(regenerateLocalPlans(profile, today, symptoms, progress))
-    return buildExportDocument(profile, workouts, symptoms, progress, plan, generatedAt)
+    return buildExportDocument(profile, workouts, symptoms, progress, exerciseNotes, plan, generatedAt)
 }
 
 /**

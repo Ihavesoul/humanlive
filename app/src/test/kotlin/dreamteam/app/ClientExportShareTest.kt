@@ -2,6 +2,7 @@ package dreamteam.app
 
 import dreamteam.app.data.Profile
 import dreamteam.app.data.ProgressRow
+import dreamteam.app.data.ExerciseNoteRow
 import dreamteam.app.data.SymptomEntry
 import dreamteam.app.data.WorkoutCompletion
 import io.kotest.matchers.shouldBe
@@ -52,6 +53,11 @@ class ClientExportShareTest {
         WorkoutCompletion("week1-dayA-squat", "back_squat_goblet", "2026-07-21"),
         WorkoutCompletion("week1-dayB-hinge", "romanian_deadlift", "2026-07-22"),
     )
+    // M8-B-followup (DRE-87): per-exercise notes now export verbatim too.
+    private val exerciseNotes = listOf(
+        ExerciseNoteRow("week1-dayA-squat", "back_squat_goblet", "keep chest tall", "2026-07-21"),
+        ExerciseNoteRow("week1-dayB-hinge", "romanian_deadlift", "hip hinge soft at the bottom", "2026-07-22"),
+    )
 
     // The bytes the action would hand to the FileProvider, encoded from the
     // document the pure core produced.
@@ -61,10 +67,10 @@ class ClientExportShareTest {
 
     @Test
     fun `the export action bytes decode back with every store row present`() {
-        val doc = exportActionDocument(profile, workouts, symptoms, progress, today, generatedAt = "2026-07-23T10:00:00Z")
+        val doc = exportActionDocument(profile, workouts, symptoms, progress, exerciseNotes, today, generatedAt = "2026-07-23T10:00:00Z")
         val decoded = exportJson.decodeFromString(ExportDocument.serializer(), actionBytes(doc))
 
-        decoded.exportSchema shouldBe EXPORT_SCHEMA
+        decoded.exportSchema shouldBe EXPORT_SCHEMA // == 2 (M8-B-followup additive bump)
         decoded.appVersion shouldBe APP_VERSION
         decoded.generatedAt shouldBe "2026-07-23T10:00:00Z"
         decoded.disclaimer shouldBe ExportStrings.DISCLAIMER
@@ -73,6 +79,7 @@ class ClientExportShareTest {
         decoded.workoutLog shouldBe workouts
         decoded.symptomLog shouldBe symptoms
         decoded.progressLog shouldBe progress
+        decoded.exerciseNoteLog shouldBe exerciseNotes
         // plan is the freshly regenerated gated plan for the same store snapshot.
         decoded.plan shouldNotBe null
         decoded.plan shouldBe exportPlanFrom(regenerateLocalPlans(profile, today, symptoms, progress))
@@ -85,7 +92,7 @@ class ClientExportShareTest {
         // A red-flag profile is blocked at the medical-safety gate → no surfaced
         // plan. The UI action path must carry null, never a hand-edited/bypassed plan.
         val redFlag = profile.copy(redFlags = listOf("other"))
-        val doc = exportActionDocument(redFlag, workouts, symptoms, progress, today, generatedAt = "t")
+        val doc = exportActionDocument(redFlag, workouts, symptoms, progress, exerciseNotes, today, generatedAt = "t")
         val decoded = exportJson.decodeFromString(ExportDocument.serializer(), actionBytes(doc))
 
         decoded.plan shouldBe null
@@ -94,6 +101,7 @@ class ClientExportShareTest {
         decoded.workoutLog shouldBe workouts
         decoded.symptomLog shouldBe symptoms
         decoded.progressLog shouldBe progress
+        decoded.exerciseNoteLog shouldBe exerciseNotes
     }
 
     // --- 3. no medical claim ------------------------------------------------

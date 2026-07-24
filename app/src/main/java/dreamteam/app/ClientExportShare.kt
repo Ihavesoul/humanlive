@@ -78,6 +78,7 @@ internal fun launchDataExport(context: Context, db: LocalDatabase) {
         workouts = db.allWorkouts(),
         symptoms = db.allSymptoms(),
         progress = db.allProgress(),
+        exerciseNotes = db.allExerciseNotes(),
         today = today,
         generatedAt = Instant.now().toString(),
     )
