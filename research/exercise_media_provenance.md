@@ -1,4 +1,4 @@
-# Exercise media provenance — DRE-79 (M8-A1) + DRE-103 (follow-up)
+# Exercise media provenance — DRE-79 (M8-A1) + DRE-103 (follow-up) + DRE-126 (follow-up)
 
 Audit trail for the exercise media populated in `data/exercises.json`
 (`video_url`, `how_to_steps_ru`, `image_refs`). Maintained by the
@@ -7,13 +7,23 @@ Evidence & Research Analyst. Every media ref resolves to a real,
 license-clean source — primarily **Wikimedia Commons** (PD / CC0 / CC BY /
 CC BY-SA); DRE-103 additionally admits **Flickr CC BY** photos from a
 contributor already vetted in this catalog (Eric Astrauskas / PTinTO —
-`bent_rotational_row`) when no Commons match exists. Credit + license are
-recorded below for every ref, Commons or Flickr.
+`bent_rotational_row`) when no Commons match exists. DRE-126 (a second
+license-clean sourcing pass on the 9 how-to-only exercises) added **2 more**
+Commons refs from channels not previously swept (full Everkinetic catalog +
+CDC/NIH gov-media sweep + a corrected Openverse GET pass). Credit + license
+are recorded below for every ref, Commons or Flickr.
 
 ## Method
 
 - Source: Wikimedia Commons API (`commons.wikimedia.org/w/api.php`), namespace 6
   (File); for DRE-103 gaps, Openverse (`api.openverse.org`) aggregating Flickr CC.
+  DRE-126 additionally swept the full **Everkinetic** Commons catalog
+  (~1,040 files), the **CDC "Growing Stronger" / NIH** exercise GIF set
+  (22 CDC strength-training GIFs), and a corrected GET-based **Openverse**
+  pass (the DRE-103 POST sweep under-filtered; GET confirms 0–1 irrelevant
+  hits per exercise). No Wikipedia/Wikiversity anatomy figure or
+  peer-reviewed open-access figure repository carried a license-clean,
+  verifiable-relevance match for the unresolved movements.
 - License gate: only `public domain`, `cc0`, `cc by *`, `cc by-sa *`, `gfdl` accepted.
 - Relevance gate: the file/photo title had to contain an exercise-specific token
   (e.g. `goblet`, `squat`); the DRE-103 Commons sweep additionally restricted
@@ -43,11 +53,11 @@ below for exactly that promotion. That is the trigger to extend the schema
 ## Coverage
 
 - how-to steps: **all 36** exercises.
-- media: **27/36** exercises (2 video, 33 images; +8 exercises sourced in DRE-103).
-- how-to-only (no clean, verifiable-relevance match found after the DRE-103 sweep
-  of Commons + Openverse/Flickr CC): **9** — wall_axial_elongation,
-  single_leg_rdl_supported, one_arm_row_supported, prone_ytw, dead_bug, wall_slide,
-  cable_woodchop, landmine_rotation, loaded_good_morning_rotation.
+- media: **29/36** exercises (2 video, 35 images; +8 in DRE-103, +2 in DRE-126).
+- how-to-only (no clean, verifiable-relevance match found after the DRE-103 +
+  DRE-126 sweeps): **7** — wall_axial_elongation, prone_ytw, dead_bug,
+  wall_slide, cable_woodchop, landmine_rotation, loaded_good_morning_rotation.
+  (`single_leg_rdl_supported` and `one_arm_row_supported` closed in DRE-126.)
 
 ## Sourced media (full provenance)
 
@@ -92,6 +102,38 @@ below for exactly that promotion. That is the trigger to extend the schema
 | `pike_pushup_optional` | image | CC BY-SA 4.0 | Danielflefil | File:Pike Push Ups.gif | [page](https://commons.wikimedia.org/wiki/File:Pike_Push_Ups.gif) | [asset](https://upload.wikimedia.org/wikipedia/commons/e/e2/Pike_Push_Ups.gif) |
 | `bulgarian_split_squat` | image | CC BY 2.0 | Eric Astrauskas, www.PTinTO.com | Flickr 42990005625 “Bulgarian Squats” | [page](https://www.flickr.com/photos/121183998@N08/42990005625) | [asset](https://live.staticflickr.com/930/42990005625_326c9171c8_b.jpg) |
 | `loaded_russian_twist` | image | CC BY 2.0 | Eric Astrauskas, www.PTinTO.com | Flickr 30283139408 “Russian Twists” | [page](https://www.flickr.com/photos/121183998@N08/30283139408) | [asset](https://live.staticflickr.com/1882/30283139408_6ef2d3250d_b.jpg) |
+| `single_leg_rdl_supported` | image | CC BY-SA 3.0 | Everkinetic | File:Romanian dead lift 1.svg | [page](https://commons.wikimedia.org/wiki/File:Romanian_dead_lift_1.svg) | [asset](https://upload.wikimedia.org/wikipedia/commons/5/5c/Romanian_dead_lift_1.svg) |
+| `one_arm_row_supported` | image | CC BY-SA 3.0 | GeorgeStepanek | File:DumbbellBentOverRow.JPG | [page](https://commons.wikimedia.org/wiki/File:DumbbellBentOverRow.JPG) | [asset](https://upload.wikimedia.org/wikipedia/commons/6/67/DumbbellBentOverRow.JPG) |
+
+## DRE-126 sourcing notes (relevance caveats)
+
+DRE-126 ran a deterministic, $0, license-clean pass on the 9 how-to-only
+exercises over channels **not** swept in DRE-79/DRE-103: the full Everkinetic
+Commons catalog (~1,040 files), the CDC "Growing Stronger" / NIH exercise
+GIFs (22 CDC strength-training GIFs + NIH set), and a corrected GET-based
+Openverse pass. **2 of 9 closed; 7 remain how-to-only** (see the section below).
+
+- `single_leg_rdl_supported`: the Everkinetic `Romanian dead lift 1.svg` depicts
+  a **two-leg** Romanian deadlift — the hip-hinge / RDL **pattern reference**.
+  No license-clean single-leg-RDL depiction exists in any swept channel, so the
+  single-leg, supported variant is not shown. Pattern-adjacent ref in the same
+  spirit as the DRE-103 `reverse_fly` (prone rear-delt fly) and
+  `wall_hip_abduction` (standing-band) refs. The references card links out, so
+  the user sees the actual depiction at the Commons page.
+- `one_arm_row_supported`: `DumbbellBentOverRow.JPG` (GeorgeStepanek, CC BY-SA
+  3.0) is the canonical Commons bent-over dumbbell-row photo. Its subject as a
+  **one-arm supported row** is confirmed by global usage on `en:Bent-over_row`
+  and `pt:Remada_unilateral` (one-arm row). The depiction was not visually
+  inspected by the Evidence Analyst in-run; the user verifies it at the Commons
+  file page (same link-out contract as the DRE-103 Flickr refs).
+
+Rejected at curation (DRE-126, relevance noise): `GoodMorningSequence.jpg`
+(filename says "Good Morning" but its own description says "Stiff leg deadlift"
+— contradictory subject, ambiguous for both RDL and good-morning → dropped);
+`Supermans 1.svg` for `prone_ytw` (a prone back-extension, not a Y/T/W shoulder
+raise — different exercise); the Everkinetic plain `Barbell good mornings` for
+`loaded_good_morning_rotation` (already the ref for `barbell_good_morning` and
+omits the rotational variant).
 
 ## DRE-103 sourcing notes (relevance caveats)
 
@@ -126,26 +168,43 @@ movement. All were dropped (not shipped) — listed so the gap is explicit:
 - `one_arm_row_supported`: *Leg Rowing Fisherman* / seated cable row — not a one-arm DB row.
 - `heavy_rotational_carry` 2nd ref: *Suitcase (AM 2007…)* — a museum object, not a carry.
 
-## How-to-only exercises — why (9 remaining after DRE-103)
+## How-to-only exercises — why (7 remaining after DRE-126)
 
 DRE-103 swept Commons (Everkinetic / CDC / Danielflefil / PTPioneer /
 FitnessScape / Taco fleur sets + broad title search) and Openverse/Flickr CC
-for all 17. **8 closed** (above). These **9** have no clean, verifiable-relevance
-match — they stay how-to text only (the references card surfaces the transparent
-MEDIA_PENDING marker, never a fabricated link). They do **not** block the UI
-chain or the M8 gate [DRE-91](/DRE/issues/DRE-91). Recommended next steps for a
-follow-up: commission original CC0 line illustrations for the rehab-specific
-movements (wall axial elongation, prone YTW, wall slide, dead bug) where no
-licence-clean photo exists; for the gym movements (single-leg RDL, one-arm row,
-cable woodchop, landmine rotation, good-morning rotation) re-scan Flickr CC BY
-by visually confirming each candidate at sourcing time.
+for the original 17. DRE-126 added the full Everkinetic catalog, the CDC/NIH
+government-media GIFs, and a corrected Openverse GET pass. **2 more closed**
+(`single_leg_rdl_supported`, `one_arm_row_supported` — above); **7 remain**
+how-to text only — the references card surfaces the transparent MEDIA_PENDING
+marker, never a fabricated link. They do **not** block the UI chain or the M8
+gate [DRE-91](/DRE/issues/DRE-91). Per-exercise reason:
 
-- `wall_axial_elongation` — Осевое вытяжение у стены
-- `single_leg_rdl_supported` — Одноногая тяга с опорой
-- `one_arm_row_supported` — Тяга гантели одной рукой с опорой
-- `prone_ytw` — Y–T–W лёжа
-- `dead_bug` — Dead bug
-- `wall_slide` — Скольжение руками по стене
-- `cable_woodchop` — Дровосек на кроссовере (cable woodchop)
-- `landmine_rotation` — Ротация со штангой в земле (landmine)
-- `loaded_good_morning_rotation` — Гудморнинг со штангой с ротацией
+- `wall_axial_elongation` — Осевое вытяжение у стены. Schroth-specific
+  isometric; no Commons/Openverse depiction (the "Schroth" token matches only
+  portraits/places). Rehab-specific → needs commissioned art.
+- `prone_ytw` — Y–T–W лёжа. No YTW depiction in any swept channel; the only
+  prone-pattern Everkinetic file (`Supermans`) is a different exercise (prone
+  back extension, not Y/T/W shoulder raises) → noisy, dropped.
+- `dead_bug` — Dead bug. No exercise depiction; the token matches literal
+  insects and "pack it out" trash imagery. Rehab-specific → commissioned art.
+- `wall_slide` — Скольжение руками по стене. No depiction; token matches
+  playground equipment and a soldier sliding down a wall. Rehab-specific →
+  commissioned art.
+- `cable_woodchop` — Дровосек на кроссовере (cable woodchop). No depiction;
+  tokens match a LACMA "Chopping Wood" enamel, chop saws, and military field
+  exercises.
+- `landmine_rotation` — Ротация со штангой в земле (landmine). Tokens match
+  actual landmines / EOD / mine-clearing (all PD gov photos). The one
+  gym-related hit (`A Short Explanation of LeBron James … Single Arm Landmine
+  Press`) is a **press**, not a rotation — already rejected in DRE-103.
+- `loaded_good_morning_rotation` — Гудморнинг со штангой с ротацией. Everkinetic
+  `Barbell good mornings` schematics depict the plain (non-rotational) good
+  morning, already the media ref for `barbell_good_morning`; the rotational
+  variant is the defining element and is not depicted → reusing the plain GM
+  would duplicate an existing ref and omit the rotation.
+
+Recommended next step: commission original CC0 line illustrations for the
+rehab-specific movements (wall axial elongation, prone YTW, wall slide, dead
+bug) — no licence-clean photo exists. For the gym movements (cable woodchop,
+landmine rotation, good-morning rotation): re-scan Flickr CC BY with visual
+confirmation at sourcing time, or commission.

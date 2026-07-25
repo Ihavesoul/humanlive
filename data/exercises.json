@@ -241,7 +241,9 @@
       "Наклоняйтесь вперёд с длинной спиной, гантель скользит вдоль передней ноги.",
       "Меньшая контролируемая амплитуда лучше потери формы. Равный объём на обе стороны."
     ],
-    "image_refs": []
+    "image_refs": [
+      "https://commons.wikimedia.org/wiki/File:Romanian_dead_lift_1.svg"
+    ]
   },
   {
     "id": "glute_bridge",
@@ -378,7 +380,9 @@
       "Тяните локоть назад, ведя гантель к поясу, корпус максимально стабилен.",
       "Опустите подконтрольно. Равный объём и целевой RIR на обе стороны."
     ],
-    "image_refs": []
+    "image_refs": [
+      "https://commons.wikimedia.org/wiki/File:DumbbellBentOverRow.JPG"
+    ]
   },
   {
     "id": "prone_ytw",
