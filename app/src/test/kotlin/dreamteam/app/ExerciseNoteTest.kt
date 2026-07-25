@@ -115,4 +115,23 @@ class ExerciseNoteTest {
         decoded.exerciseNoteLog shouldBe listOf(withFlag)
         decoded.exerciseNoteLog.first().outcome shouldBe ExerciseNoteOutcome.OK
     }
+
+    // --- 4. forwards-compatible decode (v2 export → outcome null) -----------
+
+    /**
+     * QA pin (DRE-114): a v2 export (written before [DRE-112]) carries note rows
+     * WITHOUT an `outcome` key. It MUST still decode — every prior note survives,
+     * with outcome defaulting to null. This is the data-side of the additive
+     * schema bump: removing the `= null` default (or making the field required)
+     * would break import of every existing user's export → data loss. This test
+     * turns that regression red.
+     */
+    @Test
+    fun `a v2 note row without an outcome key decodes forwards-compatible to null`() {
+        // Pre-M9-A shape: no `outcome` field (exactly what a v2 export wrote).
+        val v2RowJson = """{"sessionId":"s","exerciseId":"e","note":"old note","recordedOn":"2026-07-01"}"""
+        val row = exportJson.decodeFromString(ExerciseNoteRow.serializer(), v2RowJson)
+        row.note shouldBe "old note"
+        row.outcome shouldBe null // forwards-compatible: absent flag ⇒ no flag
+    }
 }
