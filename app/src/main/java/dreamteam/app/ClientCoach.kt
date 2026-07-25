@@ -21,9 +21,9 @@ import dreamteam.domain.training.PlanSession
  * calls the **shared [Coach]** from [:core:domain] with **no provider** — so the
  * client always serves the **deterministic fallback** (#4: never stranded) and
  * there is **no LLM in the client** (#5: Z.AI is called only on the server via
- * [dreamteam.server.coach.ZaiCoachProvider], which the app reaches through a
- * transport that is a documented follow-up). The same coach logic + safety gate
- * run here offline-first as on the server.
+ * [dreamteam.server.coach.ZaiCoachProvider], which the app reaches through the
+ * M9-D app→server transport in [CoachServerTransport] — default off, DRE-125).
+ * The same coach logic + safety gate run here offline-first as on the server.
  *
  * Two pure view builders ([coachReportView] / [coachExplainView]) turn the
  * domain result into phone-readable rows the Compose tree renders — extracted so
@@ -47,11 +47,16 @@ internal fun coachReportForSession(
     progress: List<ProgressRow>,
     today: String,
     originalPlanId: String = "baseline-12w",
+    server: CoachServerClient? = coachServerClientOrNull(),
 ): CoachReport {
     val medical = MedicalSafety(
         scoliosisReported = profile.scoliosisReported,
         redFlags = profile.redFlags,
     )
+    // M9-D (DRE-125): try the app→server coach transport first; on any failure
+    // (flag off / unreachable / unparseable) `server?.report` is null ⇒ the
+    // local deterministic fallback stands (#4: never stranded).
+    server?.report(medical, originalPlanId, notes)?.let { return it }
     return appCoach.report(
         userId = "local",
         createdAt = today,
@@ -64,14 +69,19 @@ internal fun coachReportForSession(
 }
 
 /** "Спросить у AI": the short contextual cue for one exercise. */
-internal fun coachExplainForExercise(exerciseId: ExerciseId, profile: Profile): CoachExplain =
-    appCoach.explain(
-        exerciseId = exerciseId,
-        medical = MedicalSafety(
-            scoliosisReported = profile.scoliosisReported,
-            redFlags = profile.redFlags,
-        ),
+internal fun coachExplainForExercise(
+    exerciseId: ExerciseId,
+    profile: Profile,
+    server: CoachServerClient? = coachServerClientOrNull(),
+): CoachExplain {
+    val medical = MedicalSafety(
+        scoliosisReported = profile.scoliosisReported,
+        redFlags = profile.redFlags,
     )
+    // M9-D (DRE-125): try the app→server coach transport first; any failure ⇒ local fallback.
+    server?.explain(exerciseId, medical)?.let { return it }
+    return appCoach.explain(exerciseId = exerciseId, medical = medical)
+}
 
 // --- phone-readable view models ---------------------------------------------
 
