@@ -725,6 +725,16 @@ private fun SessionCard(
                 // a workout list reads dense instead of like an expanded MD viewer
                 // (founder review #4). Same data, same safety surface, no new claim.
                 var detailOpen by remember(session.id, a.exerciseId) { mutableStateOf(false) }
+                // DRE-123: hoist the note draft state ABOVE the `if (detailOpen)`
+                // conditional so its lifetime is the per-assignment scope, not the
+                // conditional. Before this the field lived inside the collapsible
+                // detail: collapsing disposed the `remember`-ed draft, so an unsaved
+                // note/outcome was lost mid-session on re-expand (regression from
+                // M8-B once the field moved under the M9-C detail toggle). The caller
+                // now owns the state; [ExerciseNoteField] is a stateless render of it.
+                val noteSaved = remember(session.id, a.exerciseId) { db.exerciseNote(session.id, a.exerciseId) }
+                var noteDraft by remember(session.id, a.exerciseId) { mutableStateOf(noteSaved?.note ?: "") }
+                var outcomeDraft by remember(session.id, a.exerciseId) { mutableStateOf(noteSaved?.outcome) }
                 Column(Modifier.fillMaxWidth().padding(vertical = 2.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Checkbox(
@@ -767,7 +777,18 @@ private fun SessionCard(
                         // in the execution log ("что вышло / что нет / боль"), persisted
                         // like the symptom/progress logs and read back by the coach
                         // (input for M8-C). Verbatim self-report; no interpretation.
-                        ExerciseNoteField(db, session.id, a.exerciseId, today)
+                        ExerciseNoteField(
+                            note = noteDraft,
+                            outcome = outcomeDraft,
+                            onNoteChange = { noteDraft = it },
+                            onOutcomeChange = { outcomeDraft = it },
+                            onSave = {
+                                // A flag alone (no text) is a valid self-report, so save on either.
+                                if (noteDraft.isNotBlank() || outcomeDraft != null) {
+                                    db.appendExerciseNote(session.id, a.exerciseId, noteDraft.trim(), outcomeDraft, today)
+                                }
+                            },
+                        )
                     }
                 }
             }
@@ -911,37 +932,33 @@ private fun CoachReportDialog(
  * M9-D owns adaptation). Tapping a selected chip clears it.
  */
 @Composable
-private fun ExerciseNoteField(db: LocalDatabase, sessionId: String, exerciseId: String, today: String) {
-    val saved = remember(sessionId, exerciseId) { db.exerciseNote(sessionId, exerciseId) }
-    var note by remember(sessionId, exerciseId) { mutableStateOf(saved?.note ?: "") }
-    var outcome by remember(sessionId, exerciseId) { mutableStateOf(saved?.outcome) }
+private fun ExerciseNoteField(
+    note: String,
+    outcome: ExerciseNoteOutcome?,
+    onNoteChange: (String) -> Unit,
+    onOutcomeChange: (ExerciseNoteOutcome?) -> Unit,
+    onSave: () -> Unit,
+) {
     Column(Modifier.fillMaxWidth().padding(start = 32.dp, top = 2.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
         Text(ExerciseNoteStrings.OUTCOME_LABEL, style = androidx.compose.material3.MaterialTheme.typography.labelSmall)
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
             ExerciseNoteOutcome.entries.forEach { o ->
                 FilterChip(
                     selected = outcome == o,
-                    onClick = { outcome = if (outcome == o) null else o },
+                    onClick = { onOutcomeChange(if (outcome == o) null else o) },
                     label = { Text(o.labelRu) },
                 )
             }
         }
         OutlinedTextField(
             value = note,
-            onValueChange = { note = it },
+            onValueChange = onNoteChange,
             label = { Text(ExerciseNoteStrings.LABEL) },
             placeholder = { Text(ExerciseNoteStrings.HINT) },
             singleLine = false,
             modifier = Modifier.fillMaxWidth(),
         )
-        TextButton(
-            onClick = {
-                // A flag alone (no text) is a valid self-report, so save on either.
-                if (note.isNotBlank() || outcome != null) {
-                    db.appendExerciseNote(sessionId, exerciseId, note.trim(), outcome, today)
-                }
-            },
-        ) { Text(ExerciseNoteStrings.SAVE) }
+        TextButton(onClick = onSave) { Text(ExerciseNoteStrings.SAVE) }
     }
 }
 
