@@ -148,6 +148,35 @@ class ExerciseReferencesCardTest {
     }
 
     /**
+     * M9-B ([DRE-117](/DRE/issues/DRE-117)): the card is collapsed by default,
+     * so the always-visible header ([referencesHeaderLine]) is the only thing
+     * shown until the user expands. Pin it carries the exercise name + the card
+     * title + a non-zero reference count, so the deliverable ("a card present on
+     * every exercise") holds even when collapsed — and the header is
+     * deterministic given the same resolved refs (rendering determinism). Pure;
+     * no Compose/UI state involved.
+     */
+    @Test
+    fun `the collapsed-card header always carries name, title, and a non-zero reference count`() {
+        val refs = resolveExerciseReferences(
+            exerciseId = "pushup",
+            evidenceRefs = listOf("KIKUCHI-PUSHUP-2017", "ACSM-RT-2026"),
+            library = library,
+            resolver = resolver,
+        )
+        val header = referencesHeaderLine("Отжимания", refs)
+
+        // The card title + the exercise name are always on the header line.
+        (ReferencesCardStrings.TITLE in header) shouldBe true
+        ("Отжимания" in header) shouldBe true
+        // The reference count is present as "(N)" and is non-zero: the collapsed
+        // chip signals there is something to expand without inventing content.
+        val count = Regex("\\((\\d+)\\)").find(header)?.groupValues?.get(1)?.toIntOrNull()
+        count shouldNotBe null
+        (count!! >= 1) shouldBe true
+    }
+
+    /**
      * The surfaced training assignments the client renders — produced by the SAME
      * provisioned gateway [DreamTeamApp.generateLocalPlan] uses for a generic user.
      */

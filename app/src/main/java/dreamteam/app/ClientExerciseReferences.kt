@@ -4,14 +4,21 @@ import android.content.Context
 import android.content.Intent
 import android.content.res.AssetManager
 import android.net.Uri
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Card
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -44,6 +51,14 @@ import kotlinx.serialization.Serializable
  *    media, evidence rows reuse the M6-A/M6-B render (0 naked ids).
  *  - [loadExerciseLibrary] — the single Android-I/O point (mirrors
  *    [loadEvidenceResolver]); the Compose [ReferencesCard] only renders.
+ *
+ * M9-B ([DRE-117](/DRE/issues/DRE-117)) — readable references consolidation:
+ * the card is now **collapsible** (founder review #1: "схлопывать во что-то более
+ * читаемое"). The whole reference body sits behind one always-visible tappable
+ * header, so a workout list stays dense instead of reading like an expanded MD
+ * viewer. Deterministic presentation only — the resolved data is unchanged
+ * (pure render of [resolveExerciseReferences]; only already-resolved data,
+ * never mutated, never a claim). External media sourcing stays Tier 2 (M9-E).
  *
  * M8-A1 content is seeded (DRE-79): every exercise carries `how_to_steps_ru`,
  * and most carry `video_url` / `image_refs` (Commons file-page URLs). The card
@@ -149,6 +164,23 @@ internal fun resolveExerciseReferences(
 }
 
 /**
+ * The always-visible header line for the (M9-B) collapsed card: exercise name +
+ * the card title + a numeric count of the references behind it (media +
+ * citations). Pure over [ResolvedReferences] so a JVM test can pin the card is
+ * "present" on every exercise even when collapsed — same inputs → same header
+ * (rendering determinism). The count is a plain tally, not a claim; it only
+ * signals "there are N things to expand" so the collapsed chip stays informative.
+ */
+internal fun referencesHeaderLine(name: String, refs: ResolvedReferences): String {
+    val mediaCount =
+        (if (!refs.videoUrl.isNullOrBlank()) 1 else 0) +
+            (if (refs.howToStepsRu.isNotEmpty()) 1 else 0) +
+            refs.imageRefs.count { it.isNotBlank() }
+    val count = mediaCount + refs.citations.size
+    return "$name — ${ReferencesCardStrings.TITLE} ($count)"
+}
+
+/**
  * The authored strings the references card renders. Gathered as one list
  * ([all]) so a JVM test can snapshot them against the banned medical-claim
  * phrase list (mirrors [TodayStrings] / [EvidenceSourcesStrings]). Support
@@ -166,52 +198,80 @@ internal object ReferencesCardStrings {
     const val EVIDENCE = "Источники"
     /** Transparent about the seed state — not a claim, just "not populated yet". */
     const val MEDIA_PENDING = "Видео, пошаговая инструкция и схемы будут добавлены."
+    /** M9-B: the collapsed-card toggle affordance on the always-visible header. */
+    const val SHOW = "Показать"
+    const val HIDE = "Скрыть"
 
-    val all: List<String> = listOf(TITLE, HOW_TO, VIDEO, IMAGE, EVIDENCE, MEDIA_PENDING)
+    val all: List<String> = listOf(TITLE, HOW_TO, VIDEO, IMAGE, EVIDENCE, MEDIA_PENDING, SHOW, HIDE)
 }
 
 /**
- * M8-A: the references card. One tappable block per exercise — how-to steps,
- * video, schematic images, and evidence citations — with **0 naked links**:
- * every URL sits behind a labeled [OutlinedButton], never raw URL text. Pure
- * render of [resolveExerciseReferences] (no logic in the tree); Android I/O
- * only at the edge ([loadExerciseLibrary] / [loadEvidenceResolver] at the root).
+ * M8-A/M9-B: the references card. One block per exercise — how-to steps, video,
+ * schematic images, and evidence citations — with **0 naked links**: every URL
+ * sits behind a labeled [OutlinedButton], never raw URL text. Pure render of
+ * [resolveExerciseReferences] (no logic in the tree); Android I/O only at the
+ * edge ([loadExerciseLibrary] / [loadEvidenceResolver] at the root).
  *
- * A card with no media and no citations renders nothing (defensive — in
- * practice every surfaced exercise carries evidence per DRE-6, so the evidence
- * block is always present). Exercises without any media show the evidence + the
- * transparent [ReferencesCardStrings.MEDIA_PENDING] note — so the deliverable
- * ("a card on every exercise") holds whether or not media is sourced yet.
+ * M9-B ([DRE-117](/DRE/issues/DRE-117)): the card is **collapsible** — collapsed
+ * by default, expanded on tapping the header (founder review #1: "схлопывать
+ * во что-то более читаемое на что можно перейти"). A workout list therefore
+ * stays dense: each exercise shows one tappable header line (name + title + a
+ * reference count), and the how-to / media / citations body unfolds on demand.
+ * The resolved data is unchanged by the collapse — the card only ever displays
+ * already-resolved data, never mutates a plan or claims (rendering determinism).
+ *
+ * A card with no media and no citations renders nothing (defensive — in practice
+ * every surfaced exercise carries evidence per DRE-6). Exercises without any
+ * media show the evidence + the transparent [ReferencesCardStrings.MEDIA_PENDING]
+ * note when expanded — so the deliverable ("a card on every exercise") holds
+ * whether or not media is sourced yet.
  */
 @Composable
 internal fun ReferencesCard(name: String, refs: ResolvedReferences, modifier: Modifier = Modifier) {
     if (!refs.hasMedia && refs.citations.isEmpty()) return
     val context = LocalContext.current
+    // M9-B: collapsed by default. Keyed to the exercise id so each card expands
+    // independently and survives recomposition of the session list.
+    var expanded by remember(refs.exerciseId) { mutableStateOf(false) }
     Card(modifier = modifier.fillMaxWidth()) {
         Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text("$name — ${ReferencesCardStrings.TITLE}", fontWeight = FontWeight.SemiBold)
-            if (refs.howToStepsRu.isNotEmpty()) {
-                Text(ReferencesCardStrings.HOW_TO, fontWeight = FontWeight.Medium)
-                refs.howToStepsRu.forEachIndexed { i, step -> Text("${i + 1}. $step") }
+            // Always-visible, tappable header. Density win: the whole reference
+            // body sits behind this one line, not expanded inline per exercise.
+            Row(
+                modifier = Modifier.fillMaxWidth().clickable { expanded = !expanded },
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(referencesHeaderLine(name, refs), fontWeight = FontWeight.SemiBold)
+                Text(
+                    if (expanded) ReferencesCardStrings.HIDE else ReferencesCardStrings.SHOW,
+                    fontWeight = FontWeight.Light,
+                )
             }
-            // 0 naked links: video + each image sit behind a labeled button.
-            refs.videoUrl?.takeUnless { it.isBlank() }?.let { url ->
-                OutlinedButton(onClick = { openUrl(context, url) }, modifier = Modifier.fillMaxWidth()) {
-                    Text(ReferencesCardStrings.VIDEO)
+            if (expanded) {
+                if (refs.howToStepsRu.isNotEmpty()) {
+                    Text(ReferencesCardStrings.HOW_TO, fontWeight = FontWeight.Medium)
+                    refs.howToStepsRu.forEachIndexed { i, step -> Text("${i + 1}. $step") }
                 }
-            }
-            refs.imageRefs.filter { it.isNotBlank() }.forEach { ref ->
-                OutlinedButton(onClick = { openUrl(context, ref) }, modifier = Modifier.fillMaxWidth()) {
-                    Text(ReferencesCardStrings.IMAGE)
+                // 0 naked links: video + each image sit behind a labeled button.
+                refs.videoUrl?.takeUnless { it.isBlank() }?.let { url ->
+                    OutlinedButton(onClick = { openUrl(context, url) }, modifier = Modifier.fillMaxWidth()) {
+                        Text(ReferencesCardStrings.VIDEO)
+                    }
                 }
-            }
-            if (refs.citations.isNotEmpty()) {
-                Text(ReferencesCardStrings.EVIDENCE, fontWeight = FontWeight.Medium)
-                refs.citations.forEach { c -> EvidenceCitationRender(c) }
-            }
-            if (!refs.hasMedia) {
-                // Transparent about the seed state — never silent, never a fabricated link.
-                Text(ReferencesCardStrings.MEDIA_PENDING, fontWeight = FontWeight.Light)
+                refs.imageRefs.filter { it.isNotBlank() }.forEach { ref ->
+                    OutlinedButton(onClick = { openUrl(context, ref) }, modifier = Modifier.fillMaxWidth()) {
+                        Text(ReferencesCardStrings.IMAGE)
+                    }
+                }
+                if (refs.citations.isNotEmpty()) {
+                    Text(ReferencesCardStrings.EVIDENCE, fontWeight = FontWeight.Medium)
+                    refs.citations.forEach { c -> EvidenceCitationRender(c) }
+                }
+                if (!refs.hasMedia) {
+                    // Transparent about the seed state — never silent, never a fabricated link.
+                    Text(ReferencesCardStrings.MEDIA_PENDING, fontWeight = FontWeight.Light)
+                }
             }
         }
     }
