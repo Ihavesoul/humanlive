@@ -16,6 +16,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -34,6 +35,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.unit.dp
 import dreamteam.app.data.LocalDatabase
+import dreamteam.app.data.ExerciseNoteOutcome
 import dreamteam.app.data.Profile
 import dreamteam.app.data.ProgressRow
 import dreamteam.app.data.SymptomEntry
@@ -779,11 +781,28 @@ private fun CoachReportDialog(
  * what they wrote, and upserts on save via [LocalDatabase.appendExerciseNote].
  * Support-framed labels only ([ExerciseNoteStrings]); the note text itself is the
  * user's own words, never scanned for medical claims (cf. symptom free-text).
+ *
+ * M9-A ([DRE-112](/DRE/issues/DRE-112)): a row of outcome chips (`ok / hard /
+ * painful / skipped`) lets the user attach a light structured self-report. The
+ * flag is recorded/exported only — it never drives a plan change here (the gated
+ * M9-D owns adaptation). Tapping a selected chip clears it.
  */
 @Composable
 private fun ExerciseNoteField(db: LocalDatabase, sessionId: String, exerciseId: String, today: String) {
-    var note by remember(sessionId, exerciseId) { mutableStateOf(db.exerciseNote(sessionId, exerciseId) ?: "") }
+    val saved = remember(sessionId, exerciseId) { db.exerciseNote(sessionId, exerciseId) }
+    var note by remember(sessionId, exerciseId) { mutableStateOf(saved?.note ?: "") }
+    var outcome by remember(sessionId, exerciseId) { mutableStateOf(saved?.outcome) }
     Column(Modifier.fillMaxWidth().padding(start = 32.dp, top = 2.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Text(ExerciseNoteStrings.OUTCOME_LABEL, style = androidx.compose.material3.MaterialTheme.typography.labelSmall)
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
+            ExerciseNoteOutcome.entries.forEach { o ->
+                FilterChip(
+                    selected = outcome == o,
+                    onClick = { outcome = if (outcome == o) null else o },
+                    label = { Text(o.labelRu) },
+                )
+            }
+        }
         OutlinedTextField(
             value = note,
             onValueChange = { note = it },
@@ -793,7 +812,12 @@ private fun ExerciseNoteField(db: LocalDatabase, sessionId: String, exerciseId: 
             modifier = Modifier.fillMaxWidth(),
         )
         TextButton(
-            onClick = { if (note.isNotBlank()) db.appendExerciseNote(sessionId, exerciseId, note.trim(), today) },
+            onClick = {
+                // A flag alone (no text) is a valid self-report, so save on either.
+                if (note.isNotBlank() || outcome != null) {
+                    db.appendExerciseNote(sessionId, exerciseId, note.trim(), outcome, today)
+                }
+            },
         ) { Text(ExerciseNoteStrings.SAVE) }
     }
 }

@@ -105,44 +105,81 @@ class LocalDatabase(context: Context) : SQLiteOpenHelper(context, NAME, null, VE
      * keying — a note is a field on the exercise, not an append-only time series).
      * Stored verbatim as the user's self-report; no interpretation, no diagnosis.
      */
-    fun appendExerciseNote(sessionId: String, exerciseId: String, note: String, recordedOn: String) =
-        writableDatabase.useProfileRow { db ->
+    /**
+     * M9-A ([DRE-112](/DRE/issues/DRE-112)): the note now carries a structured
+     * outcome flag (`ok / hard / painful / skipped`) alongside the free text —
+     * a light user self-report. Stored verbatim; never interpreted, never acted
+     * on (a `painful` flag is recorded, not a plan change — adaptation from notes
+     * is the gated M9-D).
+     */
+    fun appendExerciseNote(
+        sessionId: String,
+        exerciseId: String,
+        note: String,
+        outcome: ExerciseNoteOutcome?,
+        recordedOn: String,
+    ) = writableDatabase.useProfileRow { db ->
             val cv = ContentValues().apply {
                 put(COL_SESSION, sessionId)
                 put(COL_EXERCISE, exerciseId)
                 put(COL_TEXT, note)
+                put(COL_OUTCOME, outcome?.storage)
                 put(COL_RECORDED_ON, recordedOn)
             }
             db.insertWithOnConflict(TABLE_EXERCISE_NOTE, null, cv, SQLiteDatabase.CONFLICT_REPLACE)
         }
 
-    /** The current note for one (session, exercise), or null if none was saved. */
-    fun exerciseNote(sessionId: String, exerciseId: String): String? = readableDatabase.useProfileRow { db ->
+    /**
+     * The current note for one (session, exercise) — text + the M9-A outcome flag
+     * — or null if none was saved. Latest wins (upsert).
+     */
+    fun exerciseNote(sessionId: String, exerciseId: String): ExerciseNoteRow? = readableDatabase.useProfileRow { db ->
         db.query(
-            TABLE_EXERCISE_NOTE, arrayOf(COL_TEXT),
+            TABLE_EXERCISE_NOTE, arrayOf(COL_TEXT, COL_OUTCOME, COL_RECORDED_ON),
             "$COL_SESSION=? AND $COL_EXERCISE=?", arrayOf(sessionId, exerciseId),
             null, null, null, "1",
-        ).use { c -> if (c.moveToFirst()) c.getString(0) else null }
+        ).use { c ->
+            if (!c.moveToFirst()) null else {
+                val idxOutcome = c.getColumnIndexOrThrow(COL_OUTCOME)
+                ExerciseNoteRow(
+                    sessionId = sessionId,
+                    exerciseId = exerciseId,
+                    note = c.getString(c.getColumnIndexOrThrow(COL_TEXT)),
+                    outcome = ExerciseNoteOutcome.fromStorage(if (c.isNull(idxOutcome)) null else c.getString(idxOutcome)),
+                    recordedOn = c.getString(c.getColumnIndexOrThrow(COL_RECORDED_ON)),
+                )
+            }
+        }
     }
 
     /** All notes for a session — the coach (M8-C) reads these as its per-exercise input. */
     fun sessionExerciseNotes(sessionId: String): List<ExerciseNoteRow> = readableDatabase.useProfileRow { db ->
         db.query(
-            TABLE_EXERCISE_NOTE, arrayOf(COL_EXERCISE, COL_TEXT, COL_RECORDED_ON),
+            TABLE_EXERCISE_NOTE, arrayOf(COL_EXERCISE, COL_TEXT, COL_OUTCOME, COL_RECORDED_ON),
             "$COL_SESSION=?", arrayOf(sessionId),
             null, null, "$COL_EXERCISE ASC",
         ).use { c ->
-            buildList { while (c.moveToNext()) add(ExerciseNoteRow(sessionId, c.getString(0), c.getString(1), c.getString(2))) }
+            buildList {
+                while (c.moveToNext()) {
+                    val outcome = if (c.isNull(2)) null else c.getString(2)
+                    add(ExerciseNoteRow(sessionId, c.getString(0), c.getString(1), ExerciseNoteOutcome.fromStorage(outcome), c.getString(3)))
+                }
+            }
         }
     }
 
     /** M8-B (DRE-78): every exercise-note row, exercise-then-date order, for export completeness. */
     fun allExerciseNotes(): List<ExerciseNoteRow> = readableDatabase.useProfileRow { db ->
         db.query(
-            TABLE_EXERCISE_NOTE, arrayOf(COL_SESSION, COL_EXERCISE, COL_TEXT, COL_RECORDED_ON),
+            TABLE_EXERCISE_NOTE, arrayOf(COL_SESSION, COL_EXERCISE, COL_TEXT, COL_OUTCOME, COL_RECORDED_ON),
             null, null, null, null, "$COL_EXERCISE, $COL_RECORDED_ON",
         ).use { c ->
-            buildList { while (c.moveToNext()) add(ExerciseNoteRow(c.getString(0), c.getString(1), c.getString(2), c.getString(3))) }
+            buildList {
+                while (c.moveToNext()) {
+                    val outcome = if (c.isNull(3)) null else c.getString(3)
+                    add(ExerciseNoteRow(c.getString(0), c.getString(1), c.getString(2), ExerciseNoteOutcome.fromStorage(outcome), c.getString(4)))
+                }
+            }
         }
     }
 
@@ -234,6 +271,7 @@ class LocalDatabase(context: Context) : SQLiteOpenHelper(context, NAME, null, VE
                 $COL_SESSION TEXT NOT NULL,
                 $COL_EXERCISE TEXT NOT NULL,
                 $COL_TEXT TEXT NOT NULL,
+                $COL_OUTCOME TEXT,
                 $COL_RECORDED_ON TEXT NOT NULL,
                 UNIQUE($COL_SESSION, $COL_EXERCISE)
             )
@@ -276,11 +314,17 @@ class LocalDatabase(context: Context) : SQLiteOpenHelper(context, NAME, null, VE
             )
             db.execSQL("CREATE INDEX IF NOT EXISTS idx_exercise_note_session ON $TABLE_EXERCISE_NOTE($COL_SESSION)")
         }
+        // M9-A ([DRE-112](/DRE/issues/DRE-112)): v3 → v4 adds the structured outcome
+        // column ADDITIVELY (nullable; existing notes keep NULL outcome). No prior
+        // table touched, no row dropped — the flag is retained self-report data.
+        if (oldVersion < 4) {
+            db.execSQL("ALTER TABLE $TABLE_EXERCISE_NOTE ADD COLUMN $COL_OUTCOME TEXT")
+        }
     }
 
     companion object {
         private const val NAME = "dreamteam.db"
-        private const val VERSION = 3 // M8-B (DRE-78): +exercise_note_log (additive v2→v3).
+        private const val VERSION = 4 // M9-A (DRE-112): +exercise_note_log.outcome (additive v3→v4).
         private const val TABLE_PROFILE = "profile"
         private const val TABLE_WORKOUT = "workout_log"
         private const val TABLE_SYMPTOM = "symptom_log"
@@ -300,6 +344,7 @@ class LocalDatabase(context: Context) : SQLiteOpenHelper(context, NAME, null, VE
         private const val COL_DONE_ON = "done_on"
         private const val COL_RECORDED_ON = "recorded_on"
         private const val COL_TEXT = "text"
+        private const val COL_OUTCOME = "outcome" // M9-A (DRE-112): structured self-report flag (nullable).
     }
 }
 
@@ -342,6 +387,40 @@ data class WorkoutCompletion(val sessionId: String, val exerciseId: String, val 
  * (mirrors [SymptomEntry] / [ProgressRow]): no diagnosis, no interpretation. The
  * coach (M8-C) reads these as its per-exercise input; the latest note per
  * (session, exercise) wins ([LocalDatabase.appendExerciseNote] upserts via REPLACE).
+ *
+ * M9-A ([DRE-112](/DRE/issues/DRE-112)): now also carries a structured [outcome]
+ * flag — a light self-report of how the exercise went. Recorded-only: it MUST NOT
+ * drive any plan change in this slice (adaptation from notes is the gated M9-D).
+ * Default null so a v2 export (pre-outcome) still decodes forwards-compatible.
  */
 @Serializable
-data class ExerciseNoteRow(val sessionId: String, val exerciseId: String, val note: String, val recordedOn: String)
+data class ExerciseNoteRow(
+    val sessionId: String,
+    val exerciseId: String,
+    val note: String,
+    val outcome: ExerciseNoteOutcome? = null,
+    val recordedOn: String,
+)
+
+/**
+ * M9-A ([DRE-112](/DRE/issues/DRE-112)): the structured outcome flag a user can
+ * attach to a per-exercise note — a light self-report of how it went
+ * (`ok / hard / painful / skipped`). The user's own input, never an
+ * interpretation or diagnosis. [PAINFUL] is **recorded, not acted on**: it is
+ * surfaced + exported, and MUST NOT auto-suppress or alter any plan in this
+ * slice. [storage] is the stable on-disk + export token; [labelRu] is the
+ * app-authored chip label (scanned for banned phrases via [ExerciseNoteStrings]).
+ */
+@Serializable
+enum class ExerciseNoteOutcome(val storage: String, val labelRu: String) {
+    OK("ok", "Норм"),
+    HARD("hard", "Тяжело"),
+    PAINFUL("painful", "Боль"),
+    SKIPPED("skipped", "Пропустил");
+
+    companion object {
+        /** Decode a stored/exported token; unknown or null → null (forwards-compatible). */
+        fun fromStorage(s: String?): ExerciseNoteOutcome? =
+            s?.let { v -> entries.firstOrNull { it.storage == v } }
+    }
+}

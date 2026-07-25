@@ -46,7 +46,7 @@ class ClientCoachTest {
         val report = coachReportForSession(
             profile = cleanProfile,
             notes = coachNotesFromRows(
-                listOf(dreamteam.app.data.ExerciseNoteRow("strength_A", "split_squat", "острая боль в колене", "2026-07-25")),
+                listOf(dreamteam.app.data.ExerciseNoteRow("strength_A", "split_squat", "острая боль в колене", dreamteam.app.data.ExerciseNoteOutcome.PAINFUL, "2026-07-25")),
             ),
             symptoms = emptyList(),
             progress = emptyList(),
@@ -74,7 +74,7 @@ class ClientCoachTest {
         val report = coachReportForSession(
             profile = cleanProfile,
             notes = coachNotesFromRows(
-                listOf(dreamteam.app.data.ExerciseNoteRow("strength_A", "split_squat", "всё ок, техника держится", "2026-07-25")),
+                listOf(dreamteam.app.data.ExerciseNoteRow("strength_A", "split_squat", "всё ок, техника держится", dreamteam.app.data.ExerciseNoteOutcome.OK, "2026-07-25")),
             ),
             symptoms = emptyList(),
             progress = emptyList(),

@@ -2,6 +2,7 @@ package dreamteam.app
 
 import dreamteam.app.data.Profile
 import dreamteam.app.data.ProgressRow
+import dreamteam.app.data.ExerciseNoteOutcome
 import dreamteam.app.data.ExerciseNoteRow
 import dreamteam.app.data.SymptomEntry
 import dreamteam.app.data.WorkoutCompletion
@@ -59,9 +60,10 @@ class ClientExportTest {
         WorkoutCompletion("week1-dayB-hinge", "romanian_deadlift", "2026-07-22"),
     )
     // M8-B-followup (DRE-87): per-exercise notes now export verbatim too.
+    // M9-A (DRE-112): the structured outcome flag rides along on each row.
     private val exerciseNotes = listOf(
-        ExerciseNoteRow("week1-dayA-squat", "back_squat_goblet", "keep chest tall", "2026-07-21"),
-        ExerciseNoteRow("week1-dayB-hinge", "romanian_deadlift", "hip hinge soft at the bottom", "2026-07-22"),
+        ExerciseNoteRow("week1-dayA-squat", "back_squat_goblet", "keep chest tall", ExerciseNoteOutcome.OK, "2026-07-21"),
+        ExerciseNoteRow("week1-dayB-hinge", "romanian_deadlift", "hip hinge soft at the bottom", ExerciseNoteOutcome.HARD, "2026-07-22"),
     )
 
     private fun regeneratedPlan(): ExportedPlan? =
@@ -76,7 +78,7 @@ class ClientExportTest {
         val encoded = encodeExportDocument(doc)
         val decoded = exportJson.decodeFromString(ExportDocument.serializer(), encoded)
 
-        decoded.exportSchema shouldBe EXPORT_SCHEMA // == 2 (M8-B-followup additive bump)
+        decoded.exportSchema shouldBe EXPORT_SCHEMA // == 3 (M9-A additive bump)
         decoded.appVersion shouldBe APP_VERSION
         decoded.generatedAt shouldBe "2026-07-23T10:00:00Z"
         decoded.disclaimer shouldBe ExportStrings.DISCLAIMER

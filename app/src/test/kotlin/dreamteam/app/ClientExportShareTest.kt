@@ -2,6 +2,7 @@ package dreamteam.app
 
 import dreamteam.app.data.Profile
 import dreamteam.app.data.ProgressRow
+import dreamteam.app.data.ExerciseNoteOutcome
 import dreamteam.app.data.ExerciseNoteRow
 import dreamteam.app.data.SymptomEntry
 import dreamteam.app.data.WorkoutCompletion
@@ -55,8 +56,8 @@ class ClientExportShareTest {
     )
     // M8-B-followup (DRE-87): per-exercise notes now export verbatim too.
     private val exerciseNotes = listOf(
-        ExerciseNoteRow("week1-dayA-squat", "back_squat_goblet", "keep chest tall", "2026-07-21"),
-        ExerciseNoteRow("week1-dayB-hinge", "romanian_deadlift", "hip hinge soft at the bottom", "2026-07-22"),
+        ExerciseNoteRow("week1-dayA-squat", "back_squat_goblet", "keep chest tall", ExerciseNoteOutcome.OK, "2026-07-21"),
+        ExerciseNoteRow("week1-dayB-hinge", "romanian_deadlift", "hip hinge soft at the bottom", ExerciseNoteOutcome.HARD, "2026-07-22"),
     )
 
     // The bytes the action would hand to the FileProvider, encoded from the

@@ -1,5 +1,7 @@
 package dreamteam.app
 
+import dreamteam.app.data.ExerciseNoteOutcome
+
 /**
  * M8-B ([DRE-78](/DRE/issues/DRE-78)): the authored UI strings for the per-exercise
  * note field in the execution log. Gathered into one internal object so a JVM test
@@ -8,6 +10,10 @@ package dreamteam.app
  * safety block) carries. The note itself is the user's verbatim self-report and is
  * NOT scanned (mirrors symptom/progress rows: the user's words, not an app claim);
  * only the app-authored labels/hints are pinned here.
+ *
+ * M9-A ([DRE-112](/DRE/issues/DRE-112)): the outcome chip labels
+ * ([ExerciseNoteOutcome.labelRu]) are app-authored too, so they are folded into
+ * [all] for the same banned-phrase scan.
  *
  * Framing is support/transparency only — the app invites a self-report
  * ("что вышло / что нет / боль"), never diagnoses or treats. "боль" is
@@ -26,6 +32,10 @@ internal object ExerciseNoteStrings {
     /** Save action label. */
     const val SAVE = "Сохранить заметку"
 
+    /** M9-A (DRE-112): section label above the outcome chips ("how did it go"). */
+    const val OUTCOME_LABEL = "Как прошло"
+
     /** All app-authored strings this surface can render, for the banned-phrase scan. */
-    val all: List<String> = listOf(LABEL, HINT, SAVE)
+    val all: List<String> = listOf(LABEL, HINT, SAVE, OUTCOME_LABEL) +
+        ExerciseNoteOutcome.entries.map { it.labelRu }
 }

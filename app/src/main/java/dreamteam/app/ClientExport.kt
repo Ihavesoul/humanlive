@@ -41,7 +41,7 @@ import kotlinx.serialization.json.Json
  */
 
 /** Additive-only export schema version. A future field is added, never renumbered. */
-internal const val EXPORT_SCHEMA: Int = 2 // M8-B-followup (DRE-87): +exerciseNoteLog (v1→v2).
+internal const val EXPORT_SCHEMA: Int = 3 // M9-A (DRE-112): +ExerciseNoteRow.outcome (additive v2→v3).
 
 /**
  * Hand-synced with `:app` `versionName` ([app/build.gradle.kts]). ponytail: wire
