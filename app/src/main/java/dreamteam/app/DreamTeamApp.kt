@@ -1,7 +1,9 @@
 package dreamteam.app
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -11,15 +13,18 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -379,6 +384,7 @@ private fun OnboardingScreen(modifier: Modifier, onPlanReady: (Profile) -> Unit)
     }
 }
 
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
 private fun PlanScreen(modifier: Modifier, db: LocalDatabase, profile: Profile?, resolver: EvidenceResolver, exerciseLibrary: ExerciseLibraryResolver, onSymptoms: () -> Unit, onProgress: () -> Unit) {
     val p = profile ?: run {
@@ -401,6 +407,17 @@ private fun PlanScreen(modifier: Modifier, db: LocalDatabase, profile: Profile?,
                     Card(modifier = Modifier.fillMaxWidth()) {
                         Column(Modifier.padding(12.dp)) {
                             Text("Неделя ${result.week.weekNumber} · ${result.week.phase}", style = androidx.compose.material3.MaterialTheme.typography.titleLarge)
+                            // M9-C ([DRE-120](/DRE/issues/DRE-120)): a dense chip row
+                            // under the week title (week # + phase) — the same app-like
+                            // tag feel as the exercise cards, no new data. Pure render of
+                            // the same [PlanWeek] fields the title line already shows.
+                            FlowRow(
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                verticalArrangement = Arrangement.spacedBy(4.dp),
+                            ) {
+                                MetaTag("Неделя ${result.week.weekNumber}")
+                                MetaTag(result.week.phase)
+                            }
                             // M4-C ([DRE-57](/DRE/issues/DRE-57)): render the full surfaced
                             // NutritionPlan via the pure [nutritionPlanView] (extracted so its
                             // strings are banned-phrase-tested, [NutritionPlanViewTest]): target +
@@ -581,6 +598,94 @@ private fun HistoryScreen(modifier: Modifier, db: LocalDatabase, onBack: () -> U
     }
 }
 
+/**
+ * M9-C ([DRE-120](/DRE/issues/DRE-120)): the authored strings the denser exercise
+ * card renders — the metadata-tag prefixes + the collapsible-detail toggle.
+ * Gathered as one list ([all]) so a JVM test can snapshot them against the
+ * banned medical-claim phrase list (mirrors [ReferencesCardStrings] /
+ * [TodayStrings]). Support framing only: no diagnosis, no treatment/cure claim.
+ * Catalog-vocab tag VALUES (equipment / evidenceLevel) are rendered VERBATIM and
+ * are NOT in [all] — they are the Evidence & Research Analyst's controlled
+ * vocabulary, not app-authored copy (same stance as the M6-B citation rows).
+ */
+internal object DensityChipStrings {
+    /** Suffix on the sets tag ("3 подх."). */
+    const val SETS = "подх."
+    /** Suffix on the reps tag ("8–12 повт."). */
+    const val REPS = "повт."
+    /** Prefix on the RIR tag ("RIR 2"). */
+    const val RIR = "RIR"
+    /** Collapsible-detail toggle affordances (always-visible header). */
+    const val DETAILS = "Подробнее"
+    const val HIDE = "Скрыть"
+
+    val all: List<String> = listOf(SETS, REPS, RIR, DETAILS, HIDE)
+}
+
+/**
+ * M9-C: one metadata tag on the denser exercise card. [label] is the whole
+ * user-facing string (prefix + value) so the Compose [MetaTag] only does
+ * `Text(label)` — no formatting logic in the tree (the [ResolvedCitation].line
+ * pattern).
+ */
+internal data class DensityChip(val label: String)
+
+/**
+ * M9-C: the deterministic, pure list of metadata tags for one exercise
+ * assignment. Replaces the single dull "${sets}×${reps} @RIR" text line with
+ * scannable chips: sets, reps, RIR (when present), equipment (when the catalog
+ * carries one and it is not "none"), and one tag per distinct resolved evidence
+ * level. Pure over already-resolved inputs (no Android, no I/O) so a JVM test
+ * pins the determinism + content guarantees without a device — same inputs →
+ * same chips (rendering determinism, mirrors [referencesHeaderLine]).
+ *
+ * The tag VALUES for equipment / evidenceLevel are the catalog's raw controlled
+ * vocab, rendered VERBATIM — a label, not an appraisal (RU translation of
+ * catalog vocab is an Evidence & Research Analyst task, never an app-side map
+ * that could drift; same stance as the M6-B `(уровень: …)` render).
+ */
+internal fun exerciseDensityChips(
+    sets: Int,
+    repScheme: String,
+    rir: Int?,
+    equipment: String?,
+    evidenceLevels: List<String>,
+): List<DensityChip> {
+    val chips = mutableListOf<DensityChip>()
+    chips += DensityChip("$sets ${DensityChipStrings.SETS}")
+    if (repScheme.isNotBlank()) chips += DensityChip("$repScheme ${DensityChipStrings.REPS}")
+    rir?.let { chips += DensityChip("${DensityChipStrings.RIR} $it") }
+    equipment
+        ?.takeUnless { it.isBlank() || it.trim().equals("none", ignoreCase = true) }
+        ?.let { chips += DensityChip(it) }
+    evidenceLevels.distinct().forEach { level -> chips += DensityChip(level) }
+    return chips
+}
+
+/**
+ * M9-C: a compact, non-selectable metadata tag (read-only badge). Deterministic
+ * presentation — no selected state, no click semantics (unlike [FilterChip],
+ * which implies selectability). Plain [Surface] + labelSmall text on
+ * surfaceVariant: the densest honest render of an informational tag, no new
+ * dependency. Pure render of a [DensityChip] label.
+ */
+@Composable
+private fun MetaTag(label: String, modifier: Modifier = Modifier) {
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(50),
+        color = MaterialTheme.colorScheme.surfaceVariant,
+    ) {
+        Text(
+            label,
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
 private fun SessionCard(
     db: LocalDatabase,
@@ -605,48 +710,66 @@ private fun SessionCard(
             Text("${session.day} · ${session.label}", style = androidx.compose.material3.MaterialTheme.typography.titleLarge)
             session.assignments.forEach { a ->
                 val name = BaselineProgram.exercises[a.exerciseId]?.name ?: a.exerciseId
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Checkbox(
-                        checked = a.exerciseId in completed,
-                        onCheckedChange = { checked ->
-                            if (checked) { db.logWorkout(session.id, a.exerciseId, today); completed = completed + a.exerciseId }
-                        },
-                    )
-                    Column(Modifier.padding(start = 4.dp)) {
-                        Text(name, style = androidx.compose.material3.MaterialTheme.typography.titleMedium)
-                        Text(
-                            "${a.sets}×${a.repScheme}" + (a.rir?.let { " @${it} RIR" } ?: ""),
-                            style = androidx.compose.material3.MaterialTheme.typography.bodySmall,
-                            color = androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                }
-                // M8-C ([DRE-89](/DRE/issues/DRE-89)): "Спросить у AI" — a short
-                // contextual cue for ONE exercise (NOT a chat, reviewer p.3.3).
-                // Offline-first: runs the shared deterministic coach (no provider
-                // in the client → always the fallback, #4/#5). The server is the
-                // only LLM path; the live transport is a documented follow-up.
-                OutlinedButton(
-                    onClick = { explainFor = a.exerciseId },
-                    modifier = Modifier.fillMaxWidth(),
-                ) { Text(CoachStrings.ASK_AI) }
-                // M8-A ([DRE-80](/DRE/issues/DRE-80)): consolidate this
-                // exercise's video / how-to / images / evidence into ONE
-                // tappable references card (0 naked links) — was a scatter of
-                // `Text("  • citation")` lines. Reuses the same M6-A/M6-B render
-                // path ([resolveExerciseReferences] → [resolveCitations]); media
-                // resolves by id off the bundled library (the data allowlist,
-                // never LLM). A ghost evidence id still renders the
-                // blocked-until-sourced placeholder — no invented citation.
+                // M8-A ([DRE-80](/DRE/issues/DRE-80)): consolidate this exercise's
+                // video / how-to / images / evidence into ONE tappable references
+                // card (0 naked links). Resolved up here (not inline) so the M9-C
+                // metadata tags below can read its equipment / evidenceLevel too.
                 val refs = remember(a.exerciseId) {
                     resolveExerciseReferences(a.exerciseId, a.evidenceRefs, exerciseLibrary, resolver)
                 }
-                ReferencesCard(name = name, refs = refs)
-                // M8-B ([DRE-78](/DRE/issues/DRE-78)): free-text note per exercise in
-                // the execution log ("что вышло / что нет / боль"), persisted like the
-                // symptom/progress logs and read back by the coach (input for M8-C).
-                // Verbatim self-report; no interpretation, no diagnosis.
-                ExerciseNoteField(db, session.id, a.exerciseId, today)
+                // M9-C ([DRE-120](/DRE/issues/DRE-120)): the exercise block is now a
+                // denser, collapsible card. Always-visible header = checkbox + name +
+                // a scannable chip row (sets / reps / RIR / equipment / evidence
+                // level). The detail body (coach cue, references card, note field)
+                // sits behind a "Подробнее / Скрыть" toggle — collapsed by default so
+                // a workout list reads dense instead of like an expanded MD viewer
+                // (founder review #4). Same data, same safety surface, no new claim.
+                var detailOpen by remember(session.id, a.exerciseId) { mutableStateOf(false) }
+                Column(Modifier.fillMaxWidth().padding(vertical = 2.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Checkbox(
+                            checked = a.exerciseId in completed,
+                            onCheckedChange = { checked ->
+                                if (checked) { db.logWorkout(session.id, a.exerciseId, today); completed = completed + a.exerciseId }
+                            },
+                        )
+                        Column(Modifier.weight(1f).padding(start = 4.dp)) {
+                            Text(name, style = androidx.compose.material3.MaterialTheme.typography.titleMedium)
+                            FlowRow(
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                verticalArrangement = Arrangement.spacedBy(4.dp),
+                            ) {
+                                exerciseDensityChips(a.sets, a.repScheme, a.rir, refs.equipment, refs.evidenceLevels)
+                                    .forEach { chip -> MetaTag(chip.label) }
+                            }
+                        }
+                        // Collapsible-detail toggle — separate tappable so the
+                        // checkbox only toggles completion (no dual semantics).
+                        Text(
+                            if (detailOpen) DensityChipStrings.HIDE else DensityChipStrings.DETAILS,
+                            modifier = Modifier.clickable { detailOpen = !detailOpen },
+                            style = androidx.compose.material3.MaterialTheme.typography.labelMedium,
+                            color = androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    if (detailOpen) {
+                        // M8-C ([DRE-89](/DRE/issues/DRE-89)): "Спросить у AI" — a short
+                        // contextual cue for ONE exercise (NOT a chat, reviewer p.3.3).
+                        // Offline-first: runs the shared deterministic coach (no provider
+                        // in the client → always the fallback, #4/#5). The server is the
+                        // only LLM path; the live transport is a documented follow-up.
+                        OutlinedButton(
+                            onClick = { explainFor = a.exerciseId },
+                            modifier = Modifier.fillMaxWidth(),
+                        ) { Text(CoachStrings.ASK_AI) }
+                        ReferencesCard(name = name, refs = refs)
+                        // M8-B ([DRE-78](/DRE/issues/DRE-78)): free-text note per exercise
+                        // in the execution log ("что вышло / что нет / боль"), persisted
+                        // like the symptom/progress logs and read back by the coach
+                        // (input for M8-C). Verbatim self-report; no interpretation.
+                        ExerciseNoteField(db, session.id, a.exerciseId, today)
+                    }
+                }
             }
             Spacer(Modifier.height(4.dp))
             Text("Сделано: ${completed.size}/${session.assignments.size}", style = androidx.compose.material3.MaterialTheme.typography.bodySmall, color = androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant)

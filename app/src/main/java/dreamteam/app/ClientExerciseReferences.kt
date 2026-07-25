@@ -85,6 +85,17 @@ internal data class ExerciseLibraryEntry(
     @SerialName("video_url") val videoUrl: String? = null,
     @SerialName("how_to_steps_ru") val howToStepsRu: List<String> = emptyList(),
     @SerialName("image_refs") val imageRefs: List<String> = emptyList(),
+    /**
+     * M9-C ([DRE-120](/DRE/issues/DRE-120)): the catalog's raw `equipment`
+     * vocab for the exercise (e.g. "dumbbell", "mat"). Already present in the
+     * bundled `data/exercises.json`; decoding it here is NOT a data-model change
+     * — the domain [dreamteam.domain.exercise.Exercise] model is untouched, and
+     * `ignoreUnknownKeys` already skipped this field. Surfaced so the denser
+     * exercise card can render an equipment tag. Verbatim controlled-vocab; RU
+     * translation of catalog values is an Evidence & Research Analyst task, not
+     * an app-side map (same stance as evidence level — avoids drift).
+     */
+    val equipment: String? = null,
 )
 
 /**
@@ -134,6 +145,20 @@ internal data class ResolvedReferences(
     val howToStepsRu: List<String>,
     val imageRefs: List<String>,
     val citations: List<ResolvedCitation>,
+    /**
+     * M9-C ([DRE-120](/DRE/issues/DRE-120)): the catalog's raw `equipment` vocab
+     * for the exercise (null when the library has no entry / no value). Verbatim
+     * — a label, not an appraisal; RU translation is an Evidence Analyst task.
+     */
+    val equipment: String?,
+    /**
+     * M9-C: the distinct raw `evidenceLevel` values among the RESOLVED citations
+     * (ghost ids contribute nothing). Deterministic given the same resolved
+     * refs (catalog insertion order preserved via [resolveCitations]). One tag
+     * per distinct level — a label of what is there, never an ordering/appraisal
+     * (this slice does not vet studies; the Evidence Analyst owns the catalog).
+     */
+    val evidenceLevels: List<String>,
 )
 
 /** True when there is any media (video/steps/images) to render for the exercise. */
@@ -154,12 +179,15 @@ internal fun resolveExerciseReferences(
     resolver: EvidenceResolver,
 ): ResolvedReferences {
     val entry = library.resolveExercise(exerciseId)
+    val citations = resolveCitations(evidenceRefs, resolver)
     return ResolvedReferences(
         exerciseId = exerciseId,
         videoUrl = entry?.videoUrl,
         howToStepsRu = entry?.howToStepsRu ?: emptyList(),
         imageRefs = entry?.imageRefs ?: emptyList(),
-        citations = resolveCitations(evidenceRefs, resolver),
+        citations = citations,
+        equipment = entry?.equipment,
+        evidenceLevels = citations.mapNotNull { it.evidenceLevel }.distinct(),
     )
 }
 

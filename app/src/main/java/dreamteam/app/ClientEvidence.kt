@@ -92,6 +92,15 @@ internal data class ResolvedCitation(
     /** A catalog entry was found — `false` means [line] is the placeholder. */
     val resolved: Boolean,
     val line: String,
+    /**
+     * M9-C ([DRE-120](/DRE/issues/DRE-120)): the catalog's raw `evidenceLevel`
+     * for a resolved id (null for a ghost/placeholder). Surfaced so the denser
+     * exercise card can render an evidence-level tag without re-parsing [line].
+     * Verbatim controlled-vocab — a label, NOT an appraisal (same stance as the
+     * rendered `(уровень: …)` in [line]; the Evidence & Research Analyst owns
+     * the catalog). Additive; the nutrition render path ignores it.
+     */
+    val evidenceLevel: String? = null,
 )
 
 /**
@@ -118,6 +127,7 @@ internal fun resolveCitations(
             id = id,
             resolved = true,
             line = "${src.citation} (уровень: ${src.evidenceLevel}) — ${src.keyFinding}",
+            evidenceLevel = src.evidenceLevel,
         )
     } else {
         ResolvedCitation(id = id, resolved = false, line = EVIDENCE_NOT_SOURCED)
