@@ -8,6 +8,8 @@ import dreamteam.app.data.SymptomEntry
 import dreamteam.app.data.WorkoutCompletion
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.string.shouldContain
+import io.kotest.matchers.string.shouldNotContain
 import org.junit.jupiter.api.Test
 
 /**
@@ -133,5 +135,42 @@ class ExerciseNoteTest {
         val row = exportJson.decodeFromString(ExerciseNoteRow.serializer(), v2RowJson)
         row.note shouldBe "old note"
         row.outcome shouldBe null // forwards-compatible: absent flag ⇒ no flag
+    }
+
+    // --- 5. export token contract (DRE-115) ---------------------------------
+
+    /**
+     * The export JSON MUST carry the stable [ExerciseNoteOutcome.storage] token
+     * (lowercase, e.g. `"painful"`), NOT the kotlinx enum `name` (`"PAINFUL"`).
+     * The SQLite path already writes the storage token, so the two persistence
+     * layers must agree — and the documented on-disk+export token is what an
+     * importer / cross-device sync will read. Pinning the literal wire token keeps
+     * a future enum rename or a default-serializer regression from silently
+     * breaking every existing export.
+     */
+    @Test
+    fun `the export JSON carries the lowercase storage token not the enum name`() {
+        val row = ExerciseNoteRow("s", "e", "n", ExerciseNoteOutcome.PAINFUL, "2026-07-21")
+        val json = encodeExportDocument(
+            buildExportDocument(profile, workouts, symptoms, progress, listOf(row), plan = null, generatedAt = "t"),
+        )
+        // Storage token present, enum name absent.
+        json shouldContain "\"outcome\": \"painful\""
+        json shouldNotContain "\"outcome\": \"PAINFUL\""
+    }
+
+    /**
+     * DRE-115: an unknown outcome token (e.g. a future-added outcome in a newer
+     * export) MUST degrade to null via fromStorage — it must never throw and brick
+     * the import. Today (pre-fix) this raised
+     * `ExerciseNoteOutcome does not contain element with name 'future-flag'`.
+     */
+    @Test
+    fun `an unknown outcome token decodes to null, never crashes the import`() {
+        val futureRowJson =
+            """{"sessionId":"s","exerciseId":"e","note":"n","outcome":"future-flag","recordedOn":"2026-07-01"}"""
+        val row = exportJson.decodeFromString(ExerciseNoteRow.serializer(), futureRowJson)
+        row.note shouldBe "n"
+        row.outcome shouldBe null // forwards-compatible: unknown token ⇒ no flag, no throw
     }
 }

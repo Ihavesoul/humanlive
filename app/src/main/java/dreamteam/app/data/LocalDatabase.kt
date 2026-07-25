@@ -4,7 +4,13 @@ import android.content.ContentValues
 import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
+import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.descriptors.PrimitiveKind
+import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
+import kotlinx.serialization.descriptors.SerialDescriptor
+import kotlinx.serialization.encoding.Decoder
+import kotlinx.serialization.encoding.Encoder
 
 /**
  * On-device offline-first store for the native client. Plain [SQLiteOpenHelper]
@@ -398,6 +404,7 @@ data class ExerciseNoteRow(
     val sessionId: String,
     val exerciseId: String,
     val note: String,
+    @Serializable(with = ExerciseNoteOutcomeTokenSerializer::class)
     val outcome: ExerciseNoteOutcome? = null,
     val recordedOn: String,
 )
@@ -423,4 +430,31 @@ enum class ExerciseNoteOutcome(val storage: String, val labelRu: String) {
         fun fromStorage(s: String?): ExerciseNoteOutcome? =
             s?.let { v -> entries.firstOrNull { it.storage == v } }
     }
+}
+
+/**
+ * M9-A follow-up ([DRE-115](/DRE/issues/DRE-115)): the export-JSON token for an
+ * [ExerciseNoteOutcome] is its stable [ExerciseNoteOutcome.storage] string
+ * (NOT the kotlinx enum `name`), and an unknown or absent token decodes to null
+ * — the exact [ExerciseNoteOutcome.fromStorage] contract the SQLite path already
+ * honours. Bound to [ExerciseNoteRow.outcome] so the two persistence layers
+ * (SQLite + export JSON) agree and stay forwards-compatible across an enum
+ * rename or a future-added outcome. Localized to this field: it does NOT relax
+ * decode leniency for any other enum in the export document (a global
+ * `coerceInputValues` would silently coerce unknown domain values elsewhere).
+ *
+ * ponytail: the descriptor is intentionally non-nullable, so kotlinx handles the
+ * null mark for the nullable field — serialize/deserialize are invoked only for a
+ * present value; deserialize returns null on an unknown token via fromStorage.
+ */
+object ExerciseNoteOutcomeTokenSerializer : KSerializer<ExerciseNoteOutcome?> {
+    override val descriptor: SerialDescriptor =
+        PrimitiveSerialDescriptor("ExerciseNoteOutcome", PrimitiveKind.STRING)
+
+    override fun serialize(encoder: Encoder, value: ExerciseNoteOutcome?) {
+        if (value == null) encoder.encodeNull() else encoder.encodeString(value.storage)
+    }
+
+    override fun deserialize(decoder: Decoder): ExerciseNoteOutcome? =
+        ExerciseNoteOutcome.fromStorage(decoder.decodeString())
 }
