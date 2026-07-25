@@ -159,7 +159,9 @@
       "Сохраняйте корпус ровным; если равновесие вызывает скручивание — уменьшите глубину.",
       "Вернитесь вверх через пятку передней ноги. Равный объём на обе стороны."
     ],
-    "image_refs": []
+    "image_refs": [
+      "https://www.flickr.com/photos/121183998@N08/42990005625"
+    ]
   },
   {
     "id": "reverse_lunge",
@@ -348,7 +350,9 @@
       "Сгибайте руки, направляя макушку к полу между кистями, без прогиба в пояснице.",
       "Отожмитесь вверх подконтрольно. Не используйте при ротации/компрессии."
     ],
-    "image_refs": []
+    "image_refs": [
+      "https://commons.wikimedia.org/wiki/File:Pike_Push_Ups.gif"
+    ]
   },
   {
     "id": "one_arm_row_supported",
@@ -425,7 +429,10 @@
       "Разводите руки в стороны за счёт сведения лопаток, без скручивания корпуса.",
       "Вернитесь подконтрольно. Лёгкий вес, средний диапазон повторений."
     ],
-    "image_refs": []
+    "image_refs": [
+      "https://commons.wikimedia.org/wiki/File:Lying-rear-lateral-raise-1.png",
+      "https://commons.wikimedia.org/wiki/File:Lying-rear-lateral-raise-2.png"
+    ]
   },
   {
     "id": "dead_bug",
@@ -504,7 +511,10 @@
       "Удерживайте ровное дыхание, без провисания и задержки воздуха.",
       "Равное время на каждый бок. Развивайте постепенно длительность удержания."
     ],
-    "image_refs": []
+    "image_refs": [
+      "https://commons.wikimedia.org/wiki/File:Side-plank-1.png",
+      "https://commons.wikimedia.org/wiki/File:Side-plank-2.png"
+    ]
   },
   {
     "id": "suitcase_hold_equal",
@@ -556,7 +566,9 @@
       "Таз не заваливайте, усилие умеренное, опорная нога стабильна.",
       "Удерживайте 20–30 секунд, затем поменяйте сторону. Равный объём."
     ],
-    "image_refs": []
+    "image_refs": [
+      "https://commons.wikimedia.org/wiki/File:Hip_abduction-CDC_strength_training_for_older_adults.gif"
+    ]
   },
   {
     "id": "wall_slide",
@@ -694,7 +706,10 @@
       "Опускайтесь подконтрольно до комфортной глубины, колени следуют за носками.",
       "Осевая нагрузка под тяжёлым весом остаётся существенной — блокируется правилом heavy_axial_loading."
     ],
-    "image_refs": []
+    "image_refs": [
+      "https://commons.wikimedia.org/wiki/File:Front-squat-1-857x1024.png",
+      "https://commons.wikimedia.org/wiki/File:Front-squat-2-857x1024.png"
+    ]
   },
   {
     "id": "overhead_barbell_press",
@@ -784,7 +799,10 @@
       "Опускайтесь до комфортного натяжения, без скругления позвоночника.",
       "Вернитесь, разгибаясь в тазу. Осевая нагрузка в наклоне — блокируется правилом heavy_axial_loading."
     ],
-    "image_refs": []
+    "image_refs": [
+      "https://commons.wikimedia.org/wiki/File:Good-mornings-1.png",
+      "https://commons.wikimedia.org/wiki/File:Good-mornings-2.png"
+    ]
   },
   {
     "id": "heavy_farmer_carry",
@@ -843,7 +861,9 @@
       "Движение контролируемое, без рывков; темп ровный.",
       "Сочетанная флексия и ротация под нагрузкой — блокируется правилом loaded_flexion_rotation."
     ],
-    "image_refs": []
+    "image_refs": [
+      "https://www.flickr.com/photos/121183998@N08/30283139408"
+    ]
   },
   {
     "id": "cable_woodchop",

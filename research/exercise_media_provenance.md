@@ -1,30 +1,37 @@
-# Exercise media provenance — DRE-79 (M8-A1)
+# Exercise media provenance — DRE-79 (M8-A1) + DRE-103 (follow-up)
 
 Audit trail for the exercise media populated in `data/exercises.json`
 (`video_url`, `how_to_steps_ru`, `image_refs`). Maintained by the
 Evidence & Research Analyst. Every media ref resolves to a real,
 
-license-clean source on **Wikimedia Commons** (PD / CC0 / CC BY / CC BY-SA),
-
-with credit + license recorded below.
+license-clean source — primarily **Wikimedia Commons** (PD / CC0 / CC BY /
+CC BY-SA); DRE-103 additionally admits **Flickr CC BY** photos from a
+contributor already vetted in this catalog (Eric Astrauskas / PTinTO —
+`bent_rotational_row`) when no Commons match exists. Credit + license are
+recorded below for every ref, Commons or Flickr.
 
 ## Method
 
-- Source: Wikimedia Commons API (`commons.wikimedia.org/w/api.php`), namespace 6 (File).
+- Source: Wikimedia Commons API (`commons.wikimedia.org/w/api.php`), namespace 6
+  (File); for DRE-103 gaps, Openverse (`api.openverse.org`) aggregating Flickr CC.
 - License gate: only `public domain`, `cc0`, `cc by *`, `cc by-sa *`, `gfdl` accepted.
-- Relevance gate: the Commons file title had to contain an exercise-specific token
-  (e.g. `goblet`, `squat`) — noisy matches were dropped (see Rejected below).
+- Relevance gate: the file/photo title had to contain an exercise-specific token
+  (e.g. `goblet`, `squat`); the DRE-103 Commons sweep additionally restricted
+  exercise schematics to purpose-made contributors (Everkinetic, CDC, Danielflefil)
+  and Flickr photos to an exact-title match from the already-vetted PTinTO album.
+  Noisy matches were dropped (see Rejected below).
 - Every chosen URL was verified to resolve (HTTP 200/206) at sourcing time.
 
 ## How the app surfaces these (license-defensibility)
 
-`data/exercises.json` stores the **Commons file-page URL**
-(`https://commons.wikimedia.org/wiki/File:…`), not the raw upload URL.
-The references card (`ClientExerciseReferences.ReferencesCard`) renders each ref
-as a button → `openUrl()` (it **links**, never reproduces inline). Tapping opens
-the Commons file page, which prominently shows author + license + source — i.e.
-attribution is available at the link target. Linking to a work is not a CC-restricted
-act, so this is license-defensible for PD/CC0/CC BY/CC BY-SA alike.
+`data/exercises.json` stores the **source page URL** — the Commons file-page URL
+(`https://commons.wikimedia.org/wiki/File:…`) or, for the two Flickr refs added in
+DRE-103, the Flickr photo-page URL. The references card
+(`ClientExerciseReferences.ReferencesCard`) renders each ref as a button →
+`openUrl()` (it **links**, never reproduces inline). Tapping opens the source page,
+which prominently shows author + license + source — i.e. attribution is available
+at the link target. Linking to a work is not a CC-restricted act, so this is
+license-defensible for PD/CC0/CC BY/CC BY-SA alike.
 
 **If the UI ever switches to inline image rendering** (download + `Image()`), the
 schema must carry `{url, license, credit}` per ref so CC BY/BY-SA attribution can be
@@ -36,8 +43,11 @@ below for exactly that promotion. That is the trigger to extend the schema
 ## Coverage
 
 - how-to steps: **all 36** exercises.
-- media: **19/36** exercises (2 video, 25 images).
-- how-to-only (no clean Commons match found): **17** — wall_axial_elongation, bulgarian_split_squat, single_leg_rdl_supported, pike_pushup_optional, one_arm_row_supported, prone_ytw, reverse_fly, dead_bug, side_plank_equal, wall_hip_abduction, wall_slide, barbell_front_squat, barbell_good_morning, loaded_russian_twist, cable_woodchop, landmine_rotation, loaded_good_morning_rotation.
+- media: **27/36** exercises (2 video, 33 images; +8 exercises sourced in DRE-103).
+- how-to-only (no clean, verifiable-relevance match found after the DRE-103 sweep
+  of Commons + Openverse/Flickr CC): **9** — wall_axial_elongation,
+  single_leg_rdl_supported, one_arm_row_supported, prone_ytw, dead_bug, wall_slide,
+  cable_woodchop, landmine_rotation, loaded_good_morning_rotation.
 
 ## Sourced media (full provenance)
 
@@ -70,6 +80,36 @@ below for exactly that promotion. That is the trigger to extend the schema
 | `bent_rotational_row` | image | CC BY-SA 3.0 | Everkinetic | File:Barbell-rear-delt-row-1.png | [page](https://commons.wikimedia.org/wiki/File:Barbell-rear-delt-row-1.png) | [asset](https://upload.wikimedia.org/wikipedia/commons/a/af/Barbell-rear-delt-row-1.png) |
 | `bent_rotational_row` | image | CC BY 2.0 | Eric Astrauskas, www.PTinTO.com | File:Landmine Bent-Over Rows.jpg | [page](https://commons.wikimedia.org/wiki/File:Landmine_Bent-Over_Rows.jpg) | [asset](https://upload.wikimedia.org/wikipedia/commons/thumb/4/46/Landmine_Bent-Over_Rows.jpg/960px-Landmine_Bent-Over_Rows.jpg) |
 | `heavy_rotational_carry` | image | CC BY-SA 4.0 | Mstephen247 | File:Man carrying suitcase and bag.jpg | [page](https://commons.wikimedia.org/wiki/File:Man_carrying_suitcase_and_bag.jpg) | [asset](https://upload.wikimedia.org/wikipedia/commons/thumb/5/50/Man_carrying_suitcase_and_bag.jpg/960px-Man_carrying_suitcase_and_bag.jpg) |
+| `barbell_front_squat` | image | CC BY-SA 3.0 | Everkinetic | File:Front-squat-1-857x1024.png | [page](https://commons.wikimedia.org/wiki/File:Front-squat-1-857x1024.png) | [asset](https://upload.wikimedia.org/wikipedia/commons/c/c3/Front-squat-1-857x1024.png) |
+| `barbell_front_squat` | image | CC BY-SA 3.0 | Everkinetic | File:Front-squat-2-857x1024.png | [page](https://commons.wikimedia.org/wiki/File:Front-squat-2-857x1024.png) | [asset](https://upload.wikimedia.org/wikipedia/commons/0/02/Front-squat-2-857x1024.png) |
+| `barbell_good_morning` | image | CC BY-SA 3.0 | Everkinetic | File:Good-mornings-1.png | [page](https://commons.wikimedia.org/wiki/File:Good-mornings-1.png) | [asset](https://upload.wikimedia.org/wikipedia/commons/a/a1/Good-mornings-1.png) |
+| `barbell_good_morning` | image | CC BY-SA 3.0 | Everkinetic | File:Good-mornings-2.png | [page](https://commons.wikimedia.org/wiki/File:Good-mornings-2.png) | [asset](https://upload.wikimedia.org/wikipedia/commons/7/70/Good-mornings-2.png) |
+| `side_plank_equal` | image | CC BY-SA 3.0 | Everkinetic | File:Side-plank-1.png | [page](https://commons.wikimedia.org/wiki/File:Side-plank-1.png) | [asset](https://upload.wikimedia.org/wikipedia/commons/f/f0/Side-plank-1.png) |
+| `side_plank_equal` | image | CC BY-SA 3.0 | Everkinetic | File:Side-plank-2.png | [page](https://commons.wikimedia.org/wiki/File:Side-plank-2.png) | [asset](https://upload.wikimedia.org/wikipedia/commons/0/0a/Side-plank-2.png) |
+| `reverse_fly` | image | CC BY-SA 3.0 | Everkinetic | File:Lying-rear-lateral-raise-1.png | [page](https://commons.wikimedia.org/wiki/File:Lying-rear-lateral-raise-1.png) | [asset](https://upload.wikimedia.org/wikipedia/commons/5/51/Lying-rear-lateral-raise-1.png) |
+| `reverse_fly` | image | CC BY-SA 3.0 | Everkinetic | File:Lying-rear-lateral-raise-2.png | [page](https://commons.wikimedia.org/wiki/File:Lying-rear-lateral-raise-2.png) | [asset](https://upload.wikimedia.org/wikipedia/commons/b/b4/Lying-rear-lateral-raise-2.png) |
+| `wall_hip_abduction` | image | Public domain | Centers for Disease Control and Prevention | File:Hip abduction-CDC strength training for older adults.gif | [page](https://commons.wikimedia.org/wiki/File:Hip_abduction-CDC_strength_training_for_older_adults.gif) | [asset](https://upload.wikimedia.org/wikipedia/commons/d/db/Hip_abduction-CDC_strength_training_for_older_adults.gif) |
+| `pike_pushup_optional` | image | CC BY-SA 4.0 | Danielflefil | File:Pike Push Ups.gif | [page](https://commons.wikimedia.org/wiki/File:Pike_Push_Ups.gif) | [asset](https://upload.wikimedia.org/wikipedia/commons/e/e2/Pike_Push_Ups.gif) |
+| `bulgarian_split_squat` | image | CC BY 2.0 | Eric Astrauskas, www.PTinTO.com | Flickr 42990005625 “Bulgarian Squats” | [page](https://www.flickr.com/photos/121183998@N08/42990005625) | [asset](https://live.staticflickr.com/930/42990005625_326c9171c8_b.jpg) |
+| `loaded_russian_twist` | image | CC BY 2.0 | Eric Astrauskas, www.PTinTO.com | Flickr 30283139408 “Russian Twists” | [page](https://www.flickr.com/photos/121183998@N08/30283139408) | [asset](https://live.staticflickr.com/1882/30283139408_6ef2d3250d_b.jpg) |
+
+## DRE-103 sourcing notes (relevance caveats)
+
+- `reverse_fly`: the Lying-rear-lateral-raise pair depicts the prone-supported
+  rear-delt fly — the same posterior-deltoid pattern as the bent-over reverse
+  fly; included as the movement-pattern reference (Commons has no bent-over
+  reverse-fly schematic).
+- `wall_hip_abduction`: the CDC gif depicts a **standing band-assisted** hip
+  abduction, not the wall-isometric. Same frontal-plane movement pattern; shown
+  as the pattern reference until a wall-isometric-specific depiction is sourced.
+- `bulgarian_split_squat` and `loaded_russian_twist`: Flickr CC BY 2.0 photos by
+  **Eric Astrauskas / PTinTO** — the same contributor already vetted in this
+  catalog for `bent_rotational_row`. Sourced on (a) vetted contributor + (b)
+  exact exercise-name title. **The depiction was not visually inspected by the
+  Evidence Analyst** (no image-viewing capability in the run); the references
+  card only links, so the user verifies the depiction at the Flickr page. The
+  raw staticflickr asset + license + credit are preserved above for the
+  inline-render promotion.
 
 ## Rejected at curation (relevance noise)
 
@@ -86,26 +126,26 @@ movement. All were dropped (not shipped) — listed so the gap is explicit:
 - `one_arm_row_supported`: *Leg Rowing Fisherman* / seated cable row — not a one-arm DB row.
 - `heavy_rotational_carry` 2nd ref: *Suitcase (AM 2007…)* — a museum object, not a carry.
 
-## How-to-only exercises — why
+## How-to-only exercises — why (9 remaining after DRE-103)
 
-These had no verified license-clean Commons match this pass. Per the task's explicit
-fallback ("иначе — текстовые how-to без медиа"), they ship how-to text only.
-A follow-up should re-source these (better queries / Everkinetic set / Pixabay PD/CC0).
+DRE-103 swept Commons (Everkinetic / CDC / Danielflefil / PTPioneer /
+FitnessScape / Taco fleur sets + broad title search) and Openverse/Flickr CC
+for all 17. **8 closed** (above). These **9** have no clean, verifiable-relevance
+match — they stay how-to text only (the references card surfaces the transparent
+MEDIA_PENDING marker, never a fabricated link). They do **not** block the UI
+chain or the M8 gate [DRE-91](/DRE/issues/DRE-91). Recommended next steps for a
+follow-up: commission original CC0 line illustrations for the rehab-specific
+movements (wall axial elongation, prone YTW, wall slide, dead bug) where no
+licence-clean photo exists; for the gym movements (single-leg RDL, one-arm row,
+cable woodchop, landmine rotation, good-morning rotation) re-scan Flickr CC BY
+by visually confirming each candidate at sourcing time.
 
 - `wall_axial_elongation` — Осевое вытяжение у стены
-- `bulgarian_split_squat` — Болгарский сплит-присед
 - `single_leg_rdl_supported` — Одноногая тяга с опорой
-- `pike_pushup_optional` — Пайк-отжимание (опционально)
 - `one_arm_row_supported` — Тяга гантели одной рукой с опорой
 - `prone_ytw` — Y–T–W лёжа
-- `reverse_fly` — Разведение гантелей в наклоне с опорой
 - `dead_bug` — Dead bug
-- `side_plank_equal` — Боковая планка — обе стороны поровну
-- `wall_hip_abduction` — Изометрия отведения бедра у стены
 - `wall_slide` — Скольжение руками по стене
-- `barbell_front_squat` — Приседания со штангой на груди
-- `barbell_good_morning` — Гудморнинг со штангой
-- `loaded_russian_twist` — Скручивания с отягощением (Russian twist)
 - `cable_woodchop` — Дровосек на кроссовере (cable woodchop)
 - `landmine_rotation` — Ротация со штангой в земле (landmine)
 - `loaded_good_morning_rotation` — Гудморнинг со штангой с ротацией
