@@ -41,9 +41,14 @@ import kotlinx.serialization.json.Json
  *    [fallbackExplain]) is built FIRST, before any provider call. A provider
  *    that is absent, errors, times out, or returns invalid output leaves the
  *    fallback standing — the user is never stranded without a result.
- *  - **#5 No LLM in the client.** This type is pure domain; the only LLM path is
- *    the [CoachProvider] port an operator wires on the **server** ([dreamteam
- *    server coach]). The client never calls a provider directly.
+ *  - **#5 Single LLM seam.** This type is pure domain; the only LLM path is the
+ *    [CoachProvider] port. An operator wires it on the **server** ([dreamteam
+ *    server coach]); DRE-175 additionally lets the app inject a user-creds
+ *    [CoachProvider] (their own URL+token) so "Спросить у AI" works before the
+ *    operator key ([DRE-130](/DRE/issues/DRE-130)) is provisioned. Either way the
+ *    provider result is enrichment only — the gate, the adapted plan, and
+ *    [validateProviderText] still own safety; the client never calls a provider
+ *    that bypasses them.
  *
  * The provider result is *enrichment only*: it may replace the fallback's text
  * (`summary_ru`, `corrections`) when it passes [validateProviderText], but the

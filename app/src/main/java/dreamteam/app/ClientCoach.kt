@@ -39,6 +39,13 @@ internal fun coachNotesFromRows(rows: List<ExerciseNoteRow>): List<CoachNote> =
  * "Сообщить коучу": run the coach over a finished session's notes (+ the user's
  * medical/symptom/progress context). Returns the gate-produced adapted plan +
  * phone-readable text. Pure given its inputs; same inputs → same report.
+ *
+ * DRE-175: precedence is **user-creds direct LLM** → operator server transport →
+ * deterministic fallback. The [userCoach] is a [Coach] wired to the user's own
+ * [CoachProvider] (their URL+token); when present it owns the whole result (its
+ * provider failing ⇒ its own deterministic fallback, so #4 still holds). The
+ * call is synchronous here — the Compose caller dispatches it off the main
+ * thread (Android blocks network on main).
  */
 internal fun coachReportForSession(
     profile: Profile,
@@ -48,12 +55,27 @@ internal fun coachReportForSession(
     today: String,
     originalPlanId: String = "baseline-12w",
     server: CoachServerClient? = coachServerClientOrNull(),
+    userCoach: Coach? = null,
 ): CoachReport {
     val medical = MedicalSafety(
         scoliosisReported = profile.scoliosisReported,
         redFlags = profile.redFlags,
     )
-    // M9-D (DRE-125): try the app→server coach transport first; on any failure
+    // DRE-175: the user's own creds are the primary path (their explicit config).
+    // Coach.report runs the pre-LLM gate + builds the adapted plan before any
+    // provider call; a provider failure leaves its deterministic fallback (#4).
+    userCoach?.let {
+        return it.report(
+            userId = "local",
+            createdAt = today,
+            medical = medical,
+            originalPlanId = originalPlanId,
+            notes = notes,
+            symptoms = clientSymptoms(symptoms),
+            progress = clientProgress(progress),
+        )
+    }
+    // M9-D (DRE-125): then the operator app→server coach transport; on any failure
     // (flag off / unreachable / unparseable) `server?.report` is null ⇒ the
     // local deterministic fallback stands (#4: never stranded).
     server?.report(medical, originalPlanId, notes)?.let { return it }
@@ -73,12 +95,16 @@ internal fun coachExplainForExercise(
     exerciseId: ExerciseId,
     profile: Profile,
     server: CoachServerClient? = coachServerClientOrNull(),
+    userCoach: Coach? = null,
 ): CoachExplain {
     val medical = MedicalSafety(
         scoliosisReported = profile.scoliosisReported,
         redFlags = profile.redFlags,
     )
-    // M9-D (DRE-125): try the app→server coach transport first; any failure ⇒ local fallback.
+    // DRE-175: user's own creds first (Coach.explain runs the pre-LLM gate; a
+    // provider failure ⇒ its deterministic fallback, #4).
+    userCoach?.let { return it.explain(exerciseId = exerciseId, medical = medical) }
+    // M9-D (DRE-125): then the operator app→server transport; any failure ⇒ local fallback.
     server?.explain(exerciseId, medical)?.let { return it }
     return appCoach.explain(exerciseId = exerciseId, medical = medical)
 }
@@ -146,6 +172,9 @@ internal object CoachStrings {
     const val ASK_AI = "Спросить у AI"
     /** "Сообщить коучу" CTA at the end of a session. */
     const val REPORT_CTA = "Сообщить о тренировке коучу"
+    /** DRE-175: inline hint while the (now async, possibly LLM) coach call runs. */
+    const val EXPLAIN_WORKING = "Думаю…"
+    const val REPORT_WORKING = "Готовлю отчёт…"
     const val EXPLAIN_TITLE = "Коуч — коротко"
     const val REPORT_TITLE = "Отчёт коучу"
     const val ORIGINAL_LABEL = "Оригинал"
@@ -164,7 +193,7 @@ internal object CoachStrings {
     const val PLAN_UNAVAILABLE = "Не удалось подготовить адаптацию плана. Оригинал сохранён — продолжайте по нему. Приложение поддерживает, а не заменяет врача."
 
     val all: List<String> = listOf(
-        ASK_AI, REPORT_CTA, EXPLAIN_TITLE, REPORT_TITLE, ORIGINAL_LABEL, ADAPTATION_LABEL,
+        ASK_AI, REPORT_CTA, EXPLAIN_WORKING, REPORT_WORKING, EXPLAIN_TITLE, REPORT_TITLE, ORIGINAL_LABEL, ADAPTATION_LABEL,
         ADAPTATION_DEFAULT_HINT, APPLY_ADAPTATION, KEEP_ORIGINAL, APPLIED_ADAPTATION, KEPT_ORIGINAL,
         SOURCE_LLM, SOURCE_FALLBACK, REDFLAG_BLOCK, PLAN_UNAVAILABLE,
     )

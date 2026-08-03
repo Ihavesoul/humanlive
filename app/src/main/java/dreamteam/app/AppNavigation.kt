@@ -5,6 +5,7 @@ import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -36,6 +37,7 @@ private val NAV_DESTINATIONS = listOf(
     NavDestination(Screen.Plan, UiStrings.NAV_PLAN, Icons.AutoMirrored.Filled.List),
     NavDestination(Screen.History, UiStrings.NAV_HISTORY, Icons.Filled.DateRange),
     NavDestination(Screen.EvidenceSources, UiStrings.NAV_SOURCES, Icons.Filled.Info),
+    NavDestination(Screen.Settings, UiStrings.NAV_SETTINGS, Icons.Filled.Settings),
 )
 
 /**
@@ -70,6 +72,7 @@ internal object UiStrings {
     const val NAV_PLAN = "План"
     const val NAV_HISTORY = "Журнал"
     const val NAV_SOURCES = "Источники"
+    const val NAV_SETTINGS = "Настройки"
 
-    val all: List<String> = listOf(APP_NAME, NAV_TODAY, NAV_PLAN, NAV_HISTORY, NAV_SOURCES)
+    val all: List<String> = listOf(APP_NAME, NAV_TODAY, NAV_PLAN, NAV_HISTORY, NAV_SOURCES, NAV_SETTINGS)
 }

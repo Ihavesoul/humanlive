@@ -38,8 +38,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import dreamteam.app.data.LocalDatabase
+import kotlinx.coroutines.launch
 import dreamteam.app.data.ExerciseNoteOutcome
 import dreamteam.app.data.Profile
 import dreamteam.app.data.ProgressRow
@@ -71,7 +73,7 @@ import java.time.LocalDate
  * blocks the plan and routes to assessment — the gate is structural, the user
  * cannot skip it.
  */
-internal enum class Screen { Onboarding, Today, Plan, Symptoms, Progress, History, EvidenceSources }
+internal enum class Screen { Onboarding, Today, Plan, Symptoms, Progress, History, EvidenceSources, Settings }
 
 /**
  * M8-D ([DRE-90](/DRE/issues/DRE-90)): the screens that show the bottom
@@ -80,7 +82,7 @@ internal enum class Screen { Onboarding, Today, Plan, Symptoms, Progress, Histor
  * write flows with their own Back button, so they hide the bottom bar.
  */
 internal val NAV_DESTINATION_SCREENS: Set<Screen> =
-    setOf(Screen.Today, Screen.Plan, Screen.History, Screen.EvidenceSources)
+    setOf(Screen.Today, Screen.Plan, Screen.History, Screen.EvidenceSources, Screen.Settings)
 
 /**
  * Outcome of the local deterministic generation, mirroring the server's. [Ok.signal]
@@ -238,13 +240,18 @@ private fun BlockCard(result: PlanResult.Blocked, resolver: EvidenceResolver) {
 fun DreamTeamApp(db: LocalDatabase) {
     var screen by remember { mutableStateOf(if (db.loadProfile() == null) Screen.Onboarding else Screen.Today) }
     var profile by remember { mutableStateOf(db.loadProfile()) }
+    // DRE-175: the user's encrypted AI-coach credential store (Android Keystore
+    // AES-GCM). Built once at the root and threaded into the coach call sites so
+    // "Спросить у AI" / "Сообщить коучу" can call the LLM directly with the
+    // user's own URL+token; absent creds ⇒ null ⇒ deterministic fallback (#4).
+    val appContext = LocalContext.current
+    val coachCredStore = remember { CoachCredentialStore(appContext) }
     // M6-B ([DRE-68](/DRE/issues/DRE-68)): the offline-first evidence resolver,
     // decoded once from the bundled catalog asset (single Android-I/O point) so
     // the nutrition + training views render READABLE citations, not raw ids. No
     // network; pure render below ([resolveCitations] / [nutritionPlanView]).
     // [LocalContext.current] is read outside the remember lambda — it is a
     // @Composable read and cannot live inside it.
-    val appContext = LocalContext.current
     val resolver = remember { loadEvidenceResolver(appContext.assets) }
     // M8-A ([DRE-80](/DRE/issues/DRE-80)): the offline-first exercise-library
     // resolver, decoded once from the bundled `exercises.json` asset (single
@@ -286,6 +293,7 @@ fun DreamTeamApp(db: LocalDatabase) {
                 profile = profile,
                 resolver = resolver,
                 exerciseLibrary = exerciseLibrary,
+                coachCredStore = coachCredStore,
                 onSymptoms = { screen = Screen.Symptoms },
                 onProgress = { screen = Screen.Progress },
             )
@@ -310,6 +318,7 @@ fun DreamTeamApp(db: LocalDatabase) {
                 profile = profile,
                 resolver = resolver,
                 exerciseLibrary = exerciseLibrary,
+                coachCredStore = coachCredStore,
                 onSymptoms = { screen = Screen.Symptoms },
                 onProgress = { screen = Screen.Progress },
             )
@@ -322,6 +331,14 @@ fun DreamTeamApp(db: LocalDatabase) {
                 modifier = Modifier.padding(padding),
                 db = db,
                 onBack = { screen = Screen.Today },
+            )
+            // DRE-175: the user-facing AI-coach credential screen (URL + token +
+            // model). Lets the user light up "Спросить у AI" with their own key
+            // before the operator server key ([DRE-130](/DRE/issues/DRE-130)) is
+            // provisioned. Creds are encrypted at rest (Android Keystore AES-GCM).
+            Screen.Settings -> SettingsScreen(
+                modifier = Modifier.padding(padding),
+                coachCredStore = coachCredStore,
             )
         }
     }
@@ -386,7 +403,7 @@ private fun OnboardingScreen(modifier: Modifier, onPlanReady: (Profile) -> Unit)
 
 @OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
-private fun PlanScreen(modifier: Modifier, db: LocalDatabase, profile: Profile?, resolver: EvidenceResolver, exerciseLibrary: ExerciseLibraryResolver, onSymptoms: () -> Unit, onProgress: () -> Unit) {
+private fun PlanScreen(modifier: Modifier, db: LocalDatabase, profile: Profile?, resolver: EvidenceResolver, exerciseLibrary: ExerciseLibraryResolver, coachCredStore: CoachCredentialStore, onSymptoms: () -> Unit, onProgress: () -> Unit) {
     val p = profile ?: run {
         Column(modifier.fillMaxSize().padding(16.dp)) { Text("Профиль не найден."); Button(onClick = {}) {} }
         return
@@ -453,7 +470,7 @@ private fun PlanScreen(modifier: Modifier, db: LocalDatabase, profile: Profile?,
                     }
                 }
                 items(result.week.sessions) { session ->
-                    SessionCard(db = db, session = session, resolver = resolver, exerciseLibrary = exerciseLibrary, profile = p)
+                    SessionCard(db = db, session = session, resolver = resolver, exerciseLibrary = exerciseLibrary, coachCredStore = coachCredStore, profile = p)
                 }
             }
         }
@@ -491,6 +508,7 @@ private fun TodayScreen(
     profile: Profile?,
     resolver: EvidenceResolver,
     exerciseLibrary: ExerciseLibraryResolver,
+    coachCredStore: CoachCredentialStore,
     onSymptoms: () -> Unit,
     onProgress: () -> Unit,
 ) {
@@ -519,7 +537,7 @@ private fun TodayScreen(
                 val session = todaySession(result.week, today)
                 item { Text(todayDateLine(session), style = androidx.compose.material3.MaterialTheme.typography.headlineMedium) }
                 item { Text(TodayStrings.TRAINING, style = androidx.compose.material3.MaterialTheme.typography.labelMedium) }
-                session?.let { s -> item { SessionCard(db = db, session = s, resolver = resolver, exerciseLibrary = exerciseLibrary, profile = p) } }
+                session?.let { s -> item { SessionCard(db = db, session = s, resolver = resolver, exerciseLibrary = exerciseLibrary, coachCredStore = coachCredStore, profile = p) } }
                 item { Text(TodayStrings.NUTRITION, style = androidx.compose.material3.MaterialTheme.typography.labelMedium) }
                 result.nutritionPlan?.let { plan ->
                     item {
@@ -692,6 +710,9 @@ private fun SessionCard(
     session: dreamteam.domain.training.PlanSession,
     resolver: EvidenceResolver,
     exerciseLibrary: ExerciseLibraryResolver,
+    // DRE-175: the coach call sites read the user's own encrypted creds at click
+    // time so a Settings save is reflected immediately (no stale cached coach).
+    coachCredStore: CoachCredentialStore,
     // M8-C ([DRE-89](/DRE/issues/DRE-89)): the coach needs the profile's medical
     // subset to run the pre-LLM red-flag gate + side-specific lock (#1).
     profile: Profile,
@@ -702,6 +723,10 @@ private fun SessionCard(
     // gate-produced coach result of "Сообщить коучу". Null ⇒ no dialog.
     var explainFor by remember { mutableStateOf<String?>(null) }
     var report by remember { mutableStateOf<dreamteam.domain.coach.CoachReport?>(null) }
+    // DRE-175: the LLM call is async (Android blocks network on the main thread).
+    // reportLoading ⇒ the button shows a working hint while the coroutine runs.
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    var reportLoading by remember { mutableStateOf(false) }
     // The user's last choice in the original-vs-adaptation popup, shown inline as
     // visible feedback (reviewer p.3.4: adaptation default-selected; original preserved).
     var adaptationChoice by remember { mutableStateOf<Boolean?>(null) }
@@ -806,23 +831,37 @@ private fun SessionCard(
             // symptoms/progress, runs the gated coach, and opens the
             // "оригинал vs адаптация" popup (adaptation = default, original
             // preserved). All safety-gated: a red flag surfaces as a block, not a plan.
+            // DRE-175: dispatched off the main thread — the user's LLM call is a
+            // network op Android forbids on main; reportLoading gates re-entry.
             OutlinedButton(
+                enabled = !reportLoading,
                 onClick = {
-                    report = coachReportForSession(
-                        profile = profile,
-                        notes = coachNotesFromRows(db.sessionExerciseNotes(session.id)),
-                        symptoms = db.recentSymptoms(),
-                        progress = db.recentProgress(),
-                        today = today,
-                    )
+                    reportLoading = true
+                    scope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                        val r = coachReportForSession(
+                            profile = profile,
+                            notes = coachNotesFromRows(db.sessionExerciseNotes(session.id)),
+                            symptoms = db.recentSymptoms(),
+                            progress = db.recentProgress(),
+                            today = today,
+                            userCoach = coachForUserCreds(coachCredStore.load()),
+                        )
+                        report = r
+                        reportLoading = false
+                    }
                 },
                 modifier = Modifier.fillMaxWidth(),
-            ) { Text(CoachStrings.REPORT_CTA) }
+            ) { Text(if (reportLoading) CoachStrings.REPORT_WORKING else CoachStrings.REPORT_CTA) }
         }
     }
     // M8-C: the explain cue popup (one exercise).
     explainFor?.let { exId ->
-        ExerciseCoachDialog(exerciseId = exId, profile = profile, onDismiss = { explainFor = null })
+        ExerciseCoachDialog(
+            exerciseId = exId,
+            profile = profile,
+            coachCredStore = coachCredStore,
+            onDismiss = { explainFor = null },
+        )
     }
     // M8-C: the report / original-vs-adaptation popup.
     report?.let { r ->
@@ -835,15 +874,36 @@ private fun SessionCard(
 }
 
 /**
- * M8-C: the "Спросить у AI" cue popup. Computes the deterministic coach cue and
- * shows it phone-readably. A red-flag profile shows the block line instead.
+ * M8-C: the "Спросить у AI" cue popup. Computes the coach cue and shows it
+ * phone-readably. A red-flag profile shows the block line instead.
+ *
+ * DRE-175: the cue is computed off the main thread ([Dispatchers.IO]) because the
+ * user's LLM endpoint is a network call Android forbids on main; while the
+ * coroutine runs the dialog shows a working hint, and once it lands the result
+ * is the same [CoachExplain] (fallback-or-LLM) the phone-readable render expects.
  */
 @Composable
-private fun ExerciseCoachDialog(exerciseId: String, profile: Profile, onDismiss: () -> Unit) {
-    val result = remember(exerciseId, profile) { coachExplainForExercise(exerciseId, profile) }
-    val body = when (result) {
+private fun ExerciseCoachDialog(
+    exerciseId: String,
+    profile: Profile,
+    coachCredStore: CoachCredentialStore,
+    onDismiss: () -> Unit,
+) {
+    var result by remember(exerciseId) { mutableStateOf<dreamteam.domain.coach.CoachExplain?>(null) }
+    androidx.compose.runtime.LaunchedEffect(exerciseId) {
+        result = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            coachExplainForExercise(
+                exerciseId = exerciseId,
+                profile = profile,
+                userCoach = coachForUserCreds(coachCredStore.load()),
+            )
+        }
+    }
+    val resolved = result
+    val body = when (resolved) {
+        null -> CoachStrings.EXPLAIN_WORKING
         is dreamteam.domain.coach.CoachExplain.Ok -> {
-            val v = coachExplainView(result)
+            val v = coachExplainView(resolved)
             "${v.summaryRu}\n(${v.sourceLabel})"
         }
         is dreamteam.domain.coach.CoachExplain.Blocked -> CoachStrings.REDFLAG_BLOCK
@@ -1015,4 +1075,101 @@ private fun ProgressScreen(modifier: Modifier, db: LocalDatabase, onBack: () -> 
         Text("Недавние записи:", fontWeight = FontWeight.SemiBold)
         rows.forEach { r: ProgressRow -> Text("• ${r.recordedOn}: ${r.weightKg} кг") }
     }
+}
+
+/**
+ * DRE-175 — the user-facing AI-coach credential screen. Three fields (URL, токен,
+ * модель) persisted encrypted-at-rest via [CoachCredentialStore] (Android Keystore
+ * AES-GCM, not plaintext SharedPreferences). With creds saved, "Спросить у AI" /
+ * "Сообщить коучу" call the user's LLM directly; with none, the app behaves exactly
+ * as before (deterministic fallback) — it never crashes. Support framing only:
+ * the screen lets the user *configure* a tool, it makes no medical claim.
+ */
+@Composable
+private fun SettingsScreen(modifier: Modifier, coachCredStore: CoachCredentialStore) {
+    val saved = remember { coachCredStore.load() }
+    var baseUrl by remember { mutableStateOf(saved?.baseUrl ?: SettingsStrings.DEFAULT_URL) }
+    var token by remember { mutableStateOf(saved?.token ?: "") }
+    var model by remember { mutableStateOf(saved?.model ?: SettingsStrings.DEFAULT_MODEL) }
+    var message by remember { mutableStateOf<String?>(null) }
+    LazyColumn(modifier = modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        item { Text(SettingsStrings.TITLE, fontWeight = FontWeight.Bold) }
+        item { Text(SettingsStrings.HINT, fontWeight = FontWeight.Light) }
+        item {
+            OutlinedTextField(
+                value = baseUrl,
+                onValueChange = { baseUrl = it },
+                label = { Text(SettingsStrings.URL_LABEL) },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+        item {
+            OutlinedTextField(
+                value = token,
+                onValueChange = { token = it },
+                label = { Text(SettingsStrings.TOKEN_LABEL) },
+                singleLine = true,
+                visualTransformation = PasswordVisualTransformation(),
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+        item {
+            OutlinedTextField(
+                value = model,
+                onValueChange = { model = it },
+                label = { Text(SettingsStrings.MODEL_LABEL) },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+        item {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                Button(
+                    onClick = {
+                        coachCredStore.save(CoachCredentials(baseUrl.trim(), token.trim(), model.trim()))
+                        message = if (token.isBlank()) SettingsStrings.CLEARED else SettingsStrings.SAVED
+                    },
+                    modifier = Modifier.weight(1f),
+                ) { Text(SettingsStrings.SAVE) }
+                OutlinedButton(
+                    onClick = {
+                        coachCredStore.clear()
+                        token = ""; baseUrl = SettingsStrings.DEFAULT_URL; model = SettingsStrings.DEFAULT_MODEL
+                        message = SettingsStrings.CLEARED
+                    },
+                    modifier = Modifier.weight(1f),
+                ) { Text(SettingsStrings.CLEAR) }
+            }
+        }
+        message?.let { m -> item { Text(m, fontWeight = FontWeight.Light) } }
+    }
+}
+
+/**
+ * DRE-175 — the authored strings the Settings screen renders. Gathered as
+ * [all] so a JVM test snapshots them against the banned medical-claim phrase
+ * list (mirrors [UiStrings] / [CoachStrings]). Support framing only: the screen
+ * configures a tool — no diagnosis, no treatment claim.
+ */
+internal object SettingsStrings {
+    const val TITLE = "Настройки AI-коуча"
+    const val HINT = "Укажите ссылку API и токен, чтобы «Спросить у AI» вызывал вашу модель напрямую. Без них приложение работает как раньше. Приложение поддерживает, не заменяет врача."
+    const val URL_LABEL = "URL API (ссылка)"
+    const val TOKEN_LABEL = "Токен"
+    const val MODEL_LABEL = "Модель"
+    const val SAVE = "Сохранить"
+    const val CLEAR = "Сбросить"
+    const val SAVED = "Сохранено. Ключ хранится зашифрованным на устройстве."
+    const val CLEARED = "Ключ сброшен. AI использует офлайн-план."
+    // Default base URL = Z.AI's OpenAI-compatible endpoint (server-confirmed); the
+    // user can change it for any compatible provider. Default model = glm-4.6
+    // (the server's working thinking flagship; "glm-5.2" / Max think is the spec
+    // target — editable here when Z.AI ships that id).
+    const val DEFAULT_URL = "https://api.z.ai/api/paas/v4"
+    const val DEFAULT_MODEL = "glm-4.6"
+
+    val all: List<String> = listOf(
+        TITLE, HINT, URL_LABEL, TOKEN_LABEL, MODEL_LABEL, SAVE, CLEAR, SAVED, CLEARED, DEFAULT_URL, DEFAULT_MODEL,
+    )
 }
