@@ -595,6 +595,15 @@ private fun TodayScreen(
         item {
             TextButton(onClick = { launchDataExport(shareContext, db) }, modifier = Modifier.fillMaxWidth()) { Text(ExportUiStrings.BUTTON) }
         }
+        // M10-D ([DRE-191](/DRE/issues/DRE-191)): the deterministic local-diagnostics
+        // handoff — a lean support bundle (version, data volume, gate decisions; NO
+        // user free-text) reusing the SAME share edge as the export. Quieter text
+        // action, surfaced alongside export so a user reporting an issue can ship a
+        // no-SDK self-check dump to support. Works pre-onboarding too (no_profile).
+        item { Text(DiagnosticsUiStrings.CAPTION, style = androidx.compose.material3.MaterialTheme.typography.bodySmall, fontStyle = FontStyle.Italic) }
+        item {
+            TextButton(onClick = { launchDiagnosticsExport(shareContext, db) }, modifier = Modifier.fillMaxWidth()) { Text(DiagnosticsUiStrings.BUTTON) }
+        }
     }
 }
 
