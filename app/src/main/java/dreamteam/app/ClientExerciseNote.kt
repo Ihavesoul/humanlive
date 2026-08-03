@@ -15,6 +15,16 @@ import dreamteam.app.data.ExerciseNoteOutcome
  * ([ExerciseNoteOutcome.labelRu]) are app-authored too, so they are folded into
  * [all] for the same banned-phrase scan.
  *
+ * M9 polish ([DRE-179](/DRE/issues/DRE-179)) — human-review readability pass:
+ * the note-field strings (LABEL / HINT / SAVE / OUTCOME_LABEL) and the four
+ * outcome chips were reviewed for plain, phone-readable, scoliosis-safe
+ * framing. Conclusion: they already read plainly on a phone (warm self-report
+ * invite «Что вышло, что нет, дискомфорт или боль», short colloquial chips) and
+ * carry no medical/diagnosis claim. No copy change — the field is the user's
+ * INPUT, so a per-row "why" microcopy would only clutter every exercise row
+ * (the dedicated "why this exercise" line lives on the references card,
+ * [ReferencesCardStrings.WHY], the surface a user opens for context).
+ *
  * Framing is support/transparency only — the app invites a self-report
  * ("что вышло / что нет / боль"), never diagnoses or treats. "боль" is
  * intentionally allowed: it is the user's own experience being asked for, the

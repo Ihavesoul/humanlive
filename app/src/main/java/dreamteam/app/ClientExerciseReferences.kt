@@ -220,6 +220,18 @@ internal fun referencesHeaderLine(name: String, refs: ResolvedReferences): Strin
  */
 internal object ReferencesCardStrings {
     const val TITLE = "Материалы и источники"
+    /**
+     * M9 polish ([DRE-179](/DRE/issues/DRE-179)): one scoliosis-safe, phone-readable
+     * "why this exercise is in your plan" line at the top of the expanded card.
+     * Support framing only — it states the exercise is personalized ("из вашего
+     * плана": the plan is curve-aware via the safety gate / conditionFlags) and
+     * points at the materials/sources below, WITHOUT asserting a condition-
+     * specific benefit. "Good for your curve" / "safe for scoliosis" would be a
+     * condition claim the Safety Reviewer owns; the evidence section is the
+     * sourced basis (EvidenceLinked), this line only invites the user to it.
+     * No banned diagnostic/treatment substring (verified by the [all] scan).
+     */
+    const val WHY = "Это упражнение — из вашего плана. Ниже — как выполнять и материалы."
     const val HOW_TO = "Как выполнять"
     const val VIDEO = "Смотреть видео"
     const val IMAGE = "Открыть схему"
@@ -230,7 +242,7 @@ internal object ReferencesCardStrings {
     const val SHOW = "Показать"
     const val HIDE = "Скрыть"
 
-    val all: List<String> = listOf(TITLE, HOW_TO, VIDEO, IMAGE, EVIDENCE, MEDIA_PENDING, SHOW, HIDE)
+    val all: List<String> = listOf(TITLE, WHY, HOW_TO, VIDEO, IMAGE, EVIDENCE, MEDIA_PENDING, SHOW, HIDE)
 }
 
 /**
@@ -277,6 +289,11 @@ internal fun ReferencesCard(name: String, refs: ResolvedReferences, modifier: Mo
                 )
             }
             if (expanded) {
+                // M9 polish (DRE-179): the one-line scoliosis-safe "why this is in
+                // your plan" intro — support framing, points at the detail below,
+                // never a condition claim. First thing read on expand so the
+                // how-to / media / evidence that follows has a purpose line.
+                Text(ReferencesCardStrings.WHY, fontWeight = FontWeight.Light)
                 if (refs.howToStepsRu.isNotEmpty()) {
                     Text(ReferencesCardStrings.HOW_TO, fontWeight = FontWeight.Medium)
                     refs.howToStepsRu.forEachIndexed { i, step -> Text("${i + 1}. $step") }
