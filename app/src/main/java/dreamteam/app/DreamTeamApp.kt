@@ -423,18 +423,15 @@ private fun PlanScreen(modifier: Modifier, db: LocalDatabase, profile: Profile?,
                 item {
                     Card(modifier = Modifier.fillMaxWidth()) {
                         Column(Modifier.padding(12.dp)) {
+                            // M9-C density pass ([DRE-181](/DRE/issues/DRE-181)): the
+                            // week title carries week # + phase in ONE scannable line.
+                            // The chip row DRE-120 added here duplicated those exact
+                            // [PlanWeek] fields verbatim — pure redundancy, removed.
+                            // (Exercise cards KEEP their chips: sets/reps/RIR/equipment/
+                            // evidence are distinct facts that read well as tags; the week
+                            // header had only these two, already in the title.) Same data,
+                            // same gate; no new claim, no new state.
                             Text("Неделя ${result.week.weekNumber} · ${result.week.phase}", style = androidx.compose.material3.MaterialTheme.typography.titleLarge)
-                            // M9-C ([DRE-120](/DRE/issues/DRE-120)): a dense chip row
-                            // under the week title (week # + phase) — the same app-like
-                            // tag feel as the exercise cards, no new data. Pure render of
-                            // the same [PlanWeek] fields the title line already shows.
-                            FlowRow(
-                                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                verticalArrangement = Arrangement.spacedBy(4.dp),
-                            ) {
-                                MetaTag("Неделя ${result.week.weekNumber}")
-                                MetaTag(result.week.phase)
-                            }
                             // M4-C ([DRE-57](/DRE/issues/DRE-57)): render the full surfaced
                             // NutritionPlan via the pure [nutritionPlanView] (extracted so its
                             // strings are banned-phrase-tested, [NutritionPlanViewTest]): target +
@@ -535,32 +532,47 @@ private fun TodayScreen(
                 // Today's session is a pure pick from the SAME week PlanScreen
                 // renders — no second source of truth.
                 val session = todaySession(result.week, today)
-                item { Text(todayDateLine(session), style = androidx.compose.material3.MaterialTheme.typography.headlineMedium) }
-                item { Text(TodayStrings.TRAINING, style = androidx.compose.material3.MaterialTheme.typography.labelMedium) }
-                session?.let { s -> item { SessionCard(db = db, session = s, resolver = resolver, exerciseLibrary = exerciseLibrary, coachCredStore = coachCredStore, profile = p) } }
-                item { Text(TodayStrings.NUTRITION, style = androidx.compose.material3.MaterialTheme.typography.labelMedium) }
+                // M9-C density pass ([DRE-181](/DRE/issues/DRE-181)): demote the date
+                // line headlineMedium→titleLarge (headline was tall sprawl at the top),
+                // and fold each section label + its content into ONE item so the label
+                // sits 2dp above its card — a grouped scannable block instead of a
+                // loose label floating 8dp above its card (the MD-outline feel). Same
+                // strings ([TodayStrings.all] unchanged), same data, same writes; pure
+                // layout tightening, no new state, no new screen.
+                item { Text(todayDateLine(session), style = androidx.compose.material3.MaterialTheme.typography.titleLarge) }
+                item {
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text(TodayStrings.TRAINING, style = androidx.compose.material3.MaterialTheme.typography.labelMedium)
+                        session?.let { s -> SessionCard(db = db, session = s, resolver = resolver, exerciseLibrary = exerciseLibrary, coachCredStore = coachCredStore, profile = p) }
+                    }
+                }
                 result.nutritionPlan?.let { plan ->
                     item {
-                        val view = remember(plan) { nutritionPlanView(plan, resolver) }
-                        Card(modifier = Modifier.fillMaxWidth()) {
-                            Column(Modifier.padding(12.dp)) {
-                                Text(view.targetLine, fontWeight = FontWeight.SemiBold)
-                                view.meals.forEach { m -> Text("${m.label}: ${m.line}", fontWeight = FontWeight.Light) }
-                                // M6-B: READABLE citations per ref, not raw ids.
-                                view.evidenceRows.forEach { c -> Text("• ${c.line}", fontWeight = FontWeight.Light) }
-                                Text(view.disclaimer, fontWeight = FontWeight.Light, fontStyle = FontStyle.Italic)
+                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Text(TodayStrings.NUTRITION, style = androidx.compose.material3.MaterialTheme.typography.labelMedium)
+                            val view = remember(plan) { nutritionPlanView(plan, resolver) }
+                            Card(modifier = Modifier.fillMaxWidth()) {
+                                Column(Modifier.padding(12.dp)) {
+                                    Text(view.targetLine, fontWeight = FontWeight.SemiBold)
+                                    view.meals.forEach { m -> Text("${m.label}: ${m.line}", fontWeight = FontWeight.Light) }
+                                    // M6-B: READABLE citations per ref, not raw ids.
+                                    view.evidenceRows.forEach { c -> Text("• ${c.line}", fontWeight = FontWeight.Light) }
+                                    Text(view.disclaimer, fontWeight = FontWeight.Light, fontStyle = FontStyle.Italic)
+                                }
                             }
                         }
                     }
                 }
-                item { Text(TodayStrings.ADAPTATION, style = androidx.compose.material3.MaterialTheme.typography.labelMedium) }
                 // On AdaptationSignal.None → null → nothing (baseline shows as today).
                 adaptationNote(result.signal)?.let { note ->
                     item {
-                        Card(modifier = Modifier.fillMaxWidth()) {
-                            Column(Modifier.padding(12.dp)) {
-                                Text(note.indicator, fontWeight = FontWeight.SemiBold)
-                                Text(note.reason, fontWeight = FontWeight.Light)
+                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Text(TodayStrings.ADAPTATION, style = androidx.compose.material3.MaterialTheme.typography.labelMedium)
+                            Card(modifier = Modifier.fillMaxWidth()) {
+                                Column(Modifier.padding(12.dp)) {
+                                    Text(note.indicator, fontWeight = FontWeight.SemiBold)
+                                    Text(note.reason, fontWeight = FontWeight.Light)
+                                }
                             }
                         }
                     }
