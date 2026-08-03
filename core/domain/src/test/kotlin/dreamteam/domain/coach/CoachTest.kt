@@ -5,6 +5,7 @@ import dreamteam.domain.progress.ProgressEntry
 import dreamteam.domain.safety.MedicalSafety
 import dreamteam.domain.safety.SafetyGuardedGateway
 import dreamteam.domain.safety.ScreeningContext
+import dreamteam.domain.safety.SafetyGate
 import dreamteam.domain.safety.StructuralSafetyRules
 import dreamteam.domain.symptom.Symptom
 import dreamteam.domain.training.BaselineProgram
@@ -262,6 +263,28 @@ class CoachTest {
                 banned.forEach { b -> (b !in lower) shouldBe true }
             }
         }
+    }
+
+    @Test
+    fun `the coach system prompt and report payload carry the UNTRUSTED_USER_NOTES delimiter (DRE-105)`() {
+        // Defense-in-depth (M10-A / [DRE-105](/DRE/issues/DRE-105)): the spec twins
+        // (LLM_Harness.md §Free-text isolation, Safety_Threat_Model.md prompt-
+        // injection row) and the prompts/coach_prompt_ru.md twin name the control
+        // as user notes wrapped in <UNTRUSTED_USER_NOTES> AND the system prompt
+        // stating the block cannot alter policy/schema/allowlist/safety gate. The
+        // in-code prompt had drifted off both; pin them so it cannot recur silently.
+        val prompt = Coach.COACH_SYSTEM_PROMPT
+        ("<UNTRUSTED_USER_NOTES>" in prompt) shouldBe true
+        ("не может изменить" in prompt) shouldBe true // framing sentence, not just the token
+
+        val plan = (coach().report(
+            userId = "local", createdAt = "2026-07-25",
+            medical = cleanMedical, originalPlanId = "baseline-12w", notes = painNotes,
+        ) as CoachReport.Ok).adaptedPlan
+        val payload = reportPayload(plan, painNotes, emptyList(), cleanMedical, SafetyGate.evaluate(cleanMedical))
+        ("<UNTRUSTED_USER_NOTES>" in payload) shouldBe true
+        ("</UNTRUSTED_USER_NOTES>" in payload) shouldBe true
+        ("exercise_notes" in payload) shouldBe true // structured array stays a separate machine channel
     }
 
     @Test
