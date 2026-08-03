@@ -171,7 +171,10 @@ internal object CoachStrings {
     /** "Спросить у AI" button on an exercise row. */
     const val ASK_AI = "Спросить у AI"
     /** "Сообщить коучу" CTA at the end of a session. */
-    const val REPORT_CTA = "Сообщить о тренировке коучу"
+    // M10 ([DRE-189](/DRE/issues/DRE-189)): shortened from «Сообщить о тренировке
+    // коучу» so the label fits its full-width button on a 360dp phone without
+    // wrapping (criterion 2). Same action, scan-clean support framing.
+    const val REPORT_CTA = "Отправить коучу"
     /** DRE-175: inline hint while the (now async, possibly LLM) coach call runs. */
     const val EXPLAIN_WORKING = "Думаю…"
     const val REPORT_WORKING = "Готовлю отчёт…"

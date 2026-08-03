@@ -2,6 +2,7 @@ package dreamteam.app
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
@@ -19,8 +20,10 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -41,6 +44,7 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import dreamteam.app.data.LocalDatabase
+import dreamteam.app.ui.Spacing
 import kotlinx.coroutines.launch
 import dreamteam.app.data.ExerciseNoteOutcome
 import dreamteam.app.data.Profile
@@ -225,7 +229,7 @@ internal fun regenerateLocalPlans(
 private fun BlockCard(result: PlanResult.Blocked, resolver: EvidenceResolver) {
     val explanation = remember(result) { safetyBlockExplanation(result.reason, result.ruleIds, CLIENT_SAFETY_RULES, resolver) }
     Card(modifier = Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Column(Modifier.padding(Spacing.card), verticalArrangement = Arrangement.spacedBy(Spacing.tightGap)) {
             Text(explanation.reason, fontWeight = FontWeight.Medium)
             if (explanation.citations.isNotEmpty()) {
                 Text(SafetyBlockStrings.CITATION_LABEL, fontWeight = FontWeight.Light)
@@ -422,7 +426,7 @@ private fun PlanScreen(modifier: Modifier, db: LocalDatabase, profile: Profile?,
             is PlanResult.Ok -> {
                 item {
                     Card(modifier = Modifier.fillMaxWidth()) {
-                        Column(Modifier.padding(12.dp)) {
+                        Column(Modifier.padding(Spacing.card)) {
                             // M9-C density pass ([DRE-181](/DRE/issues/DRE-181)): the
                             // week title carries week # + phase in ONE scannable line.
                             // The chip row DRE-120 added here duplicated those exact
@@ -475,10 +479,7 @@ private fun PlanScreen(modifier: Modifier, db: LocalDatabase, profile: Profile?,
         // (matching Today) instead of a stacked link pair — same writes, less
         // MD-viewer feel. The bottom nav carries the read destinations.
         item {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                androidx.compose.material3.FilledTonalButton(onClick = onProgress, modifier = Modifier.weight(1f)) { Text(TodayStrings.LOG_PROGRESS) }
-                androidx.compose.material3.FilledTonalButton(onClick = onSymptoms, modifier = Modifier.weight(1f)) { Text(TodayStrings.LOG_SYMPTOM) }
-            }
+            QuickLogActions(onProgress = onProgress, onSymptoms = onSymptoms)
         }
     }
 }
@@ -552,7 +553,7 @@ private fun TodayScreen(
                             Text(TodayStrings.NUTRITION, style = androidx.compose.material3.MaterialTheme.typography.labelMedium)
                             val view = remember(plan) { nutritionPlanView(plan, resolver) }
                             Card(modifier = Modifier.fillMaxWidth()) {
-                                Column(Modifier.padding(12.dp)) {
+                                Column(Modifier.padding(Spacing.card)) {
                                     Text(view.targetLine, fontWeight = FontWeight.SemiBold)
                                     view.meals.forEach { m -> Text("${m.label}: ${m.line}", fontWeight = FontWeight.Light) }
                                     // M6-B: READABLE citations per ref, not raw ids.
@@ -569,7 +570,7 @@ private fun TodayScreen(
                         Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                             Text(TodayStrings.ADAPTATION, style = androidx.compose.material3.MaterialTheme.typography.labelMedium)
                             Card(modifier = Modifier.fillMaxWidth()) {
-                                Column(Modifier.padding(12.dp)) {
+                                Column(Modifier.padding(Spacing.card)) {
                                     Text(note.indicator, fontWeight = FontWeight.SemiBold)
                                     Text(note.reason, fontWeight = FontWeight.Light)
                                 }
@@ -588,10 +589,7 @@ private fun TodayScreen(
         // deterministic plan on return (same snapshot keys as PlanScreen).
         item { Text(TodayStrings.LOG_HINT, style = androidx.compose.material3.MaterialTheme.typography.bodySmall) }
         item {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                androidx.compose.material3.FilledTonalButton(onClick = onProgress, modifier = Modifier.weight(1f)) { Text(TodayStrings.LOG_PROGRESS) }
-                androidx.compose.material3.FilledTonalButton(onClick = onSymptoms, modifier = Modifier.weight(1f)) { Text(TodayStrings.LOG_SYMPTOM) }
-            }
+            QuickLogActions(onProgress = onProgress, onSymptoms = onSymptoms)
         }
         item { Text(ExportUiStrings.CAPTION, style = androidx.compose.material3.MaterialTheme.typography.bodySmall, fontStyle = FontStyle.Italic) }
         item {
@@ -717,6 +715,36 @@ private fun MetaTag(label: String, modifier: Modifier = Modifier) {
 
 @OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
+private fun QuickLogActions(onProgress: () -> Unit, onSymptoms: () -> Unit) {
+    // M10 ([DRE-189](/DRE/issues/DRE-189)): the shared, width-adaptive quick-log
+    // actions row rendered on both Today and Plan. BoxWithConstraints
+    // (foundation-only, no new dep) branches on width: on a compact phone
+    // (<600dp) the two buttons take their natural width inside a FlowRow so they
+    // sit side-by-side when they fit and wrap to a second line when they do not —
+    // never truncating a long RU label (criterion 2). On a wider screen they
+    // split the row evenly (Row + weight). Same two writes; pure layout, the
+    // gate/plan/logic is unchanged.
+    BoxWithConstraints {
+        if (maxWidth < 600.dp) {
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(Spacing.itemGap),
+                verticalArrangement = Arrangement.spacedBy(Spacing.itemGap),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                FilledTonalButton(onClick = onProgress) { Text(TodayStrings.LOG_PROGRESS) }
+                FilledTonalButton(onClick = onSymptoms) { Text(TodayStrings.LOG_SYMPTOM) }
+            }
+        } else {
+            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.itemGap), modifier = Modifier.fillMaxWidth()) {
+                FilledTonalButton(onClick = onProgress, modifier = Modifier.weight(1f)) { Text(TodayStrings.LOG_PROGRESS) }
+                FilledTonalButton(onClick = onSymptoms, modifier = Modifier.weight(1f)) { Text(TodayStrings.LOG_SYMPTOM) }
+            }
+        }
+    }
+}
+
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+@Composable
 private fun SessionCard(
     db: LocalDatabase,
     session: dreamteam.domain.training.PlanSession,
@@ -743,10 +771,22 @@ private fun SessionCard(
     // visible feedback (reviewer p.3.4: adaptation default-selected; original preserved).
     var adaptationChoice by remember { mutableStateOf<Boolean?>(null) }
     Card(modifier = Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text("${session.day} · ${session.label}", style = androidx.compose.material3.MaterialTheme.typography.titleLarge)
-            session.assignments.forEach { a ->
-                val name = BaselineProgram.exercises[a.exerciseId]?.name ?: a.exerciseId
+        // M10 ([DRE-189](/DRE/issues/DRE-189)): adapt the session card to width.
+        // BoxWithConstraints (foundation-only, no new dep) branches spacing on a
+        // compact (<600dp) vs normal phone so a workout list breathes on a Pixel
+        // and never cramps on a 360dp device — reversing the M9 over-densification
+        // that read as «приложение для роботов». The gate/plan/data are untouched.
+        BoxWithConstraints {
+            val compact = maxWidth < 600.dp
+            val exGap = if (compact) Spacing.tightGap else Spacing.itemGap
+            Column(Modifier.padding(Spacing.card), verticalArrangement = Arrangement.spacedBy(Spacing.itemGap)) {
+                Text("${session.day} · ${session.label}", style = androidx.compose.material3.MaterialTheme.typography.titleLarge)
+                // M10 (criterion 5): exercises are visually distinct + scannable,
+                // not a solid wall — a divider + consistent gap separates each
+                // assignment so the eye can pick one exercise out of the list.
+                Column(verticalArrangement = Arrangement.spacedBy(exGap)) {
+                    session.assignments.forEachIndexed { index, a ->
+                        val name = BaselineProgram.exercises[a.exerciseId]?.name ?: a.exerciseId
                 // M8-A ([DRE-80](/DRE/issues/DRE-80)): consolidate this exercise's
                 // video / how-to / images / evidence into ONE tappable references
                 // card (0 naked links). Resolved up here (not inline) so the M9-C
@@ -772,7 +812,16 @@ private fun SessionCard(
                 val noteSaved = remember(session.id, a.exerciseId) { db.exerciseNote(session.id, a.exerciseId) }
                 var noteDraft by remember(session.id, a.exerciseId) { mutableStateOf(noteSaved?.note ?: "") }
                 var outcomeDraft by remember(session.id, a.exerciseId) { mutableStateOf(noteSaved?.outcome) }
-                Column(Modifier.fillMaxWidth().padding(vertical = 2.dp)) {
+                Column(Modifier.fillMaxWidth()) {
+                    // M10 (criterion 5): a hairline divider between exercises so a
+                    // multi-exercise session reads as a list, not a wall. Skipped
+                    // before the first so the title-to-first gap stays clean.
+                    if (index > 0) {
+                        HorizontalDivider(
+                            color = androidx.compose.material3.MaterialTheme.colorScheme.outlineVariant,
+                            modifier = Modifier.padding(vertical = exGap),
+                        )
+                    }
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Checkbox(
                             checked = a.exerciseId in completed,
@@ -828,6 +877,7 @@ private fun SessionCard(
                         )
                     }
                 }
+                }
             }
             Spacer(Modifier.height(4.dp))
             Text("Сделано: ${completed.size}/${session.assignments.size}", style = androidx.compose.material3.MaterialTheme.typography.bodySmall, color = androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant)
@@ -864,6 +914,7 @@ private fun SessionCard(
                 },
                 modifier = Modifier.fillMaxWidth(),
             ) { Text(if (reportLoading) CoachStrings.REPORT_WORKING else CoachStrings.REPORT_CTA) }
+        }
         }
     }
     // M8-C: the explain cue popup (one exercise).

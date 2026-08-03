@@ -9,6 +9,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 /**
@@ -66,22 +67,50 @@ private val LightColors = lightColorScheme(
 )
 
 /**
- * Clean, deliberate type scale. Keeps the default Material 3 family (no custom
- * font asset — YAGNI: a font resource is a deployable nobody asked for); only
- * weights, sizes and tracking are tuned so headings read as headings and body
- * stays comfortable. The session/notes/references cards get their hierarchy
- * back without the "all Medium, all 14sp" MD-viewer monotony.
+ * Clean, deliberate type scale tuned for a phone (M10 [DRE-189](/DRE/issues/DRE-189)).
+ * Keeps the default Material 3 family (no custom font asset — YAGNI: a font
+ * resource is a deployable nobody asked for); only weights, sizes and tracking
+ * are tuned so headings read as headings and body stays comfortable. The M9
+ * density pass pushed body copy to 12.5sp, which read as micro-text on a real
+ * device — the floors here are raised so the smallest body line is comfortable
+ * on a 360dp phone, and line heights leave room for the long RU labels to wrap
+ * cleanly instead of colliding (maintainer feedback: «микро-текст», «шрифты
+ * ужасны»). Hierarchy is unchanged; every existing Text picks the same style.
  */
 private val AppTypography = Typography(
     headlineMedium = TextStyle(fontWeight = FontWeight.Bold, fontSize = 26.sp, letterSpacing = (-0.5).sp),
     titleLarge = TextStyle(fontWeight = FontWeight.Bold, fontSize = 20.sp, letterSpacing = (-0.2).sp),
     titleMedium = TextStyle(fontWeight = FontWeight.SemiBold, fontSize = 16.sp),
-    bodyLarge = TextStyle(fontWeight = FontWeight.Normal, fontSize = 15.sp, lineHeight = 21.sp),
-    bodyMedium = TextStyle(fontWeight = FontWeight.Normal, fontSize = 14.sp, lineHeight = 19.sp),
-    bodySmall = TextStyle(fontWeight = FontWeight.Light, fontSize = 12.5.sp, lineHeight = 17.sp),
+    bodyLarge = TextStyle(fontWeight = FontWeight.Normal, fontSize = 16.sp, lineHeight = 22.sp),
+    bodyMedium = TextStyle(fontWeight = FontWeight.Normal, fontSize = 14.sp, lineHeight = 20.sp),
+    bodySmall = TextStyle(fontWeight = FontWeight.Normal, fontSize = 13.sp, lineHeight = 18.sp),
     labelLarge = TextStyle(fontWeight = FontWeight.SemiBold, fontSize = 14.sp, letterSpacing = 0.1.sp),
     labelMedium = TextStyle(fontWeight = FontWeight.Medium, fontSize = 12.sp, letterSpacing = 0.4.sp),
+    labelSmall = TextStyle(fontWeight = FontWeight.Medium, fontSize = 11.sp, letterSpacing = 0.4.sp),
 )
+
+/**
+ * M10 ([DRE-189](/DRE/issues/DRE-189)): one small set of spacing tokens so the
+ * app has a consistent visual rhythm instead of scattered literal `12.dp` /
+ * `2.dp` / `4.dp` paddings (maintainer: «отступов нет нормальных», «приложение
+ * для роботов»). Pure values — no new dependency. The M9 density pass crammed
+ * cards at 12dp padding with 2–4dp gaps, which read as a wall; these reverse
+ * that only where it harmed readability (the gate/plan/logic is untouched —
+ * layout/spacing only). Cards breathe at [cardPadding]; sections separate at
+ * [sectionGap]; tight label→content pairs stay grouped at [tightGap].
+ */
+internal object Spacing {
+    /** Edge padding for a full-screen scroll surface. */
+    val screen = 16.dp
+    /** Inside a Card — the air between a card edge and its content. */
+    val card = 16.dp
+    /** Between sibling sections / cards in a scroll (the rhythm between blocks). */
+    val sectionGap = 12.dp
+    /** Between items inside one block (e.g. meal rows inside the nutrition card). */
+    val itemGap = 8.dp
+    /** A grouped label sitting just above its own card (kept tight on purpose). */
+    val tightGap = 4.dp
+}
 
 /**
  * The app theme wrapper. Dark by default (the product reference is dark); pass

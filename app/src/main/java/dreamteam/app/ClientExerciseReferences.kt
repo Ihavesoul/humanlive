@@ -23,6 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import dreamteam.app.ui.Spacing
 import dreamteam.domain.EvidenceId
 import dreamteam.domain.ExerciseId
 import kotlinx.serialization.SerialName
@@ -274,7 +275,7 @@ internal fun ReferencesCard(name: String, refs: ResolvedReferences, modifier: Mo
     // independently and survives recomposition of the session list.
     var expanded by remember(refs.exerciseId) { mutableStateOf(false) }
     Card(modifier = modifier.fillMaxWidth()) {
-        Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Column(Modifier.padding(Spacing.card), verticalArrangement = Arrangement.spacedBy(Spacing.tightGap)) {
             // Always-visible, tappable header. Density win: the whole reference
             // body sits behind this one line, not expanded inline per exercise.
             Row(
@@ -350,7 +351,7 @@ internal fun EvidenceCitationCard(citation: ResolvedCitation, modifier: Modifier
     }
     var expanded by remember(citation.id) { mutableStateOf(false) }
     Card(modifier = modifier.fillMaxWidth()) {
-        Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Column(Modifier.padding(Spacing.card), verticalArrangement = Arrangement.spacedBy(Spacing.tightGap)) {
             Column(
                 modifier = Modifier.fillMaxWidth().clickable { expanded = !expanded },
                 verticalArrangement = Arrangement.spacedBy(2.dp),
