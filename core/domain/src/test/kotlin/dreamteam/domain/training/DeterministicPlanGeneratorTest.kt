@@ -415,4 +415,53 @@ class DeterministicPlanGeneratorTest {
         first.plan shouldBe second.plan
         first.plan.id shouldBe "seed-user@2026-07-28"
     }
+
+    // --- M10-B ([DRE-186](/DRE/issues/DRE-186)): plan-generator regression pins ---
+
+    @Test
+    fun `generate is deterministic - same inputs yield the identical plan across calls`() {
+        // Regression pin (M10-B): two generate() calls for identical userId +
+        // createdAt produce byte-identical plans (incl. the baseline id
+        // "baseline-12w"). Recalc determinism is pinned above, but generate itself
+        // had no standalone determinism pin — a non-deterministic generate would
+        // surface a different plan for the same user on re-open. Breaks if the
+        // baseline assembly ever depends on unseeded state.
+        val generator = DeterministicPlanGenerator(provisionedGateway(baselineContext()))
+        val a = generator.generate(userId = "seed-user", createdAt = "2026-07-21")
+            .shouldBeInstanceOf<GeneratedPlan.Ok>()
+        val b = generator.generate(userId = "seed-user", createdAt = "2026-07-21")
+            .shouldBeInstanceOf<GeneratedPlan.Ok>()
+
+        a.plan shouldBe b.plan
+        a.plan.id shouldBe "baseline-12w"
+        b.plan.id shouldBe "baseline-12w"
+    }
+
+    @Test
+    fun `a strong de-load never drops a deload week below the floor`() {
+        // Regression pin (M10-B): the per-week deload floor (BaselineProgram
+        // DELOAD_SETS_FLOOR = 2). Week 6 is an intentional deload week already at
+        // setsMain = 2; under the STRONGEST cut (volumeScale 0.6 → target = 1) the
+        // coerceIn(2, 2) must hold it at exactly 2, never 1. The moderate-cut test
+        // above only asserts the general ">= 2"; this pins the exact floor-hold on
+        // a week already at the floor under the deepest cut — the boundary where a
+        // regressed floor constant or a dropped coerceIn first bites.
+        val deLoaded = DeterministicPlanGenerator(provisionedGateway(baselineContext()))
+            .generate(
+                userId = "seed-user",
+                createdAt = "2026-07-21",
+                adaptation = AdaptationSignal.DeLoad(
+                    trigger = DeLoadTrigger.RapidWeightLoss,
+                    volumeScale = AdaptationSignal.SCALE_STRONG,
+                    reason = "test",
+                ),
+            )
+            .shouldBeInstanceOf<GeneratedPlan.Ok>()
+
+        val week6 = deLoaded.plan.weeks.first { it.weekNumber == 6 }
+        week6.setsMain shouldBe 2
+        week6.phase shouldBe "deload"
+        // Whole-plan: no week ever drops below the floor, even under the strong cut.
+        deLoaded.plan.weeks.forEach { (it.setsMain >= 2) shouldBe true }
+    }
 }

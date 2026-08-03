@@ -186,4 +186,43 @@ class ClientExportTest {
         val lower = disclaimer.lowercase()
         banned.forEach { b -> (b !in lower) shouldBe true }
     }
+
+    // --- M10-B ([DRE-186](/DRE/issues/DRE-186)): export schema-stability regression pins ---
+
+    @Test
+    fun `the export schema version is pinned to its current additive literal`() {
+        // Regression pin (M10-B): the additive schema integer is asserted as the
+        // LITERAL current value (3), NOT the EXPORT_SCHEMA constant. The round-trip
+        // test's `decoded.exportSchema shouldBe EXPORT_SCHEMA` is circular — bump
+        // the constant and both sides move together, masking a silent change. The
+        // literal fails if the shipped schema drifts by even one bump without this
+        // test being updated intentionally.
+        // ponytail: hand-synced literal; ceiling is a future additive bump — update
+        // this literal as part of that change (that is exactly the gate it is).
+        val doc = buildExportDocument(profile, workouts, symptoms, progress, exerciseNotes, regeneratedPlan(), generatedAt = "t")
+        val decoded = exportJson.decodeFromString(ExportDocument.serializer(), encodeExportDocument(doc))
+        decoded.exportSchema shouldBe 3
+    }
+
+    @Test
+    fun `the top-level JSON key set and order is exactly the declared schema`() {
+        // Regression pin (M10-B): the document's top-level shape — the exact key
+        // SET + ORDER kotlinx.serialization emits. A field rename, drop, or
+        // unaccounted add (a new field added without bumping the schema / updating
+        // this pin) fails here. The existing key-ORDER test chains relative
+        // comparisons; this pins the full key contract (set + order) in one shot,
+        // so a silent shape change anywhere in the envelope can't slip through.
+        val json = encodeExportDocument(
+            buildExportDocument(profile, workouts, symptoms, progress, exerciseNotes, regeneratedPlan(), generatedAt = "t"),
+        )
+        val topKeys = json.lineSequence()
+            // prettyPrintIndent = "  " → top-level keys sit at exactly 2-space indent.
+            .filter { it.startsWith("  \"") && !it.startsWith("   \"") }
+            .map { it.substringAfter("  \"").substringBefore("\":") }
+            .toList()
+        topKeys shouldBe listOf(
+            "exportSchema", "appVersion", "generatedAt", "disclaimer", "profile",
+            "workoutLog", "symptomLog", "progressLog", "exerciseNoteLog", "plan",
+        )
+    }
 }

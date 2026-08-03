@@ -140,4 +140,36 @@ class SafetyRuleEngineTest {
 
         verdict shouldBe SafetyVerdict.Block(rule.description, listOf(rule.id))
     }
+
+    // --- M10-B ([DRE-186](/DRE/issues/DRE-186)): engine-determinism regression pin ---
+
+    @Test
+    fun `the first matching BLOCK rule wins and no later rule overrides it`() {
+        // Regression pin (M10-B): the engine evaluates rules in order and returns
+        // on the first match — there is no override path. If two BLOCK rules both
+        // match, only the FIRST rule's id + reason surface; a later rule can never
+        // "un-block" or shadow an earlier one. Breaks if the engine ever scans
+        // past a match, merges verdicts, or lets a later rule override an earlier
+        // block. Pins the deterministic-blame + no-override invariant.
+        val first = SafetyRule(
+            id = "first_block",
+            description = "First matching rule; must win.",
+            trigger = RuleTrigger.RedFlagPresent(RedFlag.NIGHT_PAIN),
+            decision = SafetyRule.Decision.BLOCK,
+            evidenceRefs = listOf("SAFETY-RED-FLAGS"),
+        )
+        val second = SafetyRule(
+            id = "second_block",
+            description = "Also matches; must be ignored.",
+            trigger = RuleTrigger.RedFlagPresent(RedFlag.FEVER),
+            decision = SafetyRule.Decision.BLOCK,
+            evidenceRefs = listOf("SAFETY-RED-FLAGS"),
+        )
+        val rec = Recommendation("split_squat", listOf("ACSM-RT-2026"))
+        val ctx = ScreeningContext(redFlags = setOf(RedFlag.NIGHT_PAIN, RedFlag.FEVER))
+
+        val verdict = SafetyRuleEngine.evaluate(rec, ctx, listOf(first, second))
+
+        verdict shouldBe SafetyVerdict.Block(reason = first.description, ruleIds = listOf(first.id))
+    }
 }

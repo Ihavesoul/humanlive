@@ -177,4 +177,34 @@ class AdaptationSignalTest {
             (it < 1.0) shouldBe true
         }
     }
+
+    // --- M10-B ([DRE-186](/DRE/issues/DRE-186)): shared rate-formula regression pins ---
+
+    @Test
+    fun `weeklyWeightRate returns the per-week rate the trend view and the signal share`() {
+        // Regression pin (M10-B): weeklyWeightRate is the ONE number both the
+        // de-load signal (detectRapidWeightLoss) and the M5-C trend view read —
+        // "one function, two callers". Pinning it in a tight band locks the
+        // per-week formula so the rate on screen can never drift from the rate the
+        // plan keys off. 80→78.4 kg over exactly 2 weeks = −1.0%/week.
+        // ponytail: band, not exact equality — (78.4−80)/80/2 is not bit-identical
+        // to the −0.01 literal in IEEE-754; the band still rejects the likely
+        // formula regressions (no /weeks ⇒ −0.02, /days ⇒ −0.005, swapped ends ⇒ +).
+        val rate = weeklyWeightRate(listOf(progress(80.0, "2026-07-01"), progress(78.4, "2026-07-15")))
+        (rate != null && rate in -0.0105..-0.0095) shouldBe true
+    }
+
+    @Test
+    fun `weeklyWeightRate returns null when a rate cannot be established`() {
+        // Regression pin (M10-B): the null branches of the shared rate function —
+        // fewer than 2 points, a non-positive start weight, a sub-week span, and
+        // an unparseable date all yield null (⇒ no DeLoad), never a bogus rate
+        // that could mis-fire the signal or render a garbage trend. The derive→
+        // None path is partially covered above; this pins the rate function's own
+        // null contract, which the trend view also relies on.
+        weeklyWeightRate(listOf(progress(80.0, "2026-07-01"))) shouldBe null // single point
+        weeklyWeightRate(listOf(progress(0.0, "2026-07-01"), progress(78.4, "2026-07-15"))) shouldBe null // non-positive start
+        weeklyWeightRate(listOf(progress(80.0, "2026-07-01"), progress(78.4, "2026-07-05"))) shouldBe null // < 1 week span
+        weeklyWeightRate(listOf(progress(80.0, "not-a-date"), progress(78.4, "2026-07-15"))) shouldBe null // unparseable date
+    }
 }

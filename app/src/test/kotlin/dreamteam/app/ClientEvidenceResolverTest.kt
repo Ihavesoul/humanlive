@@ -136,4 +136,39 @@ class ClientEvidenceResolverTest {
         // EvidenceLinked: the caller renders a blocked-until-sourced placeholder).
         resolver.resolveEvidence("GHOST-STUDY") shouldBe null
     }
+
+    // --- M10-B ([DRE-186](/DRE/issues/DRE-186)): catalog-resolves-non-empty regression pins ---
+
+    @Test
+    fun `every catalog source self-resolves and carries non-blank citation, level, and keyFinding`() {
+        // Regression pin (M10-B): the M6 evidence-linked promise — every catalog
+        // entry must resolve by its OWN id and render NON-BLANK citation +
+        // evidenceLevel + keyFinding, so no entry can silently ship a corrupted id
+        // or blank fields that would surface as empty citation text. Existing
+        // tests assert specific known ids (ACSM/MORTON); this iterates the WHOLE
+        // catalog so a malformed entry anywhere is caught.
+        val resolver = bundledResolver()
+        resolver.allSources().forEach { src ->
+            resolver.resolveEvidence(src.id) shouldBe src
+            src.citation.isNotBlank() shouldBe true
+            src.evidenceLevel.isNotBlank() shouldBe true
+            src.keyFinding.isNotBlank() shouldBe true
+        }
+    }
+
+    @Test
+    fun `resolveCitations renders one row per input ref in order, including duplicates`() {
+        // Regression pin (M10-B): the shared render path maps 1:1 with the input
+        // ref list — duplicates are NOT collapsed (each surfaced ref renders its
+        // own row) and order is preserved. A dedup or reorder regression would
+        // silently change what the user sees vs. what was cited, and the
+        // evidence-linked promise is one citation per surfaced ref.
+        val resolver = bundledResolver()
+        val refs = listOf("ACSM-RT-2026", "ACSM-RT-2026", "MORTON-PROTEIN-2018")
+        val rows = resolveCitations(refs, resolver)
+
+        rows.map { it.id } shouldBe refs
+        rows.size shouldBe 3
+        rows.forEach { it.resolved shouldBe true }
+    }
 }

@@ -112,4 +112,21 @@ class NoteRedFlagScreeningTest {
         // flag's serial name to medical.redFlags; spot-check the round trip.
         (RedFlag.BOWEL_OR_BLADDER_DYSFUNCTION.name.lowercase()) shouldBe "bowel_or_bladder_dysfunction"
     }
+
+    // --- M10-B ([DRE-186](/DRE/issues/DRE-186)): uncovered escalation branch pin ---
+
+    @Test
+    fun `progression plus a neuro term escalates RAPID_NEUROLOGICAL_PROGRESSION`() {
+        // Regression pin (M10-B): the `progress && neuro` branch in derive() — a
+        // spreading/worsening neurological term escalates RAPID_NEUROLOGICAL_
+        // PROGRESSION (⇒ block → route to assessment). This red-flag branch had no
+        // prior test; silently dropping or widening it weakens/twists a safety
+        // escalation. «нараста» (progress) + «онемен» (neuro) fires it and nothing
+        // else (no saddle distribution, no weakness).
+        // ponytail: coarse stem-substring match — ceiling is RU-morphology false
+        // edges; the Evidence/Safety Reviewer owns phrase-anchor tuning, upgrade
+        // path is a dedicated phrase-test table (see DRE-107 anchors).
+        derive("нарастает онемение в ноге") shouldBe setOf(RedFlag.RAPID_NEUROLOGICAL_PROGRESSION)
+        derive("распространяется онемение") shouldBe setOf(RedFlag.RAPID_NEUROLOGICAL_PROGRESSION)
+    }
 }
