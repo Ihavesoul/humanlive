@@ -19,6 +19,7 @@ import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.collections.shouldContain
 import io.kotest.matchers.collections.shouldNotBeEmpty
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.types.shouldBeInstanceOf
 import org.junit.jupiter.api.Test
 
@@ -171,5 +172,59 @@ class EvidenceCitationRenderTest {
         view.evidenceRows.forEach { it.resolved shouldBe true }
         // No rendered nutrition citation is a bare raw id like `energy_estimation`.
         view.evidenceRows.forEach { row -> (row.line == row.id) shouldBe false }
+    }
+
+    /**
+     * M9 polish ([DRE-180](/DRE/issues/DRE-180)): the readable + tappable citation
+     * card renders from STRUCTURED fields on [ResolvedCitation] (title +
+     * keyFinding always visible; design/application/limitations + sourceUrl unfold
+     * on tap). Pin they populate verbatim from the catalog for a resolved id —
+     * the smallest thing that fails if the data path breaks — and stay null for a
+     * ghost id (no tap target behind a placeholder).
+     */
+    @Test
+    fun `a resolved ref carries structured title + keyFinding + detail + sourceUrl for the readable card`() {
+        val src = resolver.resolveEvidence("MORTON-PROTEIN-2018")!!
+        val row = resolveCitations(listOf("MORTON-PROTEIN-2018"), resolver).single()
+
+        row.resolved shouldBe true
+        row.title shouldBe src.citation
+        row.keyFinding shouldBe src.keyFinding
+        row.design shouldBe src.design
+        row.application shouldBe src.application
+        row.limitations shouldBe src.limitations
+        // The catalog's vetted source URL lands verbatim (0 naked links → button).
+        row.sourceUrl shouldBe src.url
+        row.sourceUrl shouldNotBe null
+    }
+
+    @Test
+    fun `a ghost id carries no structured title or sourceUrl - nothing to tap`() {
+        val row = resolveCitations(listOf("GHOST-STUDY"), resolver).single()
+
+        row.resolved shouldBe false
+        row.title shouldBe null
+        row.keyFinding shouldBe null
+        row.design shouldBe null
+        row.sourceUrl shouldBe null
+    }
+
+    // Banned substrings (lowercased) — same list as the surface tests: the shared
+    // citation card's authored strings may never assert a diagnosis or treat/cure.
+    private val banned = listOf(
+        "диагноз", "диагности",
+        "лечит", "лечение", "лечим", "вылеч", "излеч", "исцела", "исцели",
+        "болезнь",
+        "у вас", "вы больн", "вы здоровы", "ваш диагноз",
+        "предписываю", "назначаю", "прописываю",
+        "diagnos", "treat", "cure", "heal", "disease", "you have", "you are", "prescribe",
+    )
+
+    @Test
+    fun `no authored evidence-citation-card string contains a banned medical-claim phrase`() {
+        EvidenceCitationStrings.all.forEach { text ->
+            val lower = text.lowercase()
+            banned.forEach { b -> (b !in lower) shouldBe true }
+        }
     }
 }

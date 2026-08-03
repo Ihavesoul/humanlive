@@ -101,6 +101,21 @@ internal data class ResolvedCitation(
      * the catalog). Additive; the nutrition render path ignores it.
      */
     val evidenceLevel: String? = null,
+    /**
+     * M9 polish ([DRE-180](/DRE/issues/DRE-180)): structured fields for the
+     * readable + tappable citation card. The dense [line] stays for the
+     * nutrition/safety surfaces (out of this slice); the citation card renders
+     * [title] + [keyFinding] as a scannable row and unfolds the detail/source on
+     * tap. All verbatim catalog values — no appraisal; a null [sourceUrl] means
+     * no open-source button (never a fabricated link). Null for a ghost id.
+     */
+    val title: String? = null,
+    val keyFinding: String? = null,
+    val design: String? = null,
+    val application: String? = null,
+    val limitations: String? = null,
+    /** The catalog's vetted source URL (verbatim `url` — every entry carries one). */
+    val sourceUrl: String? = null,
 )
 
 /**
@@ -128,6 +143,12 @@ internal fun resolveCitations(
             resolved = true,
             line = "${src.citation} (уровень: ${src.evidenceLevel}) — ${src.keyFinding}",
             evidenceLevel = src.evidenceLevel,
+            title = src.citation,
+            keyFinding = src.keyFinding,
+            design = src.design,
+            application = src.application,
+            limitations = src.limitations,
+            sourceUrl = src.url,
         )
     } else {
         ResolvedCitation(id = id, resolved = false, line = EVIDENCE_NOT_SOURCED)

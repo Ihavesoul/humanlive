@@ -311,7 +311,7 @@ internal fun ReferencesCard(name: String, refs: ResolvedReferences, modifier: Mo
                 }
                 if (refs.citations.isNotEmpty()) {
                     Text(ReferencesCardStrings.EVIDENCE, fontWeight = FontWeight.Medium)
-                    refs.citations.forEach { c -> EvidenceCitationRender(c) }
+                    refs.citations.forEach { c -> EvidenceCitationCard(c) }
                 }
                 if (!refs.hasMedia) {
                     // Transparent about the seed state — never silent, never a fabricated link.
@@ -323,16 +323,84 @@ internal fun ReferencesCard(name: String, refs: ResolvedReferences, modifier: Mo
 }
 
 /**
- * The shared render of a single resolved citation (M6-B/M8-A). One row:
- * resolved → author/year + evidenceLevel + keyFinding; ghost → the
- * [EVIDENCE_NOT_SOURCED] placeholder. Used by [ReferencesCard]; the
- * plan/block/nutrition surfaces may adopt it in a follow-up (kept here to keep
- * the M8-A diff to the exercise surface — YAGNI on the others until asked).
- * Never a raw id; never an invented citation.
+ * M9 polish ([DRE-180](/DRE/issues/DRE-180)): the shared, readable + tappable
+ * render of ONE resolved citation — a phone-density Card instead of a dense
+ * markdown bullet. Always visible: the source [ResolvedCitation.title]
+ * (SemiBold) + the verbatim `evidenceLevel` label + the one-line
+ * [ResolvedCitation.keyFinding] ("what it shows"). Tap the row → the detail
+ * folds out ([ResolvedCitation.design] / [application] / [limitations]) and, if
+ * the catalog carries a [ResolvedCitation.sourceUrl], a labeled "open source"
+ * button (0 naked links — the URL sits behind the button, never raw text).
+ *
+ * A ghost/placeholder id renders the [EVIDENCE_NOT_SOURCED] transparency line
+ * only — no card, no tap target (nothing is behind it; never an invented
+ * citation). Shared by [ReferencesCard] (per-exercise) and
+ * [EvidenceSourcesScreen] (the full catalog) so there is ONE citation render
+ * path — no drift between how a citation appears in-plan vs on the sources
+ * screen. Pure render of [resolveCitations] output; the verbatim catalog values
+ * are not interpreted (no appraisal; the Evidence & Research Analyst owns the
+ * catalog). Expand state is per-citation, keyed to [ResolvedCitation.id].
  */
 @Composable
-internal fun EvidenceCitationRender(citation: ResolvedCitation) {
-    Text("• ${citation.line}", fontWeight = FontWeight.Light)
+internal fun EvidenceCitationCard(citation: ResolvedCitation, modifier: Modifier = Modifier) {
+    val context = LocalContext.current
+    if (!citation.resolved) {
+        Text(citation.line, fontWeight = FontWeight.Light)
+        return
+    }
+    var expanded by remember(citation.id) { mutableStateOf(false) }
+    Card(modifier = modifier.fillMaxWidth()) {
+        Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Column(
+                modifier = Modifier.fillMaxWidth().clickable { expanded = !expanded },
+                verticalArrangement = Arrangement.spacedBy(2.dp),
+            ) {
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.Top,
+                ) {
+                    Text(citation.title.orEmpty(), fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
+                    Text(if (expanded) EvidenceCitationStrings.HIDE else EvidenceCitationStrings.SHOW, fontWeight = FontWeight.Light)
+                }
+                Text("уровень: ${citation.evidenceLevel}", fontWeight = FontWeight.Light)
+                Text(citation.keyFinding.orEmpty(), fontWeight = FontWeight.Light)
+            }
+            if (expanded) {
+                citation.design?.let { Text("${EvidenceCitationStrings.DESIGN}: $it", fontWeight = FontWeight.Light) }
+                citation.application?.let { Text("${EvidenceCitationStrings.APPLICATION}: $it", fontWeight = FontWeight.Light) }
+                citation.limitations?.let { Text("${EvidenceCitationStrings.LIMITATIONS}: $it", fontWeight = FontWeight.Light) }
+                citation.sourceUrl?.let { url ->
+                    OutlinedButton(onClick = { openUrl(context, url) }, modifier = Modifier.fillMaxWidth()) {
+                        Text(EvidenceCitationStrings.OPEN_SOURCE)
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * The authored strings the shared [EvidenceCitationCard] renders. Gathered as
+ * one list ([all]) so a JVM test can snapshot them against the banned
+ * medical-claim phrase list (mirrors [ReferencesCardStrings] /
+ * [EvidenceSourcesStrings]). Support/transparency framing only — labels for the
+ * catalog's verbatim detail fields + an "open source" affordance; no diagnosis,
+ * no treatment claim. The verbatim catalog DETAIL rows are deliberately NOT in
+ * [all] (study vocabulary false-positives, the M6-B design call).
+ */
+internal object EvidenceCitationStrings {
+    /** M9-B-style toggle affordance on the tappable citation row. */
+    const val SHOW = "Показать"
+    const val HIDE = "Скрыть"
+    /** Labels for the catalog's verbatim detail fields (no appraisal added). */
+    const val DESIGN = "Дизайн"
+    const val APPLICATION = "Применение"
+    const val LIMITATIONS = "Ограничения"
+    /** 0 naked links: the source URL sits behind this labeled button. */
+    const val OPEN_SOURCE = "Открыть источник"
+
+    val all: List<String> = listOf(SHOW, HIDE, DESIGN, APPLICATION, LIMITATIONS, OPEN_SOURCE)
 }
 
 /**

@@ -101,9 +101,7 @@ internal fun EvidenceSourcesScreen(modifier: Modifier, resolver: EvidenceResolve
     LazyColumn(modifier = modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         item { Text(EvidenceSourcesStrings.TITLE, fontWeight = FontWeight.Bold) }
         item { Text(EvidenceSourcesStrings.DISCLAIMER, fontWeight = FontWeight.Light, fontStyle = FontStyle.Italic) }
-        items(view.rows) { row ->
-            Text("• ${row.line}", fontWeight = FontWeight.Light)
-        }
+        items(view.rows) { row -> EvidenceCitationCard(row) }
         item { OutlinedButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) { Text(EvidenceSourcesStrings.BACK) } }
     }
 }
