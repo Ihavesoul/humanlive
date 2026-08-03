@@ -70,7 +70,10 @@ internal object UiStrings {
     const val APP_NAME = "DreamTeam"
     const val NAV_TODAY = "Сегодня"
     const val NAV_PLAN = "План"
-    const val NAV_HISTORY = "Журнал"
+    // DRE-193: aligned to the screen it opens — HistoryScreen is titled
+    // «История и тренд» (HistoryStrings.TITLE); the prior «Журнал» label
+    // mismatched the screen title it navigated to.
+    const val NAV_HISTORY = "История"
     const val NAV_SOURCES = "Источники"
     const val NAV_SETTINGS = "Настройки"
 

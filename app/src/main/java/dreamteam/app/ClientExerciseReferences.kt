@@ -3,7 +3,6 @@ package dreamteam.app
 import android.content.Context
 import android.content.Intent
 import android.content.res.AssetManager
-import android.net.Uri
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -23,6 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.core.net.toUri
 import dreamteam.app.ui.Spacing
 import dreamteam.domain.EvidenceId
 import dreamteam.domain.ExerciseId
@@ -414,5 +414,5 @@ internal object EvidenceCitationStrings {
  * [shareExportFile] (ClientExportShare.kt); reuses platform Intent, no new dep.
  */
 internal fun openUrl(context: Context, url: String) {
-    runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) }
+    runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, url.toUri())) }
 }

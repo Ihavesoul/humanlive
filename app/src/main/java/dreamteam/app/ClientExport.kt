@@ -185,6 +185,7 @@ internal fun exportActionDocument(
  * Same instance config as the catalog decode ([evidenceJson]: `ignoreUnknownKeys`
  * is irrelevant for encoding but kept consistent for forward-compatible reads).
  */
+@OptIn(kotlinx.serialization.ExperimentalSerializationApi::class) // reason: prettyPrintIndent is experimental; stable since 1.x, used for human-inspectable export JSON (DRE-193).
 internal val exportJson: Json = Json {
     encodeDefaults = true
     prettyPrint = true

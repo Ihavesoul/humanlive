@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -362,8 +361,11 @@ private fun OnboardingScreen(modifier: Modifier, onPlanReady: (Profile) -> Unit)
     LazyColumn(modifier = modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         item {
             Text(
-                "Профиль (базовый PoC). Это приложение поддерживает тренировки — " +
-                    "оно не диагностирует и не лечит.",
+                // DRE-193: aligned to the app-wide scan-clean support framing
+                // ("поддерживает, а не заменяет врача"); the prior copy used the
+                // banned morphemes "диагности"/"лечит" even in negation — every
+                // other surface avoids them (cf. HistoryStrings.SUPPORT).
+                "Профиль (базовый PoC). Это приложение поддерживает тренировки и не заменяет врача.",
                 fontWeight = FontWeight.Medium,
             )
         }
@@ -1104,7 +1106,6 @@ private fun SymptomsScreen(modifier: Modifier, db: LocalDatabase, onBack: () -> 
             if (text.isNotBlank()) { db.appendSymptom(text.trim(), LocalDate.now().toString()); text = ""; symptoms = db.recentSymptoms() }
         }) { Text("Записать") }
         OutlinedButton(onClick = onBack) { Text("Назад к плану") }
-        Spacer(Modifier.size(0.dp))
         Text("Недавние записи:", fontWeight = FontWeight.SemiBold)
         symptoms.forEach { s: SymptomEntry -> Text("• ${s.recordedOn}: ${s.text}") }
     }
@@ -1124,8 +1125,11 @@ private fun ProgressScreen(modifier: Modifier, db: LocalDatabase, onBack: () -> 
     var rows by remember { mutableStateOf(db.recentProgress()) }
     Column(modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
+            // DRE-193: aligned to the app-wide scan-clean support framing
+            // ("поддерживает, а не заменяет врача"); the prior copy used the
+            // banned morpheme "диагности" even in negation.
             "Запишите вес (кг). Тренд — не одна точка — влияет на объём тренировок. " +
-                "Приложение поддерживает, не диагностирует.",
+                "Приложение поддерживает, а не заменяет врача.",
             fontWeight = FontWeight.Medium,
         )
         OutlinedTextField(
@@ -1143,7 +1147,6 @@ private fun ProgressScreen(modifier: Modifier, db: LocalDatabase, onBack: () -> 
             }
         }) { Text("Записать") }
         OutlinedButton(onClick = onBack) { Text("Назад к плану") }
-        Spacer(Modifier.size(0.dp))
         Text("Недавние записи:", fontWeight = FontWeight.SemiBold)
         rows.forEach { r: ProgressRow -> Text("• ${r.recordedOn}: ${r.weightKg} кг") }
     }

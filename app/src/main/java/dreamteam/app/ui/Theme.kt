@@ -96,16 +96,12 @@ private val AppTypography = Typography(
  * для роботов»). Pure values — no new dependency. The M9 density pass crammed
  * cards at 12dp padding with 2–4dp gaps, which read as a wall; these reverse
  * that only where it harmed readability (the gate/plan/logic is untouched —
- * layout/spacing only). Cards breathe at [cardPadding]; sections separate at
- * [sectionGap]; tight label→content pairs stay grouped at [tightGap].
+ * layout/spacing only). Cards breathe at [card]; items inside a block separate
+ * at [itemGap]; a grouped label stays tight above its card at [tightGap].
  */
 internal object Spacing {
-    /** Edge padding for a full-screen scroll surface. */
-    val screen = 16.dp
     /** Inside a Card — the air between a card edge and its content. */
     val card = 16.dp
-    /** Between sibling sections / cards in a scroll (the rhythm between blocks). */
-    val sectionGap = 12.dp
     /** Between items inside one block (e.g. meal rows inside the nutrition card). */
     val itemGap = 8.dp
     /** A grouped label sitting just above its own card (kept tight on purpose). */

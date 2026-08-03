@@ -447,6 +447,7 @@ enum class ExerciseNoteOutcome(val storage: String, val labelRu: String) {
  * null mark for the nullable field — serialize/deserialize are invoked only for a
  * present value; deserialize returns null on an unknown token via fromStorage.
  */
+@OptIn(kotlinx.serialization.ExperimentalSerializationApi::class) // reason: encodeNull() is experimental; the nullable outcome token needs an explicit null mark the non-null descriptor cannot carry (DRE-193).
 object ExerciseNoteOutcomeTokenSerializer : KSerializer<ExerciseNoteOutcome?> {
     override val descriptor: SerialDescriptor =
         PrimitiveSerialDescriptor("ExerciseNoteOutcome", PrimitiveKind.STRING)

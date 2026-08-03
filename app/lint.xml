@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  DreamTeam lint config (DRE-193 / M10-E polish sweep).
+
+  The remaining lint warnings on this module are all "a newer version is
+  available" advisories (kotlin / AGP / Compose BOM / compileSdk / targetSdk /
+  ktor / sqlite / junit / coroutines / kotest / serialization) plus the
+  ObsoleteSdkInt note on the adaptive launcher icon folder. Acting on the
+  version ones means bumping a dependency or the SDK — explicitly OUT OF SCOPE
+  here: DRE-184 Milestone 10 is Tier-1-only, "no new spend, no new dependency"
+  (gradle/libs.versions.toml + build.gradle.kts versions are deliberately
+  pinned). Those bumps are a separate founder-gated decision, not a polish fix.
+
+  ObsoleteSdkInt fires on `mipmap-anydpi-v26` (lint suggests merging into
+  `mipmap-anydpi`), but AAPT2 fails to resolve the launcher icon from a bare
+  `mipmap-anydpi` source set in this AGP setup (verified: resource not found,
+  even after :app:clean). The `-v26` qualifier is the working configuration, so
+  the advisory is suppressed rather than acted on — minSdk is already 26, so the
+  guard is redundant-but-harmless, not a correctness issue.
+
+  These five detectors are set to `ignore` — a clean, documented suppression
+  (DRE-193 acceptance: "clean suppressions/baseline allowed"). When the founder
+  green-lights a dependency/SDK refresh (or AGP accepts the anydpi merge), remove
+  these entries and let lint report again. Every other lint check stays at its
+  default severity and must pass clean.
+-->
+<lint>
+    <issue id="NewerVersionAvailable" severity="ignore" />
+    <issue id="AndroidGradlePluginVersion" severity="ignore" />
+    <issue id="GradleDependency" severity="ignore" />
+    <issue id="OldTargetApi" severity="ignore" />
+    <issue id="ObsoleteSdkInt" severity="ignore" />
+</lint>

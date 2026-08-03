@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.SharedPreferences
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
+import androidx.core.content.edit
 import dreamteam.domain.coach.Coach
 import dreamteam.domain.coach.CoachProvider
 import kotlinx.serialization.SerialName
@@ -84,11 +85,11 @@ internal class CoachCredentialStore(context: Context) {
         val ct = encrypt(
             credsStoreJson.encodeToString(CoachCredentials.serializer(), creds).toByteArray(StandardCharsets.UTF_8),
         )
-        prefs.edit().putString(KEY, Base64.getEncoder().encodeToString(ct)).apply()
+        prefs.edit { putString(KEY, Base64.getEncoder().encodeToString(ct)) }
     }
 
     /** Drop the stored credentials ⇒ next coach call uses the deterministic fallback. */
-    fun clear() = prefs.edit().remove(KEY).apply()
+    fun clear() = prefs.edit { remove(KEY) }
 
     private fun key(): java.security.Key {
         val ks = KeyStore.getInstance("AndroidKeyStore").apply { load(null) }
