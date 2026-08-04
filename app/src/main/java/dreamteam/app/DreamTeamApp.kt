@@ -44,6 +44,8 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import dreamteam.app.data.LocalDatabase
 import dreamteam.app.ui.Spacing
+import dreamteam.app.ui.PlayScene
+import dreamteam.app.ui.BreathingScene
 import kotlinx.coroutines.launch
 import dreamteam.app.data.ExerciseNoteOutcome
 import dreamteam.app.data.Profile
@@ -76,7 +78,7 @@ import java.time.LocalDate
  * blocks the plan and routes to assessment — the gate is structural, the user
  * cannot skip it.
  */
-internal enum class Screen { Onboarding, Today, Plan, Symptoms, Progress, History, EvidenceSources, Settings }
+internal enum class Screen { Onboarding, Today, Plan, Symptoms, Progress, History, EvidenceSources, Settings, Play, Breathing }
 
 /**
  * M8-D ([DRE-90](/DRE/issues/DRE-90)): the screens that show the bottom
@@ -297,6 +299,9 @@ fun DreamTeamApp(db: LocalDatabase) {
                 resolver = resolver,
                 exerciseLibrary = exerciseLibrary,
                 coachCredStore = coachCredStore,
+                // Redesign v2 ([DRE-211](/DRE/issues/DRE-211)): the global Play CTA on
+                // Today opens the dedicated Play session scene for today's workout.
+                onPlay = { screen = Screen.Play },
                 onSymptoms = { screen = Screen.Symptoms },
                 onProgress = { screen = Screen.Progress },
             )
@@ -343,6 +348,51 @@ fun DreamTeamApp(db: LocalDatabase) {
                 modifier = Modifier.padding(padding),
                 coachCredStore = coachCredStore,
             )
+            // Redesign v2 ([DRE-211](/DRE/issues/DRE-211), founder p.6): the dedicated
+            // Play session scene. Today's session is picked from the SAME gated week
+            // Today renders (one source of truth); a rest day / blocked plan lands on
+            // the empty state. The session state machine itself is the FE track
+            // ([DRE-210](/DRE/issues/DRE-210)); this ships the full scene UI now.
+            Screen.Play -> {
+                val playProfile = profile
+                if (playProfile == null) {
+                    Column(Modifier.padding(padding).fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+                        Text("Профиль не найден.")
+                    }
+                } else {
+                    val playSymptoms = db.recentSymptoms()
+                    val playProgress = db.recentProgress()
+                    val playToday = LocalDate.now()
+                    val playResult = remember(playProfile, playSymptoms, playProgress) {
+                        generateLocalPlan(playProfile, playToday.toString(), playSymptoms, playProgress)
+                    }
+                    val playSession = (playResult as? PlanResult.Ok)?.let { todaySession(it.week, playToday) }
+                    if (playSession != null) {
+                        PlayScene(
+                            db = db,
+                            session = playSession,
+                            onBreathing = { screen = Screen.Breathing },
+                            onDone = { screen = Screen.Today },
+                            onBack = { screen = Screen.Today },
+                            modifier = Modifier.padding(padding),
+                        )
+                    } else {
+                        Column(
+                            modifier = Modifier.padding(padding).fillMaxSize().padding(Spacing.screen),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center,
+                        ) {
+                            Text(TodayStrings.REST_DAY, style = MaterialTheme.typography.titleMedium)
+                            Button(onClick = { screen = Screen.Today }, modifier = Modifier.padding(top = Spacing.md)) {
+                                Text("К сегодняшнему дню")
+                            }
+                        }
+                    }
+                }
+            }
+            // Redesign v2 ([DRE-211](/DRE/issues/DRE-211), founder p.7): the breathing
+            // scene — a calm box-breathing pacer. Full-screen (no bottom bar).
+            Screen.Breathing -> BreathingScene(modifier = Modifier.padding(padding), onBack = { screen = Screen.Today })
         }
     }
 }
@@ -509,6 +559,9 @@ private fun TodayScreen(
     resolver: EvidenceResolver,
     exerciseLibrary: ExerciseLibraryResolver,
     coachCredStore: CoachCredentialStore,
+    // Redesign v2 ([DRE-211](/DRE/issues/DRE-211)): opens the dedicated Play
+    // session scene for today's workout (founder p.6: a global Play button).
+    onPlay: (dreamteam.domain.training.PlanSession) -> Unit,
     onSymptoms: () -> Unit,
     onProgress: () -> Unit,
 ) {
@@ -546,7 +599,13 @@ private fun TodayScreen(
                 item {
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         Text(TodayStrings.TRAINING, style = androidx.compose.material3.MaterialTheme.typography.labelMedium)
-                        session?.let { s -> SessionCard(db = db, session = s, resolver = resolver, exerciseLibrary = exerciseLibrary, coachCredStore = coachCredStore, profile = p) }
+                        session?.let { s ->
+                            // Redesign v2 ([DRE-211](/DRE/issues/DRE-211), founder p.6):
+                            // the global Play CTA — a prominent full-width primary button
+                            // that opens today's workout in the dedicated Play scene.
+                            Button(onClick = { onPlay(s) }, modifier = Modifier.fillMaxWidth()) { Text(TodayStrings.PLAY) }
+                            SessionCard(db = db, session = s, resolver = resolver, exerciseLibrary = exerciseLibrary, coachCredStore = coachCredStore, profile = p)
+                        }
                     }
                 }
                 result.nutritionPlan?.let { plan ->
@@ -594,18 +653,20 @@ private fun TodayScreen(
             QuickLogActions(onProgress = onProgress, onSymptoms = onSymptoms)
         }
         item { Text(ExportUiStrings.CAPTION, style = androidx.compose.material3.MaterialTheme.typography.bodySmall, fontStyle = FontStyle.Italic) }
+        // Redesign v2 ([DRE-211](/DRE/issues/DRE-211), founder p.3): the export +
+        // diagnostics handoffs used to be two stacked full-width TextButtons — a
+        // vertical "столбик". They now split the row side-by-side (weight 1f each)
+        // so two actions never collapse into a column that fills the screen.
         item {
-            TextButton(onClick = { launchDataExport(shareContext, db) }, modifier = Modifier.fillMaxWidth()) { Text(ExportUiStrings.BUTTON) }
+            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), modifier = Modifier.fillMaxWidth()) {
+                TextButton(onClick = { launchDataExport(shareContext, db) }, modifier = Modifier.weight(1f)) { Text(ExportUiStrings.BUTTON) }
+                TextButton(onClick = { launchDiagnosticsExport(shareContext, db) }, modifier = Modifier.weight(1f)) { Text(DiagnosticsUiStrings.BUTTON) }
+            }
         }
-        // M10-D ([DRE-191](/DRE/issues/DRE-191)): the deterministic local-diagnostics
-        // handoff — a lean support bundle (version, data volume, gate decisions; NO
-        // user free-text) reusing the SAME share edge as the export. Quieter text
-        // action, surfaced alongside export so a user reporting an issue can ship a
-        // no-SDK self-check dump to support. Works pre-onboarding too (no_profile).
+        // M10-D ([DRE-191](/DRE/issues/DRE-191)): the diagnostics handoff — a lean
+        // support bundle (version, data volume, gate decisions; NO user free-text)
+        // reusing the SAME share edge as export.
         item { Text(DiagnosticsUiStrings.CAPTION, style = androidx.compose.material3.MaterialTheme.typography.bodySmall, fontStyle = FontStyle.Italic) }
-        item {
-            TextButton(onClick = { launchDiagnosticsExport(shareContext, db) }, modifier = Modifier.fillMaxWidth()) { Text(DiagnosticsUiStrings.BUTTON) }
-        }
     }
 }
 

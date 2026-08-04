@@ -62,9 +62,11 @@ internal object TodayStrings {
     const val LOG_SYMPTOM = "Записать симптом"
     const val LOG_PROGRESS = "Записать прогресс"
     const val REST_DAY = "Сегодня — день отдыха или лёгкой активности"
+    // DRE-211: the global Play CTA on Today → the dedicated Play session scene.
+    const val PLAY = "Начать тренировку"
     const val LOG_HINT =
         "Тренд ваших записей влияет на объём следующей недели. Это поддержка, а не замена врача."
 
     val all: List<String> =
-        listOf(TRAINING, NUTRITION, ADAPTATION, LOG_SYMPTOM, LOG_PROGRESS, REST_DAY, LOG_HINT)
+        listOf(TRAINING, NUTRITION, ADAPTATION, LOG_SYMPTOM, LOG_PROGRESS, REST_DAY, PLAY, LOG_HINT)
 }

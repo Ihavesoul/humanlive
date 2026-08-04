@@ -6,6 +6,7 @@ import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -90,23 +91,53 @@ private val AppTypography = Typography(
 )
 
 /**
- * M10 ([DRE-189](/DRE/issues/DRE-189)): one small set of spacing tokens so the
- * app has a consistent visual rhythm instead of scattered literal `12.dp` /
- * `2.dp` / `4.dp` paddings (maintainer: «отступов нет нормальных», «приложение
- * для роботов»). Pure values — no new dependency. The M9 density pass crammed
- * cards at 12dp padding with 2–4dp gaps, which read as a wall; these reverse
- * that only where it harmed readability (the gate/plan/logic is untouched —
- * layout/spacing only). Cards breathe at [card]; items inside a block separate
- * at [itemGap]; a grouped label stays tight above its card at [tightGap].
+ * The spacing scale — the single source of truth for every gap and edge in the
+ * app (redesign v2, [DRE-211](/DRE/issues/DRE-211); supersedes the M10 3-token
+ * set from [DRE-189](/DRE/issues/DRE-189)). Founder review (DRE-205 p.1): «отступы
+ * ужасны» — the prior screens mixed literal `2.dp`/`4.dp`/`12.dp`/`16.dp` with
+ * no rhythm, so cards read as a wall. This is a deliberate 4dp-base scale
+ * (reference: Material 3 spacing guidance) consumed everywhere via tokens, so
+ * the whole app shares ONE visual rhythm. Pure values — no new dependency.
+ *
+ * The three legacy names ([card] / [itemGap] / [tightGap]) are kept as the
+ * canonical members so existing call sites keep compiling; new code uses the
+ * named scale.
  */
 internal object Spacing {
-    /** Inside a Card — the air between a card edge and its content. */
-    val card = 16.dp
-    /** Between items inside one block (e.g. meal rows inside the nutrition card). */
-    val itemGap = 8.dp
-    /** A grouped label sitting just above its own card (kept tight on purpose). */
-    val tightGap = 4.dp
+    /** 4dp — the base unit. Hairline gaps, divider insets, tight grouping. */
+    val xs = 4.dp
+    /** 8dp — chips, adjacent controls, intra-row separation. (legacy: itemGap) */
+    val sm = 8.dp
+    /** 12dp — between a label and the block it titles, mid-density list rows. */
+    val md = 12.dp
+    /** 16dp — inside a Card, the edge-to-content air. (legacy: card) */
+    val lg = 16.dp
+    /** 20dp — between top-level sections on a screen. */
+    val xl = 20.dp
+    /** 24dp — the largest break: screen header → first section, scene margins. */
+    val xxl = 24.dp
+
+    /** Screen edge padding — the air between the window and the content column. */
+    val screen = 16.dp
+    /** Inside a Card — the air between a card edge and its content. (legacy) */
+    val card = lg
+    /** Between items inside one block (e.g. meal rows inside the nutrition card). (legacy) */
+    val itemGap = sm
+    /** A grouped label sitting just above its own card (kept tight on purpose). (legacy) */
+    val tightGap = xs
+
+    /** Touch-target floor (Material guidance): a row of action buttons is never shorter. */
+    val touchTarget = 48.dp
+    /** The 16:9 media slot height reserved on an exercise card for its image. */
+    val exerciseMediaHeight = 180.dp
 }
+
+/**
+ * Redesign v2 ([DRE-211](/DRE/issues/DRE-211)): one corner radius for cards and
+ * media surfaces so the app reads as one product, not a mix of pill + square +
+ * default. Material 3 "large" shape; pure value, no new dependency.
+ */
+internal val AppCardShape = RoundedCornerShape(20.dp)
 
 /**
  * The app theme wrapper. Dark by default (the product reference is dark); pass

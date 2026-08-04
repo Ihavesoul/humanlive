@@ -3,13 +3,18 @@ package dreamteam.app
 import android.content.Context
 import android.content.Intent
 import android.content.res.AssetManager
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Card
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -24,6 +29,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import dreamteam.app.ui.Spacing
+import dreamteam.app.ui.AppCardShape
 import dreamteam.domain.EvidenceId
 import dreamteam.domain.ExerciseId
 import kotlinx.serialization.SerialName
@@ -267,6 +273,7 @@ internal object ReferencesCardStrings {
  * note when expanded — so the deliverable ("a card on every exercise") holds
  * whether or not media is sourced yet.
  */
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
 internal fun ReferencesCard(name: String, refs: ResolvedReferences, modifier: Modifier = Modifier) {
     if (!refs.hasMedia && refs.citations.isEmpty()) return
@@ -290,6 +297,16 @@ internal fun ReferencesCard(name: String, refs: ResolvedReferences, modifier: Mo
                 )
             }
             if (expanded) {
+                // Redesign v2 ([DRE-211](/DRE/issues/DRE-211), founder: «картинку мы
+                // должны показывать в карточке упражнения»): the image slot — a
+                // branded 16:9 surface reserved at the top of the expanded card for the
+                // exercise image. Content (a license-clean direct image per exercise)
+                // arrives from the media library ([DRE-207](/DRE/issues/DRE-207),
+                // in progress); until then the slot is a calm branded block with the
+                // exercise name, so the card has the image space the redesign needs.
+                // Hook: when DRE-207 lands a direct image URL + an image loader, render
+                // it here instead of the placeholder.
+                ExerciseMediaSlot(name = name)
                 // M9 polish (DRE-179): the one-line scoliosis-safe "why this is in
                 // your plan" intro — support framing, points at the detail below,
                 // never a condition claim. First thing read on expand so the
@@ -299,15 +316,24 @@ internal fun ReferencesCard(name: String, refs: ResolvedReferences, modifier: Mo
                     Text(ReferencesCardStrings.HOW_TO, fontWeight = FontWeight.Medium)
                     refs.howToStepsRu.forEachIndexed { i, step -> Text("${i + 1}. $step") }
                 }
-                // 0 naked links: video + each image sit behind a labeled button.
-                refs.videoUrl?.takeUnless { it.isBlank() }?.let { url ->
-                    OutlinedButton(onClick = { openUrl(context, url) }, modifier = Modifier.fillMaxWidth()) {
-                        Text(ReferencesCardStrings.VIDEO)
-                    }
+                // Redesign v2 (founder p.3): the video + image link buttons used to be
+                // stacked full-width → a vertical "столбик". They now sit in a FlowRow
+                // so they share a row and reflow to a second line only when they must —
+                // never each taking the whole screen width. 0 naked links: every ref is
+                // behind a labeled button.
+                val mediaButtons = buildList {
+                    refs.videoUrl?.takeUnless { it.isBlank() }?.let { url -> add(url to ReferencesCardStrings.VIDEO) }
+                    refs.imageRefs.filter { it.isNotBlank() }.forEach { ref -> add(ref to ReferencesCardStrings.IMAGE) }
                 }
-                refs.imageRefs.filter { it.isNotBlank() }.forEach { ref ->
-                    OutlinedButton(onClick = { openUrl(context, ref) }, modifier = Modifier.fillMaxWidth()) {
-                        Text(ReferencesCardStrings.IMAGE)
+                if (mediaButtons.isNotEmpty()) {
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+                        verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        mediaButtons.forEach { (url, label) ->
+                            OutlinedButton(onClick = { openUrl(context, url) }) { Text(label) }
+                        }
                     }
                 }
                 if (refs.citations.isNotEmpty()) {
@@ -320,6 +346,32 @@ internal fun ReferencesCard(name: String, refs: ResolvedReferences, modifier: Mo
                 }
             }
         }
+    }
+}
+
+/**
+ * Redesign v2 ([DRE-211](/DRE/issues/DRE-211)): the reserved image area at the
+ * top of an exercise card. A calm branded 16:9 block with the exercise name —
+ * the "место под изображение" the founder asked for. Fills with the real
+ * license-clean image once the media library ([DRE-207](/DRE/issues/DRE-207))
+ * delivers a direct image + an image loader is added; until then it is a
+ * tasteful placeholder, never an empty box or a fabricated image. Pure render.
+ */
+@Composable
+private fun ExerciseMediaSlot(name: String, modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(Spacing.exerciseMediaHeight)
+            .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f), AppCardShape),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            name,
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onPrimaryContainer,
+            fontWeight = FontWeight.SemiBold,
+        )
     }
 }
 
