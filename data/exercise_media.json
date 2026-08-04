@@ -1,0 +1,873 @@
+{
+  "schema_version": "1.0",
+  "source_issue": "DRE-207",
+  "generated": "2026-08-05",
+  "method": "YouTube how-to via youtube.com/results ytInitialData parse (title+channel verified, relevance-gated). Card images reuse the DRE-79/103/126 vetted Wikimedia Commons / Flickr CC provenance. 7 rehab-specific gaps stay media_pending.",
+  "license_note": "App links out (never reproduces inline), so PD/CC0/CC BY/CC BY-SA and Flickr CC BY refs remain license-defensible. If the UI ever renders images inline, surface {url,license,credit} per ref (per DRE-86 promotion note).",
+  "exercises": [
+    {
+      "exercise_id": "warm_breathing",
+      "name_ru": "Спокойное дыхание 5–6/мин",
+      "category": "warmup",
+      "ai_summary_ru": "Дышите спокойно носом 4–5 с на вдох и 5–6 с на выдох, лёжа или сидя с расслабленными плечами и челюстью. 3–5 минут в своём темпе; прекратите, если закружилась голова.",
+      "video": {
+        "url": "https://www.youtube.com/watch?v=1Dv-ldGLnIY",
+        "source": "youtube",
+        "title": "4-7-8 Calm Breathing Exercise | Relaxing Breath Technique | Extended Breaths | Pranayama Exercise",
+        "channel": "Hands-On Meditation",
+        "access": "link_out",
+        "verified": true,
+        "verification": "title+channel parsed from youtube.com/results ytInitialData; relevance-gated"
+      },
+      "image": {
+        "url": "https://commons.wikimedia.org/wiki/File:The_Basic_of_Pranayama_Cycle.jpg",
+        "source_page": "https://commons.wikimedia.org/wiki/File:The_Basic_of_Pranayama_Cycle.jpg",
+        "license": "CC BY-SA 4.0",
+        "credit": "Renato yoga   Own work",
+        "access": "link_out",
+        "status": "sourced",
+        "source": "wikimedia_commons"
+      }
+    },
+    {
+      "exercise_id": "wall_axial_elongation",
+      "name_ru": "Осевое вытяжение у стены",
+      "category": "motor_control",
+      "ai_summary_ru": "Встаньте спиной к стене (пятки, таз, лопатки, затылок легко касаются), рёбра над тазом и мягко тяните макушку вверх, «удлиняя» позвоночник без рывков. Спокойное дыхание 3–5 циклов; цель — запомнить ощущение «длинного» положения.",
+      "video": {
+        "url": "https://www.youtube.com/watch?v=IvVN7XjzB98",
+        "source": "youtube",
+        "title": "Schroth Method for scoliosis Elongation with Semi Hanging",
+        "channel": "Align Therapy",
+        "access": "link_out",
+        "verified": true,
+        "verification": "title+channel parsed from youtube.com/results ytInitialData; relevance-gated"
+      },
+      "image": {
+        "url": null,
+        "source_page": null,
+        "license": null,
+        "credit": null,
+        "access": "link_out",
+        "status": "media_pending",
+        "note": "No license-clean, verifiable-relevance depiction found (DRE-126 sweep confirmed). YouTube how-to video covers visual guidance. Recommends commissioned CC0 art."
+      }
+    },
+    {
+      "exercise_id": "quadruped_rockback",
+      "name_ru": "Рок-бэк на четвереньках",
+      "category": "mobility_control",
+      "ai_summary_ru": "На четвереньках (кисти под плечами, колени под тазом) на выдохе плавно уводите таз назад к пяткам до приятного натяжения и возвращайтесь обратно. Без скручивания и перекоса таза; диапазон — только комфортный.",
+      "video": {
+        "url": "https://www.youtube.com/watch?v=nBhiJuPg3Hw",
+        "source": "youtube",
+        "title": "How To Do The Perfect Child's Pose | Taught By A Physical Therapist Physical Therapist",
+        "channel": "Rehab and Revive",
+        "access": "link_out",
+        "verified": true,
+        "verification": "title+channel parsed from youtube.com/results ytInitialData; relevance-gated"
+      },
+      "image": {
+        "url": "https://commons.wikimedia.org/wiki/File:ChildsPose3.jpg",
+        "source_page": "https://commons.wikimedia.org/wiki/File:ChildsPose3.jpg",
+        "license": "CC BY-SA 4.0",
+        "credit": "Nolabob   Own work",
+        "access": "link_out",
+        "status": "sourced",
+        "source": "wikimedia_commons"
+      }
+    },
+    {
+      "exercise_id": "split_squat",
+      "name_ru": "Сплит-присед / передняя нога на возвышении",
+      "category": "knee_dominant",
+      "ai_summary_ru": "Шагните одной ногой вперёд (стопа полностью на полу или на возвышении) и опускайтесь, сгибая оба колена до комфортного угла, переднее колено над стопой, корпус ровно. Оттолкнитесь передней ногой вверх; одинаковый объём на каждую сторону.",
+      "video": {
+        "url": "https://www.youtube.com/watch?v=teAkmNS059A",
+        "source": "youtube",
+        "title": "How to do a Split Squat  [Stationary Lunge]",
+        "channel": "Ryan Saplan",
+        "access": "link_out",
+        "verified": true,
+        "verification": "title+channel parsed from youtube.com/results ytInitialData; relevance-gated"
+      },
+      "image": {
+        "url": "https://commons.wikimedia.org/wiki/File:Side-split-squats-1-1024x600.png",
+        "source_page": "https://commons.wikimedia.org/wiki/File:Side-split-squats-1-1024x600.png",
+        "license": "CC BY-SA 3.0",
+        "credit": "Everkinetic  http://everkinetic.com/",
+        "access": "link_out",
+        "status": "sourced",
+        "source": "wikimedia_commons"
+      }
+    },
+    {
+      "exercise_id": "goblet_squat",
+      "name_ru": "Гоблет-присед с темпом",
+      "category": "knee_dominant",
+      "ai_summary_ru": "Держите одну гантель вертикально у груди, стопы на ширине плеч, носки слегка разведены. Опускайтесь 3 секунды до комфортной глубины (колени следуют за носками) и мощно вставайте через пятки, без задержки дыхания и скручивания.",
+      "video": {
+        "url": "https://www.youtube.com/watch?v=6mf0oa2GGUc",
+        "source": "youtube",
+        "title": "Goblet Squat Tutorial - Proper Form and Technique",
+        "channel": "Runna",
+        "access": "link_out",
+        "verified": true,
+        "verification": "title+channel parsed from youtube.com/results ytInitialData; relevance-gated"
+      },
+      "image": {
+        "url": null,
+        "source_page": null,
+        "license": null,
+        "credit": null,
+        "access": "link_out",
+        "status": "media_pending",
+        "note": "No license-clean, verifiable-relevance depiction found (DRE-126 sweep confirmed). YouTube how-to video covers visual guidance. Recommends commissioned CC0 art."
+      }
+    },
+    {
+      "exercise_id": "bulgarian_split_squat",
+      "name_ru": "Болгарский сплит-присед",
+      "category": "knee_dominant",
+      "ai_summary_ru": "Заднюю стопу поставьте на невысокую опору, передняя — впереди; опускайтесь, сгибая переднее колено до комфортной глубины без боли. Корпус ровно; если равновесие вызывает скручивание — уменьшите глубину. Равный объём на обе стороны.",
+      "video": {
+        "url": "https://www.youtube.com/watch?v=2C-uNgKwPLE",
+        "source": "youtube",
+        "title": "How To: Bulgarian Split Squat",
+        "channel": "ScottHermanFitness",
+        "access": "link_out",
+        "verified": true,
+        "verification": "title+channel parsed from youtube.com/results ytInitialData; relevance-gated"
+      },
+      "image": {
+        "url": "https://www.flickr.com/photos/121183998@N08/42990005625",
+        "source_page": "https://www.flickr.com/photos/121183998@N08/42990005625",
+        "license": "CC BY 2.0",
+        "credit": "Eric Astrauskas, www.PTinTO.com",
+        "access": "link_out",
+        "status": "sourced",
+        "source": "flickr_cc"
+      }
+    },
+    {
+      "exercise_id": "reverse_lunge",
+      "name_ru": "Обратный выпад",
+      "category": "knee_dominant",
+      "ai_summary_ru": "Встаньте ровно (опора рукой при необходимости), шагните одной ногой назад и опустите колено под контролем — таз и грудь единым блоком, без наклона и ротации. Оттолкнитесь задней ногой в стойку; равный объём на каждую сторону.",
+      "video": {
+        "url": "https://www.youtube.com/watch?v=u_zSfK5ZFU4",
+        "source": "youtube",
+        "title": "Обратные выпады: правильная техника выполнения",
+        "channel": "BuiltLean®",
+        "access": "link_out",
+        "verified": true,
+        "verification": "title+channel parsed from youtube.com/results ytInitialData; relevance-gated"
+      },
+      "image": {
+        "url": "https://commons.wikimedia.org/wiki/File:Lunge-CDC_strength_training_for_older_adults.gif",
+        "source_page": "https://commons.wikimedia.org/wiki/File:Lunge-CDC_strength_training_for_older_adults.gif",
+        "license": "Public domain",
+        "credit": "Centers for Disease Control and Prevention   Growing Stronger - Strength Training for Older Adults - More Exercises",
+        "access": "link_out",
+        "status": "sourced",
+        "source": "wikimedia_commons"
+      }
+    },
+    {
+      "exercise_id": "b_stance_rdl",
+      "name_ru": "B-stance румынская тяга",
+      "category": "hip_hinge",
+      "ai_summary_ru": "Передняя стопа несёт большую часть веса, задняя — для опоры; гантели близко к бёдрам, спина длинная, плечи нейтральны. Наклоняйтесь отведением таза назад до контролируемого натяжения и возвращайтесь напряжением ягодиц. Равный объём, без рывков.",
+      "video": {
+        "url": "https://www.youtube.com/watch?v=5bJEigM5iVg",
+        "source": "youtube",
+        "title": "FIX Your RDL Form! (Ultimate Romanian Deadlift Tutorial)",
+        "channel": "Squat University",
+        "access": "link_out",
+        "verified": true,
+        "verification": "title+channel parsed from youtube.com/results ytInitialData; relevance-gated"
+      },
+      "image": {
+        "url": "https://commons.wikimedia.org/wiki/File:Deadlift_illustration.jpg",
+        "source_page": "https://commons.wikimedia.org/wiki/File:Deadlift_illustration.jpg",
+        "license": "CC BY 2.5",
+        "credit": "Luis Javier Rodriguez /  Yupi666  transferred from  en.wikipedia.org",
+        "access": "link_out",
+        "status": "sourced",
+        "source": "wikimedia_commons"
+      }
+    },
+    {
+      "exercise_id": "single_leg_rdl_supported",
+      "name_ru": "Одноногая тяга с опорой",
+      "category": "hip_hinge",
+      "ai_summary_ru": "Одной рукой обопритесь на стену/стул, в другой — гантель; перенесите вес на одну ногу. Наклоняйтесь с длинной спиной, гантель скользит вдоль передней ноги; меньшая контролируемая амплитуда лучше потери формы. Равный объём на обе стороны.",
+      "video": {
+        "url": "https://www.youtube.com/watch?v=Zfr6wizR8rs",
+        "source": "youtube",
+        "title": "The BEST Single-Leg RDL Tutorial (Romanian Deadlift)",
+        "channel": "Squat University",
+        "access": "link_out",
+        "verified": true,
+        "verification": "title+channel parsed from youtube.com/results ytInitialData; relevance-gated"
+      },
+      "image": {
+        "url": "https://commons.wikimedia.org/wiki/File:Romanian_dead_lift_1.svg",
+        "source_page": "https://commons.wikimedia.org/wiki/File:Romanian_dead_lift_1.svg",
+        "license": "CC BY-SA 3.0",
+        "credit": "Everkinetic  http://db.everkinetic.com/",
+        "access": "link_out",
+        "status": "sourced",
+        "source": "wikimedia_commons"
+      }
+    },
+    {
+      "exercise_id": "glute_bridge",
+      "name_ru": "Ягодичный мост / хамстринг-выходы",
+      "category": "hip_extension",
+      "ai_summary_ru": "Лягте на спину, колени согнуты, стопы на ширине таза; рёбра опущены, поясница не прогибается. Поднимайте таз напряжением ягодиц до линии колени–бёдра–плечи и опускайте подконтрольно.",
+      "video": {
+        "url": "https://www.youtube.com/watch?v=tl6xvm4-Qk0",
+        "source": "youtube",
+        "title": "How To Properly Perform The Glute Bridge |#AskSquatU Show Ep. 39|",
+        "channel": "Squat University",
+        "access": "link_out",
+        "verified": true,
+        "verification": "title+channel parsed from youtube.com/results ytInitialData; relevance-gated"
+      },
+      "image": {
+        "url": "https://commons.wikimedia.org/wiki/File:Glute-bridge.png",
+        "source_page": "https://commons.wikimedia.org/wiki/File:Glute-bridge.png",
+        "license": "CC BY-SA 4.0",
+        "credit": "Marianne Gilbak  https://gilbaks.dk/balleoevelser/",
+        "access": "link_out",
+        "status": "sourced",
+        "source": "wikimedia_commons"
+      }
+    },
+    {
+      "exercise_id": "pushup",
+      "name_ru": "Отжимания: выбранная прогрессия",
+      "category": "horizontal_push",
+      "ai_summary_ru": "Выберите высоту опоры (стена/стол/пол), где держите ровную линию тела; кисти чуть шире плеч, лопатки свободно движутся. Опускайтесь подконтрольно единым блоком и мощно отжимайтесь; прекратите при боли или онемении.",
+      "video": {
+        "url": "https://www.youtube.com/watch?v=iIa2-uVHzM0",
+        "source": "youtube",
+        "title": "STOP DOING PUSHUPS LIKE THIS | 10 Worst Mistakes!",
+        "channel": "ATHLEAN-X™",
+        "access": "link_out",
+        "verified": true,
+        "verification": "title+channel parsed from youtube.com/results ytInitialData; relevance-gated"
+      },
+      "image": {
+        "url": "https://commons.wikimedia.org/wiki/File:Push-up-1.png",
+        "source_page": "https://commons.wikimedia.org/wiki/File:Push-up-1.png",
+        "license": "CC BY-SA 3.0",
+        "credit": "Everkinetic  http://everkinetic.com/",
+        "access": "link_out",
+        "status": "sourced",
+        "source": "wikimedia_commons"
+      }
+    },
+    {
+      "exercise_id": "db_floor_press",
+      "name_ru": "Жим гантелей лёжа на полу",
+      "category": "horizontal_push",
+      "ai_summary_ru": "Лягте на спину на коврик, гантели над плечами, стопы на полу, рёбра опущены. Опускайте гантели, пока локти мягко не коснутся пола, и выжимайте вверх по той же траектории без рывков и переразгибания.",
+      "video": {
+        "url": "https://www.youtube.com/watch?v=uUGDRwge4F8",
+        "source": "youtube",
+        "title": "How To: Dumbbell Floor Press",
+        "channel": "ScottHermanFitness",
+        "access": "link_out",
+        "verified": true,
+        "verification": "title+channel parsed from youtube.com/results ytInitialData; relevance-gated"
+      },
+      "image": {
+        "url": "https://commons.wikimedia.org/wiki/File:Decline-dumbbell-bench-press-1.png",
+        "source_page": "https://commons.wikimedia.org/wiki/File:Decline-dumbbell-bench-press-1.png",
+        "license": "CC BY-SA 3.0",
+        "credit": "Everkinetic  http://everkinetic.com/",
+        "access": "link_out",
+        "status": "sourced",
+        "source": "wikimedia_commons"
+      }
+    },
+    {
+      "exercise_id": "pike_pushup_optional",
+      "name_ru": "Пайк-отжимание (опционально)",
+      "category": "vertical_push",
+      "ai_summary_ru": "Только при комфортных плечах: позиция «собака мордой вниз», кисти на ширине плеч, таз высоко. Сгибайте руки, ведя макушку между кистями без прогиба в пояснице, и отжимайтесь подконтрольно. Не используйте при ротации/компрессии.",
+      "video": {
+        "url": "https://www.youtube.com/watch?v=XckEEwa1BPI",
+        "source": "youtube",
+        "title": "How to do a Pike Push-Up",
+        "channel": "National Academy of Sports Medicine (NASM)",
+        "access": "link_out",
+        "verified": true,
+        "verification": "title+channel parsed from youtube.com/results ytInitialData; relevance-gated"
+      },
+      "image": {
+        "url": "https://commons.wikimedia.org/wiki/File:Pike_Push_Ups.gif",
+        "source_page": "https://commons.wikimedia.org/wiki/File:Pike_Push_Ups.gif",
+        "license": "CC BY-SA 4.0",
+        "credit": "Danielflefil   Own work",
+        "access": "link_out",
+        "status": "sourced",
+        "source": "wikimedia_commons"
+      }
+    },
+    {
+      "exercise_id": "one_arm_row_supported",
+      "name_ru": "Тяга гантели одной рукой с опорой",
+      "category": "horizontal_pull",
+      "ai_summary_ru": "Обопритесь одной рукой и коленом на скамью (спина параллельна полу), гантель во второй руке висит ровно вниз. Тяните локоть назад, ведя гантель к поясу, корпус стабилен; опускайте подконтрольно. Равный объём и усилие на обе стороны.",
+      "video": {
+        "url": "https://www.youtube.com/watch?v=ZRSGpBUVcNw",
+        "source": "youtube",
+        "title": "How To Do Single Arm Dumbbell Rows",
+        "channel": "PureGym",
+        "access": "link_out",
+        "verified": true,
+        "verification": "title+channel parsed from youtube.com/results ytInitialData; relevance-gated"
+      },
+      "image": {
+        "url": "https://commons.wikimedia.org/wiki/File:DumbbellBentOverRow.JPG",
+        "source_page": "https://commons.wikimedia.org/wiki/File:DumbbellBentOverRow.JPG",
+        "license": "CC BY-SA 3.0",
+        "credit": "No machine-readable author provided.  GeorgeStepanek  assumed (based on copyright claims). No machine-readable source provided. Own work assumed (based on copyright claims).",
+        "access": "link_out",
+        "status": "sourced",
+        "source": "wikimedia_commons"
+      }
+    },
+    {
+      "exercise_id": "prone_ytw",
+      "name_ru": "Y–T–W лёжа",
+      "category": "scapular",
+      "ai_summary_ru": "Лягте на живот, лоб на кистях, шея длинная; с малым весом или без поднимайте руки в форме букв Y, T, W — движение инициируют лопатки. Поясница не прогибается; задержка 1–2 с в верхней точке, симметрично на обе стороны.",
+      "video": {
+        "url": "https://www.youtube.com/watch?v=LyEBEGafDxw",
+        "source": "youtube",
+        "title": "YTW - Exercise Demo",
+        "channel": "Group HIIT",
+        "access": "link_out",
+        "verified": true,
+        "verification": "title+channel parsed from youtube.com/results ytInitialData; relevance-gated"
+      },
+      "image": {
+        "url": null,
+        "source_page": null,
+        "license": null,
+        "credit": null,
+        "access": "link_out",
+        "status": "media_pending",
+        "note": "No license-clean, verifiable-relevance depiction found (DRE-126 sweep confirmed). YouTube how-to video covers visual guidance. Recommends commissioned CC0 art."
+      }
+    },
+    {
+      "exercise_id": "reverse_fly",
+      "name_ru": "Разведение гантелей в наклоне с опорой",
+      "category": "scapular",
+      "ai_summary_ru": "Лёгкие гантели, наклонитесь вперёд с прямой спиной (опора грудью/рукой при необходимости), руки слегка согнуты. Разводите руки в стороны за счёт сведения лопаток, без скручивания корпуса; средний диапазон повторений.",
+      "video": {
+        "url": "https://www.youtube.com/watch?v=d1QEddtoOq0",
+        "source": "youtube",
+        "title": "How To Dumbbell Reverse Fly PROPERLY | MAXIMIZE REAR DELTS",
+        "channel": "Colossus Fitness",
+        "access": "link_out",
+        "verified": true,
+        "verification": "title+channel parsed from youtube.com/results ytInitialData; relevance-gated"
+      },
+      "image": {
+        "url": "https://commons.wikimedia.org/wiki/File:Lying-rear-lateral-raise-1.png",
+        "source_page": "https://commons.wikimedia.org/wiki/File:Lying-rear-lateral-raise-1.png",
+        "license": "CC BY-SA 3.0",
+        "credit": "Everkinetic  http://everkinetic.com/",
+        "access": "link_out",
+        "status": "sourced",
+        "source": "wikimedia_commons"
+      }
+    },
+    {
+      "exercise_id": "dead_bug",
+      "name_ru": "Dead bug",
+      "category": "trunk_control",
+      "ai_summary_ru": "Лягте на спину, руки вверх, колени над тазом; прижмите поясницу к полу, рёбра опущены, дышите свободно. Медленно опускайте противоположную руку и ногу, пока поясница прижата, и возвращайтесь; укорачивайте рычаг при выпячивании или боли.",
+      "video": {
+        "url": "https://www.youtube.com/watch?v=lqnuY3wiBzA",
+        "source": "youtube",
+        "title": "How to PROPERLY Do Deadbugs (STOP MAKING THESE MISTAKES!)",
+        "channel": "Colossus Fitness",
+        "access": "link_out",
+        "verified": true,
+        "verification": "title+channel parsed from youtube.com/results ytInitialData; relevance-gated"
+      },
+      "image": {
+        "url": null,
+        "source_page": null,
+        "license": null,
+        "credit": null,
+        "access": "link_out",
+        "status": "media_pending",
+        "note": "No license-clean, verifiable-relevance depiction found (DRE-126 sweep confirmed). YouTube how-to video covers visual guidance. Recommends commissioned CC0 art."
+      }
+    },
+    {
+      "exercise_id": "bird_dog",
+      "name_ru": "Bird dog",
+      "category": "trunk_control",
+      "ai_summary_ru": "На четвереньках с нейтральной спиной вытяните противоположную руку и ногу до линии тела, не выше уровня контроля. Удерживайте 3–5 с без скручивания таза и задержки дыхания, поменяйте сторону; цель — контроль, а не максимальное напряжение.",
+      "video": {
+        "url": "https://www.youtube.com/watch?v=xEDnlOxeJH4",
+        "source": "youtube",
+        "title": "How to Do the Bird Dog Exercise: A Guide from Physical Therapists",
+        "channel": "Hinge Health",
+        "access": "link_out",
+        "verified": true,
+        "verification": "title+channel parsed from youtube.com/results ytInitialData; relevance-gated"
+      },
+      "image": {
+        "url": "https://commons.wikimedia.org/wiki/File:Bird_dog_exercise.jpg",
+        "source_page": "https://commons.wikimedia.org/wiki/File:Bird_dog_exercise.jpg",
+        "license": "CC BY 2.0",
+        "credit": "PTPioneer  https://www.flickr.com/photos/182613284@N02/48317751292/",
+        "access": "link_out",
+        "status": "sourced",
+        "source": "wikimedia_commons"
+      }
+    },
+    {
+      "exercise_id": "side_plank_equal",
+      "name_ru": "Боковая планка — обе стороны поровну",
+      "category": "trunk_endurance",
+      "ai_summary_ru": "Лягте на бок, опора на предплечье (локоть под плечом), вариант с колен или стоп; оторвите таз в прямую линию. Ровное дыхание без провисания; равное время на каждый бок, развиваем длительность постепенно.",
+      "video": {
+        "url": "https://www.youtube.com/watch?v=iNbH7_edNI8",
+        "source": "youtube",
+        "title": "Side Plank Tutorial - Proper Form and Technique",
+        "channel": "Runna",
+        "access": "link_out",
+        "verified": true,
+        "verification": "title+channel parsed from youtube.com/results ytInitialData; relevance-gated"
+      },
+      "image": {
+        "url": "https://commons.wikimedia.org/wiki/File:Side-plank-1.png",
+        "source_page": "https://commons.wikimedia.org/wiki/File:Side-plank-1.png",
+        "license": "CC BY-SA 3.0",
+        "credit": "Everkinetic  http://everkinetic.com/",
+        "access": "link_out",
+        "status": "sourced",
+        "source": "wikimedia_commons"
+      }
+    },
+    {
+      "exercise_id": "suitcase_hold_equal",
+      "name_ru": "Suitcase hold/march — обе стороны поровну",
+      "category": "trunk_endurance",
+      "ai_summary_ru": "Возьмите гантель в одну руку и стойте ровно (или медленно маршируйте на месте), как с чемоданом, без наклона в сторону груза. Корпус ровный, дыхание свободное; равное время и вес на каждую сторону.",
+      "video": {
+        "url": "https://www.youtube.com/watch?v=tNHdx7pmrGI",
+        "source": "youtube",
+        "title": "Убойная сила корпуса одним простым движением | Урок упражнений с переноской чемодана",
+        "channel": "Buff Dudes Workouts",
+        "access": "link_out",
+        "verified": true,
+        "verification": "title+channel parsed from youtube.com/results ytInitialData; relevance-gated"
+      },
+      "image": {
+        "url": "https://commons.wikimedia.org/wiki/File:Farmer's_Walk.jpg",
+        "source_page": "https://commons.wikimedia.org/wiki/File:Farmer%27s_Walk.jpg",
+        "license": "CC BY-SA 3.0",
+        "credit": "Artur Andrzej   Own work",
+        "access": "link_out",
+        "status": "sourced",
+        "source": "wikimedia_commons"
+      }
+    },
+    {
+      "exercise_id": "wall_hip_abduction",
+      "name_ru": "Изометрия отведения бедра у стены",
+      "category": "hip_stability",
+      "ai_summary_ru": "Встаньте боком к стене, колено ближней ноги слегка касается стены; мягко давите коленом в стену, активируя боковую поверхность бедра. Таз не заваливайте, усилие умеренное; 20–30 с, затем поменяйте сторону — равный объём.",
+      "video": {
+        "url": "https://www.youtube.com/watch?v=WMV4kdFBkns",
+        "source": "youtube",
+        "title": "How to do a Standing Hip Abduction with Band - Strength Exercise - Wellen",
+        "channel": "Wellen",
+        "access": "link_out",
+        "verified": true,
+        "verification": "title+channel parsed from youtube.com/results ytInitialData; relevance-gated"
+      },
+      "image": {
+        "url": "https://commons.wikimedia.org/wiki/File:Hip_abduction-CDC_strength_training_for_older_adults.gif",
+        "source_page": "https://commons.wikimedia.org/wiki/File:Hip_abduction-CDC_strength_training_for_older_adults.gif",
+        "license": "Public domain",
+        "credit": "Centers for Disease Control and Prevention   Growing Stronger - Strength Training for Older Adults - Exercises Stage 2",
+        "access": "link_out",
+        "status": "sourced",
+        "source": "wikimedia_commons"
+      }
+    },
+    {
+      "exercise_id": "wall_slide",
+      "name_ru": "Скольжение руками по стене",
+      "category": "mobility_control",
+      "ai_summary_ru": "Встаньте спиной к стене (затылок и спина прижаты), прижмите предплечья и тыльные стороны кистей к стене. Медленно скользите руками вверх и вниз, не выталкивая рёбра; диапазон без боли в плечах.",
+      "video": {
+        "url": "https://www.youtube.com/watch?v=tWDGEyMWv10",
+        "source": "youtube",
+        "title": "Easy fix for rounded shoulders - Scapula Wall Slides #mobility",
+        "channel": "Jack Hanrahan Fitness",
+        "access": "link_out",
+        "verified": true,
+        "verification": "title+channel parsed from youtube.com/results ytInitialData; relevance-gated"
+      },
+      "image": {
+        "url": null,
+        "source_page": null,
+        "license": null,
+        "credit": null,
+        "access": "link_out",
+        "status": "media_pending",
+        "note": "No license-clean, verifiable-relevance depiction found (DRE-126 sweep confirmed). YouTube how-to video covers visual guidance. Recommends commissioned CC0 art."
+      }
+    },
+    {
+      "exercise_id": "brisk_walk",
+      "name_ru": "Быстрая ходьба",
+      "category": "aerobic",
+      "ai_summary_ru": "Идите ровно, расслабив плечи, в разговорном темпе — умеренная интенсивность, дыхание ровное. Можно дробить на блоки по 10–15 минут; выбирайте переносимый темп и удобную обувь.",
+      "video": {
+        "url": "https://www.youtube.com/watch?v=nmvVfgrExAg",
+        "source": "youtube",
+        "title": "How to do Brisk Walk - Warm Up Exercise",
+        "channel": "GetFitso",
+        "access": "link_out",
+        "verified": true,
+        "verification": "title+channel parsed from youtube.com/results ytInitialData; relevance-gated"
+      },
+      "image": {
+        "url": "https://commons.wikimedia.org/wiki/File:Walking_exercise_(16818224061).jpg",
+        "source_page": "https://commons.wikimedia.org/wiki/File:Walking_exercise_(16818224061).jpg",
+        "license": "CC BY 2.0",
+        "credit": "bluesbby  from Mountain View, USA  Walking exercise",
+        "access": "link_out",
+        "status": "sourced",
+        "source": "wikimedia_commons"
+      }
+    },
+    {
+      "exercise_id": "gentle_yoga_flow",
+      "name_ru": "Мягкий йога-флоу",
+      "category": "mobility_relaxation",
+      "ai_summary_ru": "Коврик и блоки для поддержки, спокойное дыхание на каждом движении: мягкий ягодичный мост, низкий выпад с опорой, поза ребёнка, лёгкая растяжка задней поверхности бедра. Без агрессивных скручиваний и боковых наклонов; завершите шавасаной 3–5 минут.",
+      "video": {
+        "url": "https://www.youtube.com/watch?v=KM0LcI9MIoI",
+        "source": "youtube",
+        "title": "Morning Yoga for Beginners | 20-Min Full Body Stretch & Gentle Yoga Flow to Feel Amazing",
+        "channel": "WITH WEINI",
+        "access": "link_out",
+        "verified": true,
+        "verification": "title+channel parsed from youtube.com/results ytInitialData; relevance-gated"
+      },
+      "image": {
+        "url": "https://commons.wikimedia.org/wiki/File:Koh_Wai,_Thailand,_Yoga,_Asana.jpg",
+        "source_page": "https://commons.wikimedia.org/wiki/File:Koh_Wai,_Thailand,_Yoga,_Asana.jpg",
+        "license": "CC BY 4.0",
+        "credit": "Vyacheslav Argenberg   Own work",
+        "access": "link_out",
+        "status": "sourced",
+        "source": "wikimedia_commons"
+      }
+    },
+    {
+      "exercise_id": "barbell_back_squat",
+      "name_ru": "Приседания со штангой на спине",
+      "category": "knee_dominant",
+      "ai_summary_ru": "Снимите штангу на верхнюю часть спины (не на шею), стопы на ширине плеч. Опускайтесь подконтрольно с нейтральным позвоночником и вставайте мощно через пятки — существенная осевая нагрузка под внешним весом (регулируется правилом безопасности).",
+      "video": {
+        "url": "https://www.youtube.com/watch?v=SW_C1A-rejs",
+        "source": "youtube",
+        "title": "How To: Deep Barbell Back Squat",
+        "channel": "ScottHermanFitness",
+        "access": "link_out",
+        "verified": true,
+        "verification": "title+channel parsed from youtube.com/results ytInitialData; relevance-gated"
+      },
+      "image": {
+        "url": "https://commons.wikimedia.org/wiki/File:Barbell_pad_back_squat.jpg",
+        "source_page": "https://commons.wikimedia.org/wiki/File:Barbell_pad_back_squat.jpg",
+        "license": "CC0",
+        "credit": "RickyBennison   Own work",
+        "access": "link_out",
+        "status": "sourced",
+        "source": "wikimedia_commons"
+      }
+    },
+    {
+      "exercise_id": "barbell_front_squat",
+      "name_ru": "Приседания со штангой на груди",
+      "category": "knee_dominant",
+      "ai_summary_ru": "Зафиксируйте штангу на передних дельтах хватом «полки» или крест-накрест, локти высоко, грудь поднята. Опускайтесь подконтрольно до комфортной глубины, колени следуют за носками; осевая нагрузка под внешним весом остаётся существенной.",
+      "video": {
+        "url": "https://www.youtube.com/watch?v=tlfahNdNPPI",
+        "source": "youtube",
+        "title": "How To: Front Squat (Barbell)",
+        "channel": "ScottHermanFitness",
+        "access": "link_out",
+        "verified": true,
+        "verification": "title+channel parsed from youtube.com/results ytInitialData; relevance-gated"
+      },
+      "image": {
+        "url": "https://commons.wikimedia.org/wiki/File:Front-squat-1-857x1024.png",
+        "source_page": "https://commons.wikimedia.org/wiki/File:Front-squat-1-857x1024.png",
+        "license": "CC BY-SA 3.0",
+        "credit": "Everkinetic  http://everkinetic.com/",
+        "access": "link_out",
+        "status": "sourced",
+        "source": "wikimedia_commons"
+      }
+    },
+    {
+      "exercise_id": "overhead_barbell_press",
+      "name_ru": "Жим штанги стоя над головой",
+      "category": "vertical_push",
+      "ai_summary_ru": "Снимите штангу на уровне груди, хват чуть шире плеч, жёсткая стойка без прогиба в пояснице. Выжмите штангу над головой, сводя голову «через» гриф в верхней точке; тяжёлая вертикальная нагрузка стоя — существенная осевая.",
+      "video": {
+        "url": "https://www.youtube.com/watch?v=2yjwXTZQDDI",
+        "source": "youtube",
+        "title": "How To: Standing Straight-Bar Military / Overhead Press",
+        "channel": "ScottHermanFitness",
+        "access": "link_out",
+        "verified": true,
+        "verification": "title+channel parsed from youtube.com/results ytInitialData; relevance-gated"
+      },
+      "image": {
+        "url": "https://commons.wikimedia.org/wiki/File:How_to_do_an_Overhead_Press.jpg",
+        "source_page": "https://commons.wikimedia.org/wiki/File:How_to_do_an_Overhead_Press.jpg",
+        "license": "CC BY-SA 4.0",
+        "credit": "RangerJim   Own work",
+        "access": "link_out",
+        "status": "sourced",
+        "source": "wikimedia_commons"
+      }
+    },
+    {
+      "exercise_id": "barbell_deadlift",
+      "name_ru": "Становая тяга со штангой (классика/сумо)",
+      "category": "hip_hinge",
+      "ai_summary_ru": "Гриф над серединой стопы, хват на ширине плеч; «снимите Slack», поднимите грудь и установите нейтраль позвоночника. Отрывайте штангу мощно через ноги, гриф скользит вдоль тела; техника обязательна — высокая осевая/сдвиговая нагрузка.",
+      "video": {
+        "url": "https://www.youtube.com/watch?v=VL5Ab0T07e4",
+        "source": "youtube",
+        "title": "Build A Bigger Deadlift With Perfect Technique (Conventional Form)",
+        "channel": "Jeff Nippard",
+        "access": "link_out",
+        "verified": true,
+        "verification": "title+channel parsed from youtube.com/results ytInitialData; relevance-gated"
+      },
+      "image": {
+        "url": "https://commons.wikimedia.org/wiki/File:Deadlift_Barbell.JPG",
+        "source_page": "https://commons.wikimedia.org/wiki/File:Deadlift_Barbell.JPG",
+        "license": "CC BY-SA 2.0",
+        "credit": "stu_spivack  https://www.flickr.com/photos/stuart_spivack/3850659281/in/set-72157622007398607/",
+        "access": "link_out",
+        "status": "sourced",
+        "source": "wikimedia_commons"
+      }
+    },
+    {
+      "exercise_id": "barbell_good_morning",
+      "name_ru": "Гудморнинг со штангой",
+      "category": "hip_hinge",
+      "ai_summary_ru": "Штанга на верхней части спины, наклоняйтесь вперёд за счёт отведения таза назад, спина остаётся нейтральной. Опускайтесь до комфортного натяжения без скругления и возвращайтесь разгибанием в тазу; осевая нагрузка в наклоне.",
+      "video": {
+        "url": "https://www.youtube.com/watch?v=f23vXjoG2e8",
+        "source": "youtube",
+        "title": "HOW TO DO THE GOOD MORNING EXERCISE: Build Your Glutes, Hamstrings And Squat With Perfect Technique",
+        "channel": "Jeff Nippard",
+        "access": "link_out",
+        "verified": true,
+        "verification": "title+channel parsed from youtube.com/results ytInitialData; relevance-gated"
+      },
+      "image": {
+        "url": "https://commons.wikimedia.org/wiki/File:Good-mornings-1.png",
+        "source_page": "https://commons.wikimedia.org/wiki/File:Good-mornings-1.png",
+        "license": "CC BY-SA 3.0",
+        "credit": "Everkinetic  http://everkinetic.com/",
+        "access": "link_out",
+        "status": "sourced",
+        "source": "wikimedia_commons"
+      }
+    },
+    {
+      "exercise_id": "heavy_farmer_carry",
+      "name_ru": "Тяжёлая прогулка фермера",
+      "category": "loaded_carry",
+      "ai_summary_ru": "Возьмите тяжёлые снаряды в обе руки и идите ровным шагом с прямой осанкой и уверенным хватом. Груз вдоль тела без раскачки, дыхание свободное; при больших весах — выраженная компрессионная осевая нагрузка.",
+      "video": {
+        "url": "https://www.youtube.com/watch?v=nqGfgIVteoM",
+        "source": "youtube",
+        "title": "The Farmer's Walk Dumbbell Tutorial - Discover the Benefits",
+        "channel": "Fit Father Project - Fitness For Busy Fathers",
+        "access": "link_out",
+        "verified": true,
+        "verification": "title+channel parsed from youtube.com/results ytInitialData; relevance-gated"
+      },
+      "image": {
+        "url": "https://commons.wikimedia.org/wiki/File:Farmer's_Walk_equipment.jpg",
+        "source_page": "https://commons.wikimedia.org/wiki/File:Farmer%27s_Walk_equipment.jpg",
+        "license": "Public domain",
+        "credit": "Artur Andrzej   Own work",
+        "access": "link_out",
+        "status": "sourced",
+        "source": "wikimedia_commons"
+      }
+    },
+    {
+      "exercise_id": "loaded_russian_twist",
+      "name_ru": "Скручивания с отягощением (Russian twist)",
+      "category": "trunk_control",
+      "ai_summary_ru": "Сядьте с наклоном корпуса назад, колени согнуты; отягощение в обеих руках мягко поворачивайте корпус из стороны в сторону под контролем, без рывков. Сочетанная флексия и ротация под нагрузкой (регулируется правилом безопасности).",
+      "video": {
+        "url": "https://www.youtube.com/watch?v=fCHFQTBqm-U",
+        "source": "youtube",
+        "title": "How to PROPERLY Do Russian Twists For ABS (FIX THIS NOW!)",
+        "channel": "Colossus Fitness",
+        "access": "link_out",
+        "verified": true,
+        "verification": "title+channel parsed from youtube.com/results ytInitialData; relevance-gated"
+      },
+      "image": {
+        "url": "https://www.flickr.com/photos/121183998@N08/30283139408",
+        "source_page": "https://www.flickr.com/photos/121183998@N08/30283139408",
+        "license": "CC BY 2.0",
+        "credit": "Eric Astrauskas, www.PTinTO.com",
+        "access": "link_out",
+        "status": "sourced",
+        "source": "flickr_cc"
+      }
+    },
+    {
+      "exercise_id": "cable_woodchop",
+      "name_ru": "Дровосек на кроссовере (cable woodchop)",
+      "category": "trunk_control",
+      "ai_summary_ru": "Встаньте боком к кроссоверу, рукоять сверху, хват обеими руками. Тяните по диагонали сверху-вниз, поворачивая корпус через ноги и бёдра, контролируя всю амплитуду; ротация туловища под нагрузкой (регулируется правилом безопасности).",
+      "video": {
+        "url": "https://www.youtube.com/watch?v=pAplQXk3dkU",
+        "source": "youtube",
+        "title": "How To: Oblique Twist \"Wood Chopper\" (LF CAble)",
+        "channel": "ScottHermanFitness",
+        "access": "link_out",
+        "verified": true,
+        "verification": "title+channel parsed from youtube.com/results ytInitialData; relevance-gated"
+      },
+      "image": {
+        "url": null,
+        "source_page": null,
+        "license": null,
+        "credit": null,
+        "access": "link_out",
+        "status": "media_pending",
+        "note": "No license-clean, verifiable-relevance depiction found (DRE-126 sweep confirmed). YouTube how-to video covers visual guidance. Recommends commissioned CC0 art."
+      }
+    },
+    {
+      "exercise_id": "landmine_rotation",
+      "name_ru": "Ротация со штангой в земле (landmine)",
+      "category": "trunk_control",
+      "ai_summary_ru": "Зафиксируйте один конец штанги в земле, возьмитесь за свободный конец обеими руками перед собой. Проводите гриф по дуге из стороны в сторону с контролем; дуговая ротация под нагрузкой (регулируется правилом безопасности).",
+      "video": {
+        "url": "https://www.youtube.com/watch?v=wpfYRQGYVm4",
+        "source": "youtube",
+        "title": "How To PROPERLY Landmine Oblique Twist For Shredded Abs",
+        "channel": "Colossus Fitness",
+        "access": "link_out",
+        "verified": true,
+        "verification": "title+channel parsed from youtube.com/results ytInitialData; relevance-gated"
+      },
+      "image": {
+        "url": null,
+        "source_page": null,
+        "license": null,
+        "credit": null,
+        "access": "link_out",
+        "status": "media_pending",
+        "note": "No license-clean, verifiable-relevance depiction found (DRE-126 sweep confirmed). YouTube how-to video covers visual guidance. Recommends commissioned CC0 art."
+      }
+    },
+    {
+      "exercise_id": "bent_rotational_row",
+      "name_ru": "Тяга в наклоне с ротацией",
+      "category": "horizontal_pull",
+      "ai_summary_ru": "Наклонитесь вперёд с прямой спиной, снаряд в одной руке; тяните к поясу, одновременно поворачивая корпус к нагруженной стороне. Контролируйте спину без рывка; флексия и ротация под нагрузкой (регулируется правилом безопасности).",
+      "video": {
+        "url": "https://www.youtube.com/watch?v=9efgcAjQe7E",
+        "source": "youtube",
+        "title": "How To: Barbell Bent-Over Row",
+        "channel": "ScottHermanFitness",
+        "access": "link_out",
+        "verified": true,
+        "verification": "title+channel parsed from youtube.com/results ytInitialData; relevance-gated"
+      },
+      "image": {
+        "url": "https://commons.wikimedia.org/wiki/File:Barbell-rear-delt-row-1.png",
+        "source_page": "https://commons.wikimedia.org/wiki/File:Barbell-rear-delt-row-1.png",
+        "license": "CC BY-SA 3.0",
+        "credit": "Everkinetic  http://everkinetic.com/",
+        "access": "link_out",
+        "status": "sourced",
+        "source": "wikimedia_commons"
+      }
+    },
+    {
+      "exercise_id": "heavy_rotational_carry",
+      "name_ru": "Тяжёлая односторонняя ротационная переноска",
+      "category": "loaded_carry",
+      "ai_summary_ru": "Возьмите тяжёлый односторонний груз с одной стороны или над головой и идите ровным шагом, противодействуя вращательному моменту. Сохраняйте стабильную осанку, не давая корпусу скручиваться; выраженная односторонняя ротационная нагрузка.",
+      "video": {
+        "url": "https://www.youtube.com/watch?v=7D96dK6oaP8",
+        "source": "youtube",
+        "title": "Core Stability: Side  Bends or Suitcase Carry? |#AskSquatU Show Ep. 47|",
+        "channel": "Squat University",
+        "access": "link_out",
+        "verified": true,
+        "verification": "title+channel parsed from youtube.com/results ytInitialData; relevance-gated"
+      },
+      "image": {
+        "url": "https://commons.wikimedia.org/wiki/File:Man_carrying_suitcase_and_bag.jpg",
+        "source_page": "https://commons.wikimedia.org/wiki/File:Man_carrying_suitcase_and_bag.jpg",
+        "license": "CC BY-SA 4.0",
+        "credit": "Mstephen247   Own work",
+        "access": "link_out",
+        "status": "sourced",
+        "source": "wikimedia_commons"
+      }
+    },
+    {
+      "exercise_id": "loaded_good_morning_rotation",
+      "name_ru": "Гудморнинг со штангой с ротацией",
+      "category": "hip_hinge",
+      "ai_summary_ru": "Штанга на верхней части спины, наклонитесь вперёд как в гудморнинге и в наклоне добавьте контролируемую ротацию туловища. Движение медленное, по ограниченной амплитуде, без рывков; флексия и осевая ротация под нагрузкой (регулируется правилом безопасности).",
+      "video": {
+        "url": "https://www.youtube.com/watch?v=dtn4YECDJfQ",
+        "source": "youtube",
+        "title": "Rotational Good Mornings",
+        "channel": "Dekhana Wellness",
+        "access": "link_out",
+        "verified": true,
+        "verification": "title+channel parsed from youtube.com/results ytInitialData; relevance-gated"
+      },
+      "image": {
+        "url": null,
+        "source_page": null,
+        "license": null,
+        "credit": null,
+        "access": "link_out",
+        "status": "media_pending",
+        "note": "No license-clean, verifiable-relevance depiction found (DRE-126 sweep confirmed). YouTube how-to video covers visual guidance. Recommends commissioned CC0 art."
+      }
+    }
+  ]
+}

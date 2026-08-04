@@ -208,3 +208,70 @@ rehab-specific movements (wall axial elongation, prone YTW, wall slide, dead
 bug) — no licence-clean photo exists. For the gym movements (cable woodchop,
 landmine rotation, good-morning rotation): re-scan Flickr CC BY with visual
 confirmation at sourcing time, or commission.
+
+## DRE-207 — exercise media library (video + image + AI how-to summary per preset)
+
+Deliverable: `data/exercise_media.json` (36 exercises), built from founder review
+[DRE-205](/DRE/issues/DRE-205) points 4–5. Per exercise it carries:
+`ai_summary_ru` (brief non-medical "what to do"), `video` (verified YouTube
+how-to), and `image` (card image with license + credit, or `media_pending`).
+
+### Video sourcing (all 36)
+
+- Source: `youtube.com/results?search_query=…` → the page's embedded
+  `ytInitialData` JSON is parsed (balanced-brace) and every `videoRenderer`
+  block is read for `(videoId, title, channel)`. **A video is accepted only if
+  its parsed title matches the exercise's relevance keywords** — no IDs are
+  guessed or transcribed from memory.
+- Quality gates: profanity filter on titles (so card surfaces stay
+  app-appropriate) and a wrong-type guard (e.g. exclude *Wim Hof*
+  hyperventilation for the calm-breathing preset, exclude *abductor machine*
+  for the wall-isometric). Picks prefer reputable fitness/PT channels
+  (Squat University, ScottHermanFitness, Jeff Nippard, Buff Dudes, Colossus
+  Fitness, Runna, Hinge Health, Align Therapy, …) and how-to/form titles.
+- Spot-checked live via the `youtube.com/oembed` endpoint (title + author
+  confirmed) — links resolve at sourcing time.
+- Licensing: the app **links out** (never reproduces inline), so linking to a
+  YouTube watch page is not a CC-restricted act. Durability caveat: YouTube
+  links can be taken down or re-titled; the provenance carries the recorded
+  title + channel so a broken/changed link is detectable and replaceable.
+- Notable matches: `wall_axial_elongation` → Schroth-method elongation tutorial
+  (Align Therapy); `loaded_good_morning_rotation` → "Rotational Good Mornings"
+  (exact); `split_squat` → true stationary split squat (bulgarian-themed hits
+  excluded).
+
+### AI how-to summaries (all 36)
+
+Authored by the Evidence Analyst from each exercise's existing
+`instructions`/`how_to_steps_ru`, condensed to 1–3 sentences, instruction-first.
+Non-medical: no treatment/benefit claims; for the heavy-axial and
+loaded-rotation presets the load character is stated factually and flagged as
+"регулируется правилом безопасности" (governed by the safety rule), never as a
+medical recommendation.
+
+### Card images (28 sourced / 8 `media_pending`)
+
+Reuses the DRE-79/103/126 vetted `image_refs` provenance (Wikimedia Commons
+PD/CC + Flickr CC BY 2.0); license + credit are resolved per file via the
+Commons `imageinfo` `extmetadata`. The 8 `media_pending` exercises have no
+license-clean, verifiable-relevance depiction and ship no fabricated image:
+`goblet_squat` (Commons has only the demo video, no still), plus the 7
+rehab-specific/ambiguous movements from DRE-126 (`wall_axial_elongation`,
+`prone_ytw`, `dead_bug`, `wall_slide`, `cable_woodchop`, `landmine_rotation`,
+`loaded_good_morning_rotation`). The YouTube how-to video covers visual
+guidance for these; commissioned CC0 art remains the recommended fix.
+
+### Inline-render promotion trigger
+
+Same as DRE-86: if the UI ever renders images/videos inline (download +
+display) instead of linking out, the schema must carry `{url, license, credit}`
+per ref so CC BY/BY-SA attribution is shown at display. `exercise_media.json`
+already stores license + credit for that promotion.
+
+### Handoff to the Founding Engineer
+
+`data/exercise_media.json` is keyed by `exercise_id` so it can be merged into
+the card without touching the Kotlin schema. The safety rule references in the
+summaries are descriptive only — the blocking itself is wired in the engine
+(`heavy_axial_loading`, `loaded_flexion_rotation`); this media does not change
+any contraindication logic.
