@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.Button
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.MaterialTheme
@@ -109,12 +108,14 @@ internal fun PlayScene(
         }
 
         // The current exercise, large and legible — the whole point of the scene.
-        LazyColumn(
+        // ponytail: a plain Column, not a LazyColumn — nesting a vertically-scrollable
+        // in an unbounded-height parent (this Column) crashes at runtime; the body is
+        // one block, so a Column is the correct + smaller choice.
+        Column(
             modifier = Modifier.fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(Spacing.sm),
         ) {
-            item {
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(Spacing.xs),
@@ -137,7 +138,6 @@ internal fun PlayScene(
                         fontWeight = FontWeight.SemiBold,
                     )
                 }
-            }
         }
 
         // Advance controls. "Готово → далее" logs + moves on; the last one ends.
