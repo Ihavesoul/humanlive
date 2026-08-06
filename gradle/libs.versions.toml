@@ -20,6 +20,14 @@ agp = "8.13.2"
 androidxCore = "1.15.0"
 androidxLifecycle = "2.8.7"
 androidxActivity = "1.9.3"
+# Redesign v2 ([DRE-211](/DRE/issues/DRE-211)): the exercise-card image slot
+# renders license-clean remote images from the media library (DRE-207). The bare
+# Compose classpath has no async image loader, so Coil — the de-facto Compose
+# image loader (disk + memory cache, lifecycle-aware, graceful placeholder on
+# offline/miss) — is the one new runtime dependency the redesign needs. Its
+# default loader bundles the OkHttp network fetcher, so AsyncImage(model=url)
+# works with no Activity-side setup.
+coil = "2.7.0"
 androidxComposeBom = "2024.12.01"
 
 [libraries]
@@ -41,6 +49,8 @@ junit-platform-launcher = { group = "org.junit.platform", name = "junit-platform
 kotest-assertions-core = { group = "io.kotest", name = "kotest-assertions-core", version.ref = "kotestAssertions" }
 # Android / Compose
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "androidxCore" }
+# Image loading (Coil2 — see [coil] version note). Default loader bundles network.
+coil-compose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coil" }
 androidx-lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "androidxLifecycle" }
 androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "androidxActivity" }
 androidx-compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "androidxComposeBom" }

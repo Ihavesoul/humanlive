@@ -265,6 +265,13 @@ fun DreamTeamApp(db: LocalDatabase) {
     // evidence) — no naked links. No network; pure render below
     // ([resolveExerciseReferences] / [ReferencesCard]).
     val exerciseLibrary = remember { loadExerciseLibrary(appContext.assets) }
+    // Redesign v2 ([DRE-211](/DRE/issues/DRE-211)): the offline-first exercise-MEDIA
+    // resolver (FE track, [DRE-210](/DRE/issues/DRE-210)), decoded once from the
+    // bundled `exercise_media.json` asset (single Android-I/O point, same `data/`
+    // srcDir) so each exercise card renders its license-clean image + readable RU
+    // summary ([DRE-207](/DRE/issues/DRE-207) content). No network for resolution;
+    // only the image bytes themselves are fetched (Coil, cached to disk).
+    val exerciseMedia = remember { loadExerciseMedia(appContext.assets) }
 
     Scaffold(
         topBar = { TopAppBar(title = { Text(UiStrings.APP_NAME) }) },
@@ -298,6 +305,7 @@ fun DreamTeamApp(db: LocalDatabase) {
                 profile = profile,
                 resolver = resolver,
                 exerciseLibrary = exerciseLibrary,
+                exerciseMedia = exerciseMedia,
                 coachCredStore = coachCredStore,
                 // Redesign v2 ([DRE-211](/DRE/issues/DRE-211)): the global Play CTA on
                 // Today opens the dedicated Play session scene for today's workout.
@@ -326,6 +334,7 @@ fun DreamTeamApp(db: LocalDatabase) {
                 profile = profile,
                 resolver = resolver,
                 exerciseLibrary = exerciseLibrary,
+                exerciseMedia = exerciseMedia,
                 coachCredStore = coachCredStore,
                 onSymptoms = { screen = Screen.Symptoms },
                 onProgress = { screen = Screen.Progress },
@@ -459,7 +468,7 @@ private fun OnboardingScreen(modifier: Modifier, onPlanReady: (Profile) -> Unit)
 
 @OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
-private fun PlanScreen(modifier: Modifier, db: LocalDatabase, profile: Profile?, resolver: EvidenceResolver, exerciseLibrary: ExerciseLibraryResolver, coachCredStore: CoachCredentialStore, onSymptoms: () -> Unit, onProgress: () -> Unit) {
+private fun PlanScreen(modifier: Modifier, db: LocalDatabase, profile: Profile?, resolver: EvidenceResolver, exerciseLibrary: ExerciseLibraryResolver, exerciseMedia: ExerciseMediaResolver, coachCredStore: CoachCredentialStore, onSymptoms: () -> Unit, onProgress: () -> Unit) {
     val p = profile ?: run {
         Column(modifier.fillMaxSize().padding(16.dp)) { Text("Профиль не найден."); Button(onClick = {}) {} }
         return
@@ -523,7 +532,7 @@ private fun PlanScreen(modifier: Modifier, db: LocalDatabase, profile: Profile?,
                     }
                 }
                 items(result.week.sessions) { session ->
-                    SessionCard(db = db, session = session, resolver = resolver, exerciseLibrary = exerciseLibrary, coachCredStore = coachCredStore, profile = p)
+                    SessionCard(db = db, session = session, resolver = resolver, exerciseLibrary = exerciseLibrary, exerciseMedia = exerciseMedia, coachCredStore = coachCredStore, profile = p)
                 }
             }
         }
@@ -558,6 +567,7 @@ private fun TodayScreen(
     profile: Profile?,
     resolver: EvidenceResolver,
     exerciseLibrary: ExerciseLibraryResolver,
+    exerciseMedia: ExerciseMediaResolver,
     coachCredStore: CoachCredentialStore,
     // Redesign v2 ([DRE-211](/DRE/issues/DRE-211)): opens the dedicated Play
     // session scene for today's workout (founder p.6: a global Play button).
@@ -604,7 +614,7 @@ private fun TodayScreen(
                             // the global Play CTA — a prominent full-width primary button
                             // that opens today's workout in the dedicated Play scene.
                             Button(onClick = { onPlay(s) }, modifier = Modifier.fillMaxWidth()) { Text(TodayStrings.PLAY) }
-                            SessionCard(db = db, session = s, resolver = resolver, exerciseLibrary = exerciseLibrary, coachCredStore = coachCredStore, profile = p)
+                            SessionCard(db = db, session = s, resolver = resolver, exerciseLibrary = exerciseLibrary, exerciseMedia = exerciseMedia, coachCredStore = coachCredStore, profile = p)
                         }
                     }
                 }
@@ -822,6 +832,7 @@ private fun SessionCard(
     session: dreamteam.domain.training.PlanSession,
     resolver: EvidenceResolver,
     exerciseLibrary: ExerciseLibraryResolver,
+    exerciseMedia: ExerciseMediaResolver,
     // DRE-175: the coach call sites read the user's own encrypted creds at click
     // time so a Settings save is reflected immediately (no stale cached coach).
     coachCredStore: CoachCredentialStore,
@@ -930,7 +941,7 @@ private fun SessionCard(
                             onClick = { explainFor = a.exerciseId },
                             modifier = Modifier.fillMaxWidth(),
                         ) { Text(CoachStrings.ASK_AI) }
-                        ReferencesCard(name = name, refs = refs)
+                        ReferencesCard(name = name, refs = refs, exerciseMedia = exerciseMedia)
                         // M8-B ([DRE-78](/DRE/issues/DRE-78)): free-text note per exercise
                         // in the execution log ("что вышло / что нет / боль"), persisted
                         // like the symptom/progress logs and read back by the coach

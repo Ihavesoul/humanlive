@@ -1,6 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <!--
+      Redesign v2 ([DRE-211](/DRE/issues/DRE-211)): the exercise-card image slot
+      renders license-clean REMOTE images (media library DRE-207) via Coil's
+      OkHttp fetcher, which needs INTERNET. This is the app's FIRST network
+      permission — the app stays offline-first for everything load-bearing: plan
+      generation, the safety gate, the evidence catalog, and persistence all run
+      locally with no round-trip. Only the image BYTES are fetched; Coil's disk
+      cache keeps a once-loaded image available offline, and a cache miss degrades
+      gracefully to the branded placeholder (never a crash, never a broken icon).
+      INTERNET is normal-protection (granted at install, no runtime prompt).
+    -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
     <application
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"

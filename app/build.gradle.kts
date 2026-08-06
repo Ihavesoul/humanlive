@@ -87,6 +87,13 @@ dependencies {
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.material3)
+    // Redesign v2 ([DRE-211](/DRE/issues/DRE-211)): async image loading for the
+    // exercise-card image slot (license-clean remote images from the media
+    // library, DRE-207). Coil is the de-facto Compose image loader — disk +
+    // memory cache (so a once-loaded image is available offline), lifecycle-
+    // aware, and it degrades gracefully to the branded placeholder on a cache
+    // miss. The default loader bundles the OkHttp network fetcher.
+    implementation(libs.coil.compose)
     implementation(libs.androidx.compose.ui.tooling.preview)
     debugImplementation(libs.androidx.compose.ui.tooling)
 

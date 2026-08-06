@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.res.AssetManager
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -12,6 +13,8 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
@@ -28,6 +31,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import dreamteam.app.ui.Spacing
 import dreamteam.app.ui.AppCardShape
 import dreamteam.domain.EvidenceId
@@ -243,13 +248,15 @@ internal object ReferencesCardStrings {
     const val VIDEO = "Смотреть видео"
     const val IMAGE = "Открыть схему"
     const val EVIDENCE = "Источники"
+    /** Redesign v2 (DRE-211): label prefixing the VERBATIM license attribution under the exercise image. */
+    const val IMAGE_CREDIT = "Изображение"
     /** Transparent about the seed state — not a claim, just "not populated yet". */
     const val MEDIA_PENDING = "Видео, пошаговая инструкция и схемы будут добавлены."
     /** M9-B: the collapsed-card toggle affordance on the always-visible header. */
     const val SHOW = "Показать"
     const val HIDE = "Скрыть"
 
-    val all: List<String> = listOf(TITLE, WHY, HOW_TO, VIDEO, IMAGE, EVIDENCE, MEDIA_PENDING, SHOW, HIDE)
+    val all: List<String> = listOf(TITLE, WHY, HOW_TO, VIDEO, IMAGE, IMAGE_CREDIT, EVIDENCE, MEDIA_PENDING, SHOW, HIDE)
 }
 
 /**
@@ -275,12 +282,19 @@ internal object ReferencesCardStrings {
  */
 @OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
-internal fun ReferencesCard(name: String, refs: ResolvedReferences, modifier: Modifier = Modifier) {
+internal fun ReferencesCard(name: String, refs: ResolvedReferences, exerciseMedia: ExerciseMediaResolver, modifier: Modifier = Modifier) {
     if (!refs.hasMedia && refs.citations.isEmpty()) return
     val context = LocalContext.current
     // M9-B: collapsed by default. Keyed to the exercise id so each card expands
     // independently and survives recomposition of the session list.
     var expanded by remember(refs.exerciseId) { mutableStateOf(false) }
+    // Redesign v2 ([DRE-211](/DRE/issues/DRE-211), founder: «картинку в карточке»):
+    // resolve the license-clean card image + readable RU summary for THIS
+    // exercise from the media library (DRE-207) via the FE resolver (DRE-210).
+    // Pure over the resolver; a `media_pending`/missing entry yields no image (the
+    // slot keeps its branded placeholder) and no summary — never a fabricated
+    // image or invented text. Keyed to the exercise id so it survives recomposition.
+    val media = remember(refs.exerciseId) { resolveExerciseMedia(refs.exerciseId, exerciseMedia) }
     Card(modifier = modifier.fillMaxWidth()) {
         Column(Modifier.padding(Spacing.card), verticalArrangement = Arrangement.spacedBy(Spacing.tightGap)) {
             // Always-visible, tappable header. Density win: the whole reference
@@ -298,20 +312,38 @@ internal fun ReferencesCard(name: String, refs: ResolvedReferences, modifier: Mo
             }
             if (expanded) {
                 // Redesign v2 ([DRE-211](/DRE/issues/DRE-211), founder: «картинку мы
-                // должны показывать в карточке упражнения»): the image slot — a
-                // branded 16:9 surface reserved at the top of the expanded card for the
-                // exercise image. Content (a license-clean direct image per exercise)
-                // arrives from the media library ([DRE-207](/DRE/issues/DRE-207),
-                // in progress); until then the slot is a calm branded block with the
-                // exercise name, so the card has the image space the redesign needs.
-                // Hook: when DRE-207 lands a direct image URL + an image loader, render
-                // it here instead of the placeholder.
-                ExerciseMediaSlot(name = name)
+                // должны показывать в карточке упражнения»): the image slot now renders
+                // the REAL license-clean image (Coil AsyncImage) when the media library
+                // (DRE-207) sourced one, else the calm branded placeholder — never an
+                // empty box, never a fabricated image. The image is remote; Coil's disk
+                // cache keeps a once-loaded image available offline, and a cache miss
+                // degrades gracefully to the placeholder (offline-first by fallback).
+                ExerciseMediaSlot(name = name, media = media)
+                // Honest attribution — license-clean images REQUIRE it. credit + license
+                // are surfaced VERBATIM from the catalog (Evidence Analyst content, like
+                // citation rows — NOT app copy, so NOT banned-phrase-scanned). Only the
+                // label prefix is app-authored.
+                media.cardImage?.let { img ->
+                    val attribution = listOfNotNull(img.credit, img.license)
+                        .joinToString(" · ")
+                        .takeUnless { it.isBlank() }
+                    if (attribution != null) {
+                        Text(
+                            "${ReferencesCardStrings.IMAGE_CREDIT}: $attribution",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
                 // M9 polish (DRE-179): the one-line scoliosis-safe "why this is in
                 // your plan" intro — support framing, points at the detail below,
-                // never a condition claim. First thing read on expand so the
-                // how-to / media / evidence that follows has a purpose line.
+                // never a condition claim.
                 Text(ReferencesCardStrings.WHY, fontWeight = FontWeight.Light)
+                // The readable RU summary (ai_summary_ru) — catalog content, rendered
+                // verbatim. The first read after the image: what this exercise is and
+                // why it is here, in plain language. Absent ⇒ nothing (no placeholder
+                // noise), matching the resolveExerciseMedia null contract.
+                media.summary?.let { summary -> Text(summary, style = MaterialTheme.typography.bodyMedium) }
                 if (refs.howToStepsRu.isNotEmpty()) {
                     Text(ReferencesCardStrings.HOW_TO, fontWeight = FontWeight.Medium)
                     refs.howToStepsRu.forEachIndexed { i, step -> Text("${i + 1}. $step") }
@@ -350,28 +382,82 @@ internal fun ReferencesCard(name: String, refs: ResolvedReferences, modifier: Mo
 }
 
 /**
- * Redesign v2 ([DRE-211](/DRE/issues/DRE-211)): the reserved image area at the
- * top of an exercise card. A calm branded 16:9 block with the exercise name —
- * the "место под изображение" the founder asked for. Fills with the real
- * license-clean image once the media library ([DRE-207](/DRE/issues/DRE-207))
- * delivers a direct image + an image loader is added; until then it is a
- * tasteful placeholder, never an empty box or a fabricated image. Pure render.
+ * Adapt the catalog's image URL into a Coil-loadable DIRECT image URL, or `null`
+ * when it cannot be rendered inline. Pure; a JVM test pins the transform.
+ *
+ * **Why this exists.** The media catalog ([DRE-207](/DRE/issues/DRE-207)) carries
+ * LINK-OUT URLs — Wikimedia `File:` description pages and Flickr photo pages —
+ * which serve HTML, not image bytes (verified: `content-type: text/html`). Loading
+ * such a URL in Coil silently fails. For inline rendering, Wikimedia's documented
+ * media endpoint `Special:FilePath` redirects (302→301→200) to the actual image
+ * file, and `?width=` caps the download to a card-sized thumbnail; Coil follows
+ * the redirect chain. A direct image URL (e.g. `upload.wikimedia.org`) passes
+ * through unchanged. Flickr photo pages and other link-out pages have no stable
+ * direct-image transform and yield `null` — the card then keeps its branded
+ * placeholder and the link-out button still opens the source page.
+ *
+ * This is a presentation-layer adaptation of the catalog's link-out URL, NOT data
+ * authorship: if the Evidence Analyst later sources direct image URLs
+ * (`upload.wikimedia.org/…`) the Wikimedia branch becomes a no-op passthrough.
+ */
+internal fun cardImageUrl(rawUrl: String?): String? {
+    if (rawUrl.isNullOrBlank()) return null
+    // Wikimedia `File:` description page → the documented direct-image endpoint.
+    if ("commons.wikimedia.org/wiki/File:" in rawUrl) {
+        val name = rawUrl.substringAfter("commons.wikimedia.org/wiki/File:")
+        return "https://commons.wikimedia.org/wiki/Special:FilePath/$name?width=640"
+    }
+    // A direct image URL (upload.wikimedia.org, or any future direct ref) loads as-is.
+    if (rawUrl.startsWith("https://upload.wikimedia.org/")) return rawUrl
+    // Flickr photo pages / other link-out pages serve HTML → not inline-renderable.
+    return null
+}
+
+/**
+ * Redesign v2 ([DRE-211](/DRE/issues/DRE-211)): the reserved 16:9 image area at
+ * the top of an exercise card (founder: «картинку в карточке упражнения»). When
+ * the media library ([DRE-207](/DRE/issues/DRE-207)) sourced a license-clean
+ * direct image for this exercise, it renders via Coil [AsyncImage] (cropped to
+ * the app card shape); otherwise a calm branded block with the exercise name —
+ * never an empty box, never a fabricated image. The image is remote; Coil's
+ * disk cache makes a once-loaded image available offline, and a cache miss /
+ * loading state degrades gracefully to the placeholder colour while it loads.
+ *
+ * [name] is the image's contentDescription (accessibility) and the placeholder
+ * label. Pure render of [ResolvedExerciseMedia]; the load itself is Coil's job.
  */
 @Composable
-private fun ExerciseMediaSlot(name: String, modifier: Modifier = Modifier) {
+private fun ExerciseMediaSlot(name: String, media: ResolvedExerciseMedia, modifier: Modifier = Modifier) {
+    val loadUrl = cardImageUrl(media.cardImage?.url)
     Box(
         modifier = modifier
             .fillMaxWidth()
             .height(Spacing.exerciseMediaHeight)
-            .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f), AppCardShape),
+            .clip(AppCardShape)
+            .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f)),
         contentAlignment = Alignment.Center,
     ) {
-        Text(
-            name,
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onPrimaryContainer,
-            fontWeight = FontWeight.SemiBold,
-        )
+        if (loadUrl != null) {
+            // A renderable direct image (the catalog link-out URL adapted by
+            // [cardImageUrl]). Coil's disk cache keeps it available offline once
+            // loaded; a miss / error falls back through to the placeholder below.
+            AsyncImage(
+                model = ImageRequest.Builder(LocalContext.current)
+                    .data(loadUrl)
+                    .crossfade(true)
+                    .build(),
+                contentDescription = name,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize(),
+            )
+        } else {
+            Text(
+                name,
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                fontWeight = FontWeight.SemiBold,
+            )
+        }
     }
 }
 
