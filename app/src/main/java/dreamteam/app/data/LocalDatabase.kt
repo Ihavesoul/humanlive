@@ -33,6 +33,7 @@ class LocalDatabase(context: Context) : SQLiteOpenHelper(context, NAME, null, VE
 
     fun saveProfile(profile: Profile) = writableDatabase.useProfileRow { db ->
         val cv = ContentValues().apply {
+            put(COL_ID, 0)
             put(COL_SEX, profile.sex)
             put(COL_AGE, profile.age)
             put(COL_HEIGHT, profile.height)
