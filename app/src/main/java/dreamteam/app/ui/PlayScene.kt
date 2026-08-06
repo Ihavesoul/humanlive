@@ -13,7 +13,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -22,6 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import dreamteam.app.data.LocalDatabase
+import dreamteam.app.playSessionPosition
 import dreamteam.domain.training.BaselineProgram
 import dreamteam.domain.training.PlanSession
 import java.time.LocalDate
@@ -37,13 +37,13 @@ import java.time.LocalDate
  * done in Play shows done on Today/Plan — one source of truth.
  *
  * Division of labour (DRE-211 vs [DRE-210](/DRE/issues/DRE-210)): the *session
- * state machine* (set/rep progression, rest timer, auto-advance) is the Founding
- * Engineer's track. This scene ships the full **UI** now — current-exercise
- * focus, manual advance, progress, breathing entry — driven by local UI state
- * (`currentIndex`). When the FE engine lands it replaces this local index with a
- * richer state object; the render surface (the params below) is the integration
- * contract. The gate/plan/data are untouched: the session is the already-gated
- * [PlanSession] from the deterministic plan.
+ * position* is the Founding Engineer's pure derivation ([playSessionPosition]):
+ * the current exercise is the first incomplete assignment, derived from the
+ * persisted completion set, so a half-done session resumes on the next exercise
+ * to do (never exercise 1 again) and can't drift from the [LocalDatabase.logWorkout]
+ * source of truth. This scene renders from it — current-exercise focus, manual
+ * mark-done → advance, progress, breathing entry. The gate/plan/data are
+ * untouched: the session is the already-gated [PlanSession] from the deterministic plan.
  */
 @Composable
 internal fun PlayScene(
@@ -56,19 +56,22 @@ internal fun PlayScene(
 ) {
     val today = LocalDate.now().toString()
     val assignments = session.assignments
-    // Local UI state — the FE session engine (DRE-210) will drive this later.
-    var currentIndex by remember(session.id) { mutableIntStateOf(0) }
+    // DRE-210: the session position is DERIVED from the persisted completion
+    // set, not a throwaway local index ([playSessionPosition]). The current
+    // exercise is the first incomplete one; finished when all are done — so a
+    // half-done session resumes on the next exercise to do, never exercise 1
+    // again, and can't drift from the [LocalDatabase.logWorkout] source of truth.
     var completed by remember(session.id) {
         mutableStateOf(db.completedExercises(session.id))
     }
+    val position = playSessionPosition(assignments, completed)
 
-    fun markCurrentDoneAndAdvance() {
-        val a = assignments.getOrNull(currentIndex) ?: return
-        if (a.exerciseId !in completed) {
-            db.logWorkout(session.id, a.exerciseId, today)
-            completed = completed + a.exerciseId
+    fun markCurrentDone() {
+        val current = position.current ?: return
+        if (current.exerciseId !in completed) {
+            db.logWorkout(session.id, current.exerciseId, today)
+            completed = completed + current.exerciseId
         }
-        if (currentIndex < assignments.lastIndex) currentIndex += 1
     }
 
     if (assignments.isEmpty()) {
@@ -79,9 +82,9 @@ internal fun PlayScene(
         ) { Text(PlayStrings.EMPTY, color = MaterialTheme.colorScheme.onSurfaceVariant) }
         return
     }
-    val a = assignments[currentIndex]
-    val name = BaselineProgram.exercises[a.exerciseId]?.name ?: a.exerciseId
-    val allDone = completed.size >= assignments.size
+    val current = position.current ?: return
+    val name = BaselineProgram.exercises[current.exerciseId]?.name ?: current.exerciseId
+    val allDone = position.finished
 
     Column(
         modifier = modifier
@@ -97,7 +100,7 @@ internal fun PlayScene(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                PlayStrings.progressLine(currentIndex + 1, assignments.size, completed.size),
+                PlayStrings.progressLine(position.currentIndex + 1, assignments.size, position.doneCount),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -108,52 +111,49 @@ internal fun PlayScene(
         }
 
         // The current exercise, large and legible — the whole point of the scene.
-        // ponytail: a plain Column, not a LazyColumn — nesting a vertically-scrollable
-        // in an unbounded-height parent (this Column) crashes at runtime; the body is
-        // one block, so a Column is the correct + smaller choice.
+        // Note: a plain Column, not a LazyColumn — nesting a vertically-scrollable
+        // in an unbounded-height parent (this Column) crashes at runtime; the body
+        // is one block, so a Column is the correct + smaller choice.
         Column(
             modifier = Modifier.fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(Spacing.sm),
         ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(Spacing.xs),
-                ) {
-                    Text(
-                        PlayStrings.currentOf(currentIndex + 1, assignments.size),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Text(
-                        name,
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Bold,
-                        textAlign = TextAlign.Center,
-                    )
-                    Text(
-                        PlayStrings.prescription(a.sets, a.repScheme, a.rir),
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.SemiBold,
-                    )
-                }
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+            ) {
+                Text(
+                    PlayStrings.currentOf(position.currentIndex + 1, assignments.size),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Text(
+                    name,
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center,
+                )
+                Text(
+                    PlayStrings.prescription(current.sets, current.repScheme, current.rir),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.SemiBold,
+                )
+            }
         }
 
-        // Advance controls. "Готово → далее" logs + moves on; the last one ends.
+        // DRE-210: mark-done → advance is the single path. "Skip without logging"
+        // is non-resumable under derive-from-completion (an uncompleted exercise
+        // stays current) and is deliberately not modelled (ClientPlay.kt) — a
+        // skipped set would need its own persisted "skipped" set.
         if (allDone) {
             Button(onClick = onDone, modifier = Modifier.fillMaxWidth()) { Text(PlayStrings.FINISH) }
         } else {
-            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), modifier = Modifier.fillMaxWidth()) {
-                Button(
-                    onClick = ::markCurrentDoneAndAdvance,
-                    modifier = Modifier.weight(1f),
-                ) { Text(PlayStrings.DONE_NEXT) }
-                // Skip without logging (an exercise the user passes on).
-                FilledTonalButton(onClick = {
-                    if (currentIndex < assignments.lastIndex) currentIndex += 1
-                }) { Text(PlayStrings.SKIP) }
-            }
+            Button(
+                onClick = ::markCurrentDone,
+                modifier = Modifier.fillMaxWidth(),
+            ) { Text(PlayStrings.DONE_NEXT) }
         }
     }
 }
@@ -163,7 +163,6 @@ internal object PlayStrings {
     const val BACK = "Назад"
     const val BREATHING = "Дыхание"
     const val DONE_NEXT = "Готово · далее"
-    const val SKIP = "Пропустить"
     const val FINISH = "Завершить тренировку"
     const val EMPTY = "На сегодня упражнений нет."
     fun sessionTitle(session: PlanSession) = "Тренировка · ${session.label}"
@@ -171,5 +170,5 @@ internal object PlayStrings {
     fun currentOf(current: Int, total: Int) = "$current / $total"
     fun prescription(sets: Int, repScheme: String, rir: Int?) =
         if (rir != null) "$sets × $repScheme · RIR $rir" else "$sets × $repScheme"
-    val all: List<String> = listOf(BACK, BREATHING, DONE_NEXT, SKIP, FINISH, EMPTY)
+    val all: List<String> = listOf(BACK, BREATHING, DONE_NEXT, FINISH, EMPTY)
 }
