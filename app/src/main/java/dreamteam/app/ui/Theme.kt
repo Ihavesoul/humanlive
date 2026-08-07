@@ -1,5 +1,8 @@
 package dreamteam.app.ui
 
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.TweenSpec
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Typography
@@ -9,95 +12,153 @@ import androidx.compose.runtime.Composable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import dreamteam.app.R
 
 /**
- * M8-D ([DRE-90](/DRE/issues/DRE-90)): the app's product theme. The M2–M7
- * screens used the bare default `MaterialTheme`, which read as an "MD-viewer"
- * (wall of unstyled text on a flat grey background). This theme gives the app a
- * deliberate, media-forward fitness-app identity (reference: Nike Fitness):
- * dark, near-black canvas with a single green accent — the SAME green as the
- * launcher background ([dreamteam.app] `ic_launcher_background` `#0B6E4F`) — so
- * brand colour is consistent end to end. **No new dependency**: pure Material 3
- * `ColorScheme` + `Typography`, both already on the Compose classpath.
+ * ZEN design system ([DRE-205](/DRE/issues/DRE-205)): the app's product theme,
+ * replacing the prior Nike-Fitness dark/green identity with a calm, warm,
+ * minimalist palette — sage-teal accent on warm off-white (light) or
+ * warm-dark (dark) canvas. Humanist Mulish type for readable, non-"cheap" text.
  *
  * Behaviour is unchanged — every existing `Text`/`Card`/`Button` picks up its
- * colour from `MaterialTheme.colorScheme` via `LocalContentColor`, so swapping
- * the default scheme for this one restyles the whole tree without touching the
- * composition. The safety gate, the deterministic plan, the evidence links and
- * the support-framed copy are all untouched (the deliverable's invariants).
+ * colour from `MaterialTheme.colorScheme` and type from
+ * `MaterialTheme.typography`, so swapping the tokens restyles the whole tree
+ * without touching composition.
+ *
+ * No new Gradle dependency: the palette is pure Material 3 `ColorScheme`,
+ * the type scale is `Typography`, and the font is a bundled TTF resource.
  */
-private val BrandGreen = Color(0xFF0B6E4F)
-private val BrandGreenMuted = Color(0xFF1F8F6C)
 
-/** Dark-first canvas (the fitness-app reference is dark); surfaces step up from it. */
-private val DarkColors = darkColorScheme(
-    primary = BrandGreen,
-    onPrimary = Color.White,
-    primaryContainer = Color(0xFF0C5A41),
-    onPrimaryContainer = Color(0xFFB8EEDB),
-    secondary = BrandGreenMuted,
-    onSecondary = Color.White,
-    background = Color(0xFF0E0E10),
-    onBackground = Color(0xFFECECEE),
-    surface = Color(0xFF161619),
-    onSurface = Color(0xFFECECEE),
-    surfaceVariant = Color(0xFF222228),
-    onSurfaceVariant = Color(0xFFA6A6AE),
-    surfaceContainer = Color(0xFF1B1B1F),
-    outline = Color(0xFF38383F),
-    outlineVariant = Color(0xFF2A2A30),
+// ── Palette ────────────────────────────────────────────────────────────────
+
+/** Light scheme (default — warm off-white paper, sage-teal accent). */
+private val LightColors = lightColorScheme(
+    primary = Color(0xFF5E8B7E),
+    onPrimary = Color(0xFFFFFFFF),
+    primaryContainer = Color(0xFFD7E6DF),
+    onPrimaryContainer = Color(0xFF1F3D34),
+    secondary = Color(0xFFC9A66B),
+    onSecondary = Color(0xFF3A2E16),
+    background = Color(0xFFFAF7F2),
+    onBackground = Color(0xFF2E2A26),
+    surface = Color(0xFFFFFFFF),
+    onSurface = Color(0xFF2E2A26),
+    surfaceVariant = Color(0xFFF1EBE2),
+    onSurfaceVariant = Color(0xFF6B645B),
+    surfaceContainer = Color(0xFFF6F1E9),
+    outline = Color(0xFFE0D9CE),
+    outlineVariant = Color(0xFFECE6DC),
 )
 
-/** Light fallback for high-ambient-light / accessibility (same brand accent). */
-private val LightColors = lightColorScheme(
-    primary = BrandGreen,
-    onPrimary = Color.White,
-    secondary = BrandGreenMuted,
-    background = Color(0xFFF7F8F8),
-    onBackground = Color(0xFF16181A),
-    surface = Color(0xFFFFFFFF),
-    onSurface = Color(0xFF16181A),
-    surfaceVariant = Color(0xFFE9EBEC),
-    onSurfaceVariant = Color(0xFF44474E),
-    surfaceContainer = Color(0xFFF1F3F3),
-    outline = Color(0xFFC3C7CA),
-    outlineVariant = Color(0xFFDADDE0),
+/** Dark scheme (calm warm-dark — NOT near-black Nike). */
+private val DarkColors = darkColorScheme(
+    primary = Color(0xFF8FAB9F),
+    onPrimary = Color(0xFF12231C),
+    primaryContainer = Color(0xFF345047),
+    onPrimaryContainer = Color(0xFFD7E6DF),
+    secondary = Color(0xFFD9BC89),
+    onSecondary = Color(0xFF1F1810),
+    background = Color(0xFF1C1B1A),
+    onBackground = Color(0xFFEDE8E0),
+    surface = Color(0xFF262422),
+    onSurface = Color(0xFFEDE8E0),
+    surfaceVariant = Color(0xFF322F2C),
+    onSurfaceVariant = Color(0xFFB5ADA2),
+    surfaceContainer = Color(0xFF2A2826),
+    outline = Color(0xFF423E3A),
+    outlineVariant = Color(0xFF332F2C),
+)
+
+// ── Typography ────────────────────────────────────────────────────────────
+
+/**
+ * Mulish — bundled humanist sans (fixes "cheap text" board feedback).
+ * Variable font: single TTF covers Normal → Bold via the `wght` axis.
+ * Each [Font] entry tells Compose which weight the file can satisfy.
+ */
+private val Mulish = FontFamily(
+    Font(R.font.mulish_variable, FontWeight.Normal),
+    Font(R.font.mulish_variable, FontWeight.Medium),
+    Font(R.font.mulish_variable, FontWeight.SemiBold),
+    Font(R.font.mulish_variable, FontWeight.Bold),
 )
 
 /**
- * Clean, deliberate type scale tuned for a phone (M10 [DRE-189](/DRE/issues/DRE-189)).
- * Keeps the default Material 3 family (no custom font asset — YAGNI: a font
- * resource is a deployable nobody asked for); only weights, sizes and tracking
- * are tuned so headings read as headings and body stays comfortable. The M9
- * density pass pushed body copy to 12.5sp, which read as micro-text on a real
- * device — the floors here are raised so the smallest body line is comfortable
- * on a 360dp phone, and line heights leave room for the long RU labels to wrap
- * cleanly instead of colliding (maintainer feedback: «микро-текст», «шрифты
- * ужасны»). Hierarchy is unchanged; every existing Text picks the same style.
+ * ZEN type scale — Mulish family, raised floors + generous line-height for
+ * readability on phones (especially RU text with long exercise descriptions).
  */
 private val AppTypography = Typography(
-    headlineMedium = TextStyle(fontWeight = FontWeight.Bold, fontSize = 26.sp, letterSpacing = (-0.5).sp),
-    titleLarge = TextStyle(fontWeight = FontWeight.Bold, fontSize = 20.sp, letterSpacing = (-0.2).sp),
-    titleMedium = TextStyle(fontWeight = FontWeight.SemiBold, fontSize = 16.sp),
-    bodyLarge = TextStyle(fontWeight = FontWeight.Normal, fontSize = 16.sp, lineHeight = 22.sp),
-    bodyMedium = TextStyle(fontWeight = FontWeight.Normal, fontSize = 14.sp, lineHeight = 20.sp),
-    bodySmall = TextStyle(fontWeight = FontWeight.Normal, fontSize = 13.sp, lineHeight = 18.sp),
-    labelLarge = TextStyle(fontWeight = FontWeight.SemiBold, fontSize = 14.sp, letterSpacing = 0.1.sp),
-    labelMedium = TextStyle(fontWeight = FontWeight.Medium, fontSize = 12.sp, letterSpacing = 0.4.sp),
-    labelSmall = TextStyle(fontWeight = FontWeight.Medium, fontSize = 11.sp, letterSpacing = 0.4.sp),
+    headlineMedium = TextStyle(
+        fontFamily = Mulish,
+        fontWeight = FontWeight.Bold,
+        fontSize = 28.sp,
+        lineHeight = 34.sp,
+        letterSpacing = (-0.5).sp,
+    ),
+    titleLarge = TextStyle(
+        fontFamily = Mulish,
+        fontWeight = FontWeight.Bold,
+        fontSize = 22.sp,
+        lineHeight = 28.sp,
+        letterSpacing = (-0.2).sp,
+    ),
+    titleMedium = TextStyle(
+        fontFamily = Mulish,
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 17.sp,
+        lineHeight = 24.sp,
+    ),
+    bodyLarge = TextStyle(
+        fontFamily = Mulish,
+        fontWeight = FontWeight.Normal,
+        fontSize = 16.sp,
+        lineHeight = 24.sp,
+    ),
+    bodyMedium = TextStyle(
+        fontFamily = Mulish,
+        fontWeight = FontWeight.Normal,
+        fontSize = 14.sp,
+        lineHeight = 21.sp,
+    ),
+    bodySmall = TextStyle(
+        fontFamily = Mulish,
+        fontWeight = FontWeight.Normal,
+        fontSize = 13.sp,
+        lineHeight = 18.sp,
+    ),
+    labelLarge = TextStyle(
+        fontFamily = Mulish,
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 14.sp,
+        letterSpacing = 0.1.sp,
+    ),
+    labelMedium = TextStyle(
+        fontFamily = Mulish,
+        fontWeight = FontWeight.Medium,
+        fontSize = 12.sp,
+        letterSpacing = 0.4.sp,
+    ),
+    labelSmall = TextStyle(
+        fontFamily = Mulish,
+        fontWeight = FontWeight.Medium,
+        fontSize = 11.sp,
+        letterSpacing = 0.4.sp,
+    ),
 )
+
+// ── Spacing ───────────────────────────────────────────────────────────────
 
 /**
  * The spacing scale — the single source of truth for every gap and edge in the
  * app (redesign v2, [DRE-211](/DRE/issues/DRE-211); supersedes the M10 3-token
- * set from [DRE-189](/DRE/issues/DRE-189)). Founder review (DRE-205 p.1): «отступы
- * ужасны» — the prior screens mixed literal `2.dp`/`4.dp`/`12.dp`/`16.dp` with
- * no rhythm, so cards read as a wall. This is a deliberate 4dp-base scale
- * (reference: Material 3 spacing guidance) consumed everywhere via tokens, so
- * the whole app shares ONE visual rhythm. Pure values — no new dependency.
+ * set from [DRE-189](/DRE/issues/DRE-189)). 4dp-base scale (reference: Material 3
+ * spacing guidance) consumed everywhere via tokens, so the whole app shares ONE
+ * visual rhythm.
  *
  * The three legacy names ([card] / [itemGap] / [tightGap]) are kept as the
  * canonical members so existing call sites keep compiling; new code uses the
@@ -132,21 +193,30 @@ internal object Spacing {
     val exerciseMediaHeight = 180.dp
 }
 
-/**
- * Redesign v2 ([DRE-211](/DRE/issues/DRE-211)): one corner radius for cards and
- * media surfaces so the app reads as one product, not a mix of pill + square +
- * default. Material 3 "large" shape; pure value, no new dependency.
- */
-internal val AppCardShape = RoundedCornerShape(20.dp)
+// ── Shape ──────────────────────────────────────────────────────────────────
 
 /**
- * The app theme wrapper. Dark by default (the product reference is dark); pass
- * `forceDark = false` to follow the system setting. Light is kept for
- * accessibility, not as the default look.
+ * Softened card corners — calmer, more "spa" than the prior 20dp.
+ */
+internal val AppCardShape = RoundedCornerShape(24.dp)
+
+// ── Motion ──────────────────────────────────────────────────────────────────
+
+/** Calm easing/duration tokens for card expand, breathing animation, etc. */
+internal object Motion {
+    val calm = TweenSpec<Float>(durationMillis = 600, easing = FastOutSlowInEasing)
+    val breath = TweenSpec<Float>(durationMillis = 4000, easing = LinearEasing)
+}
+
+// ── Theme wrapper ──────────────────────────────────────────────────────────
+
+/**
+ * The app theme wrapper. Follows the system setting by default (ZEN reads best
+ * in warm light); pass `forceDark = true` to force dark mode.
  */
 @Composable
 fun DreamTeamTheme(
-    forceDark: Boolean = true,
+    forceDark: Boolean = false,
     content: @Composable () -> Unit,
 ) {
     val colors = if (forceDark || isSystemInDarkTheme()) DarkColors else LightColors

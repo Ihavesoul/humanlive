@@ -1,11 +1,11 @@
 package dreamteam.app
-
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.List
-import androidx.compose.material.icons.filled.DateRange
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.automirrored.rounded.List
+import androidx.compose.material.icons.rounded.DateRange
+import androidx.compose.material.icons.rounded.Home
+import androidx.compose.material.icons.rounded.Info
+import androidx.compose.material.icons.rounded.Settings
+
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -33,11 +33,11 @@ import androidx.compose.ui.graphics.vector.ImageVector
 private data class NavDestination(val screen: Screen, val label: String, val icon: ImageVector)
 
 private val NAV_DESTINATIONS = listOf(
-    NavDestination(Screen.Today, UiStrings.NAV_TODAY, Icons.Filled.Home),
-    NavDestination(Screen.Plan, UiStrings.NAV_PLAN, Icons.AutoMirrored.Filled.List),
-    NavDestination(Screen.History, UiStrings.NAV_HISTORY, Icons.Filled.DateRange),
-    NavDestination(Screen.EvidenceSources, UiStrings.NAV_SOURCES, Icons.Filled.Info),
-    NavDestination(Screen.Settings, UiStrings.NAV_SETTINGS, Icons.Filled.Settings),
+    NavDestination(Screen.Today, UiStrings.NAV_TODAY, Icons.Rounded.Home),
+    NavDestination(Screen.Plan, UiStrings.NAV_PLAN, Icons.AutoMirrored.Rounded.List),
+    NavDestination(Screen.History, UiStrings.NAV_HISTORY, Icons.Rounded.DateRange),
+    NavDestination(Screen.EvidenceSources, UiStrings.NAV_SOURCES, Icons.Rounded.Info),
+    NavDestination(Screen.Settings, UiStrings.NAV_SETTINGS, Icons.Rounded.Settings),
 )
 
 /**

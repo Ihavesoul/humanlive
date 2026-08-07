@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
@@ -40,6 +41,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
@@ -906,7 +908,7 @@ private fun SessionCard(
                 val noteSaved = remember(session.id, a.exerciseId) { db.exerciseNote(session.id, a.exerciseId) }
                 var noteDraft by remember(session.id, a.exerciseId) { mutableStateOf(noteSaved?.note ?: "") }
                 var outcomeDraft by remember(session.id, a.exerciseId) { mutableStateOf(noteSaved?.outcome) }
-                Column(Modifier.fillMaxWidth()) {
+                Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
                     // M10 (criterion 5): a hairline divider between exercises so a
                     // multi-exercise session reads as a list, not a wall. Skipped
                     // before the first so the title-to-first gap stays clean.
@@ -943,20 +945,10 @@ private fun SessionCard(
                         )
                     }
                     if (detailOpen) {
-                        // M8-C ([DRE-89](/DRE/issues/DRE-89)): "Спросить у AI" — a short
-                        // contextual cue for ONE exercise (NOT a chat, reviewer p.3.3).
-                        // Offline-first: runs the shared deterministic coach (no provider
-                        // in the client → always the fallback, #4/#5). The server is the
-                        // only LLM path; the live transport is a documented follow-up.
-                    if (aiCoachEnabled) {
-                        OutlinedButton(
-                            onClick = { explainFor = a.exerciseId },
-                        ) { Text(CoachStrings.ASK_AI) }
-                    }
-                        // Redesign v3: flattened references — no double-toggle.
-                        // The card image, AI summary, how-to steps, and video/media
-                        // buttons render directly in the detail body. Citations sit
-                        // behind a secondary "Источники (N)" toggle.
+                        // Redesign v3: flattened references — card image, AI summary,
+                        // how-to steps, and video/media buttons render directly.
+                        // Citations sit behind a secondary "Источники (N)" toggle.
+                        // ASK AI joins the unified action row (no standalone button).
                         val detailMedia = remember(a.exerciseId) {
                             resolveExerciseMedia(a.exerciseId, exerciseMedia)
                         }
@@ -973,19 +965,40 @@ private fun SessionCard(
                                 )
                             }
                         }
-                        Text(ReferencesCardStrings.WHY, fontWeight = FontWeight.Light)
+                        Text(
+                            ReferencesCardStrings.WHY,
+                            style = MaterialTheme.typography.titleMedium,
+                        )
                         detailMedia.summary?.let { summary ->
-                            Text(summary, style = MaterialTheme.typography.bodyMedium)
+                            Text(summary, style = MaterialTheme.typography.bodyLarge)
                         }
                         if (refs.howToStepsRu.isNotEmpty()) {
-                            Text(ReferencesCardStrings.HOW_TO, fontWeight = FontWeight.Medium)
-                            refs.howToStepsRu.forEachIndexed { i, step ->
-                                Text("${i + 1}. $step")
+                            Text(
+                                ReferencesCardStrings.HOW_TO,
+                                style = MaterialTheme.typography.titleMedium,
+                            )
+                            Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                                refs.howToStepsRu.forEachIndexed { i, step ->
+                                    Row(verticalAlignment = Alignment.Top) {
+                                        Text(
+                                            "${i + 1}",
+                                            style = MaterialTheme.typography.labelMedium,
+                                            color = MaterialTheme.colorScheme.primary,
+                                        )
+                                        Text(
+                                            step,
+                                            style = MaterialTheme.typography.bodyLarge,
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .padding(start = Spacing.sm),
+                                        )
+                                    }
+                                }
                             }
                         }
-                        // Video + image link buttons (FlowRow, compact).
-                        // Prefer YouTube URL from exercise_media.json (36/36 exercises);
-                        // fall back to legacy exercises.json webm URL.
+                        // Unified action row: ASK AI + video/image buttons.
+                        // Width-constrained so buttons sit side-by-side, not
+                        // full-width columns on expand.
                         val videoUrl = detailMedia.videoUrl ?: refs.videoUrl
                         val mediaButtons = buildList {
                             videoUrl?.takeUnless { it.isBlank() }?.let { url ->
@@ -995,15 +1008,36 @@ private fun SessionCard(
                                 add(ref to ReferencesCardStrings.IMAGE)
                             }
                         }
-                        if (mediaButtons.isNotEmpty()) {
+                        if (mediaButtons.isNotEmpty() || aiCoachEnabled) {
                             val ctx = LocalContext.current
                             FlowRow(
-                                horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
-                                verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+                                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                                verticalArrangement = Arrangement.spacedBy(Spacing.sm),
                                 modifier = Modifier.fillMaxWidth(),
                             ) {
+                                if (aiCoachEnabled) {
+                                    OutlinedButton(
+                                        modifier = Modifier.widthIn(max = 220.dp),
+                                        onClick = { explainFor = a.exerciseId },
+                                    ) {
+                                        Text(
+                                            CoachStrings.ASK_AI,
+                                            maxLines = 2,
+                                            overflow = TextOverflow.Ellipsis,
+                                        )
+                                    }
+                                }
                                 mediaButtons.forEach { (url, label) ->
-                                    OutlinedButton(onClick = { openUrl(ctx, url) }) { Text(label) }
+                                    OutlinedButton(
+                                        modifier = Modifier.widthIn(max = 220.dp),
+                                        onClick = { openUrl(ctx, url) },
+                                    ) {
+                                        Text(
+                                            label,
+                                            maxLines = 2,
+                                            overflow = TextOverflow.Ellipsis,
+                                        )
+                                    }
                                 }
                             }
                         }
