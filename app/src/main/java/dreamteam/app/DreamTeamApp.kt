@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
@@ -908,7 +909,7 @@ private fun SessionCard(
                 val noteSaved = remember(session.id, a.exerciseId) { db.exerciseNote(session.id, a.exerciseId) }
                 var noteDraft by remember(session.id, a.exerciseId) { mutableStateOf(noteSaved?.note ?: "") }
                 var outcomeDraft by remember(session.id, a.exerciseId) { mutableStateOf(noteSaved?.outcome) }
-                Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+                Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.lg)) {
                     // M10 (criterion 5): a hairline divider between exercises so a
                     // multi-exercise session reads as a list, not a wall. Skipped
                     // before the first so the title-to-first gap stays clean.
@@ -965,33 +966,37 @@ private fun SessionCard(
                                 )
                             }
                         }
-                        Text(
-                            ReferencesCardStrings.WHY,
-                            style = MaterialTheme.typography.titleMedium,
-                        )
-                        detailMedia.summary?.let { summary ->
-                            Text(summary, style = MaterialTheme.typography.bodyLarge)
-                        }
-                        if (refs.howToStepsRu.isNotEmpty()) {
+                        Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                             Text(
-                                ReferencesCardStrings.HOW_TO,
+                                ReferencesCardStrings.WHY,
                                 style = MaterialTheme.typography.titleMedium,
                             )
-                            Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                                refs.howToStepsRu.forEachIndexed { i, step ->
-                                    Row(verticalAlignment = Alignment.Top) {
-                                        Text(
-                                            "${i + 1}",
-                                            style = MaterialTheme.typography.labelMedium,
-                                            color = MaterialTheme.colorScheme.primary,
-                                        )
-                                        Text(
-                                            step,
-                                            style = MaterialTheme.typography.bodyLarge,
-                                            modifier = Modifier
-                                                .weight(1f)
-                                                .padding(start = Spacing.sm),
-                                        )
+                            detailMedia.summary?.let { summary ->
+                                Text(summary, style = MaterialTheme.typography.bodyLarge)
+                            }
+                        }
+                        if (refs.howToStepsRu.isNotEmpty()) {
+                            Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                                Text(
+                                    ReferencesCardStrings.HOW_TO,
+                                    style = MaterialTheme.typography.titleMedium,
+                                )
+                                Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                                    refs.howToStepsRu.forEachIndexed { i, step ->
+                                        Row(verticalAlignment = Alignment.Top) {
+                                            Text(
+                                                "${i + 1}",
+                                                style = MaterialTheme.typography.labelMedium,
+                                                color = MaterialTheme.colorScheme.primary,
+                                            )
+                                            Text(
+                                                step,
+                                                style = MaterialTheme.typography.bodyLarge,
+                                                modifier = Modifier
+                                                    .weight(1f)
+                                                    .padding(start = Spacing.sm),
+                                            )
+                                        }
                                     }
                                 }
                             }
@@ -1010,15 +1015,14 @@ private fun SessionCard(
                         }
                         if (mediaButtons.isNotEmpty() || aiCoachEnabled) {
                             val ctx = LocalContext.current
-                            FlowRow(
+                            Row(
                                 horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-                                verticalArrangement = Arrangement.spacedBy(Spacing.sm),
                                 modifier = Modifier.fillMaxWidth(),
                             ) {
                                 if (aiCoachEnabled) {
                                     OutlinedButton(
-                                        modifier = Modifier.widthIn(max = 220.dp),
                                         onClick = { explainFor = a.exerciseId },
+                                        modifier = Modifier.weight(1f).heightIn(min = Spacing.touchTarget),
                                     ) {
                                         Text(
                                             CoachStrings.ASK_AI,
@@ -1027,10 +1031,10 @@ private fun SessionCard(
                                         )
                                     }
                                 }
-                                mediaButtons.forEach { (url, label) ->
+                                mediaButtons.take(2).forEach { (url, label) ->
                                     OutlinedButton(
-                                        modifier = Modifier.widthIn(max = 220.dp),
                                         onClick = { openUrl(ctx, url) },
+                                        modifier = Modifier.weight(1f).heightIn(min = Spacing.touchTarget),
                                     ) {
                                         Text(
                                             label,
@@ -1455,7 +1459,7 @@ internal object SettingsStrings {
     const val SAVED = "Сохранено. Ключ хранится зашифрованным на устройстве."
     const val CLEARED = "Ключ сброшен. AI использует офлайн-план."
     const val COACH_TOGGLE_TITLE = "AI-коуч"
-    const val COACH_TOGGLE_HINT = "Выключен по умолчанию. Включите и укажите данные API, чтобы «Спросить у AI» и «Отправить коучу» вызывали вашу модель. Без включения приложение строит план офлайн. Приложение поддерживает, не заменяет врача."
+    const val COACH_TOGGLE_HINT = "Включён по умолчанию. Укажите данные API, чтобы «Спросить у AI» и «Отправить коучу» вызывали вашу модель. Без данных приложение строит план офлайн. Приложение поддерживает, не заменяет врача."
     // Default base URL = Z.AI's OpenAI-compatible endpoint (server-confirmed); the
     // user can change it for any compatible provider. Default model = glm-4.6
     // (the server's working thinking flagship; "glm-5.2" / Max think is the spec
