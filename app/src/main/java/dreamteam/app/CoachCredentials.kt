@@ -90,6 +90,11 @@ internal class CoachCredentialStore(context: Context) {
 
     /** Drop the stored credentials ⇒ next coach call uses the deterministic fallback. */
     fun clear() = prefs.edit { remove(KEY) }
+    /** DRE-209: is the AI coach enabled by the user? OFF by default. */
+    fun isEnabled(): Boolean = prefs.getBoolean(KEY_ENABLED, COACH_ENABLED_DEFAULT)
+
+    /** DRE-209: persist the user's enable/disable choice. */
+    fun setEnabled(enabled: Boolean) = prefs.edit { putBoolean(KEY_ENABLED, enabled) }
 
     private fun key(): java.security.Key {
         val ks = KeyStore.getInstance("AndroidKeyStore").apply { load(null) }
@@ -127,6 +132,9 @@ internal class CoachCredentialStore(context: Context) {
         private const val TRANSFORM = "AES/GCM/NoPadding"
         private const val IV_LEN = 12
         private const val TAG_BITS = 128
+        private const val KEY_ENABLED = "coach_enabled"
+        /** DRE-209: the AI coach is OFF by default — the user must explicitly enable it. */
+        const val COACH_ENABLED_DEFAULT = false
     }
 }
 

@@ -24,6 +24,7 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Switch
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -251,6 +252,10 @@ fun DreamTeamApp(db: LocalDatabase) {
     // user's own URL+token; absent creds ⇒ null ⇒ deterministic fallback (#4).
     val appContext = LocalContext.current
     val coachCredStore = remember { CoachCredentialStore(appContext) }
+    // DRE-209: the AI-coach user toggle (default OFF). When off the two coach CTAs
+    // ("Спросить у AI" / "Отправить коучу") are hidden and the app runs the
+    // deterministic plan alone; when on the user can enter creds to light their LLM.
+    var aiCoachEnabled by remember { mutableStateOf(coachCredStore.isEnabled()) }
     // M6-B ([DRE-68](/DRE/issues/DRE-68)): the offline-first evidence resolver,
     // decoded once from the bundled catalog asset (single Android-I/O point) so
     // the nutrition + training views render READABLE citations, not raw ids. No
@@ -307,6 +312,7 @@ fun DreamTeamApp(db: LocalDatabase) {
                 exerciseLibrary = exerciseLibrary,
                 exerciseMedia = exerciseMedia,
                 coachCredStore = coachCredStore,
+                aiCoachEnabled = aiCoachEnabled,
                 // Redesign v2 ([DRE-211](/DRE/issues/DRE-211)): the global Play CTA on
                 // Today opens the dedicated Play session scene for today's workout.
                 onPlay = { screen = Screen.Play },
@@ -336,6 +342,7 @@ fun DreamTeamApp(db: LocalDatabase) {
                 exerciseLibrary = exerciseLibrary,
                 exerciseMedia = exerciseMedia,
                 coachCredStore = coachCredStore,
+                aiCoachEnabled = aiCoachEnabled,
                 onSymptoms = { screen = Screen.Symptoms },
                 onProgress = { screen = Screen.Progress },
             )
@@ -356,6 +363,8 @@ fun DreamTeamApp(db: LocalDatabase) {
             Screen.Settings -> SettingsScreen(
                 modifier = Modifier.padding(padding),
                 coachCredStore = coachCredStore,
+                aiCoachEnabled = aiCoachEnabled,
+                onToggleAiCoach = { coachCredStore.setEnabled(it); aiCoachEnabled = it },
             )
             // Redesign v2 ([DRE-211](/DRE/issues/DRE-211), founder p.6): the dedicated
             // Play session scene. Today's session is picked from the SAME gated week
@@ -468,7 +477,7 @@ private fun OnboardingScreen(modifier: Modifier, onPlanReady: (Profile) -> Unit)
 
 @OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
-private fun PlanScreen(modifier: Modifier, db: LocalDatabase, profile: Profile?, resolver: EvidenceResolver, exerciseLibrary: ExerciseLibraryResolver, exerciseMedia: ExerciseMediaResolver, coachCredStore: CoachCredentialStore, onSymptoms: () -> Unit, onProgress: () -> Unit) {
+private fun PlanScreen(modifier: Modifier, db: LocalDatabase, profile: Profile?, resolver: EvidenceResolver, exerciseLibrary: ExerciseLibraryResolver, exerciseMedia: ExerciseMediaResolver, coachCredStore: CoachCredentialStore, aiCoachEnabled: Boolean, onSymptoms: () -> Unit, onProgress: () -> Unit) {
     val p = profile ?: run {
         Column(modifier.fillMaxSize().padding(16.dp)) { Text("Профиль не найден."); Button(onClick = {}) {} }
         return
@@ -532,7 +541,7 @@ private fun PlanScreen(modifier: Modifier, db: LocalDatabase, profile: Profile?,
                     }
                 }
                 items(result.week.sessions) { session ->
-                    SessionCard(db = db, session = session, resolver = resolver, exerciseLibrary = exerciseLibrary, exerciseMedia = exerciseMedia, coachCredStore = coachCredStore, profile = p)
+                    SessionCard(db = db, session = session, resolver = resolver, exerciseLibrary = exerciseLibrary, exerciseMedia = exerciseMedia, coachCredStore = coachCredStore, aiCoachEnabled = aiCoachEnabled, profile = p)
                 }
             }
         }
@@ -569,6 +578,7 @@ private fun TodayScreen(
     exerciseLibrary: ExerciseLibraryResolver,
     exerciseMedia: ExerciseMediaResolver,
     coachCredStore: CoachCredentialStore,
+    aiCoachEnabled: Boolean,
     // Redesign v2 ([DRE-211](/DRE/issues/DRE-211)): opens the dedicated Play
     // session scene for today's workout (founder p.6: a global Play button).
     onPlay: (dreamteam.domain.training.PlanSession) -> Unit,
@@ -614,7 +624,7 @@ private fun TodayScreen(
                             // the global Play CTA — a prominent full-width primary button
                             // that opens today's workout in the dedicated Play scene.
                             Button(onClick = { onPlay(s) }, modifier = Modifier.fillMaxWidth()) { Text(TodayStrings.PLAY) }
-                            SessionCard(db = db, session = s, resolver = resolver, exerciseLibrary = exerciseLibrary, exerciseMedia = exerciseMedia, coachCredStore = coachCredStore, profile = p)
+                            SessionCard(db = db, session = s, resolver = resolver, exerciseLibrary = exerciseLibrary, exerciseMedia = exerciseMedia, coachCredStore = coachCredStore, aiCoachEnabled = aiCoachEnabled, profile = p)
                         }
                     }
                 }
@@ -839,6 +849,7 @@ private fun SessionCard(
     // M8-C ([DRE-89](/DRE/issues/DRE-89)): the coach needs the profile's medical
     // subset to run the pre-LLM red-flag gate + side-specific lock (#1).
     profile: Profile,
+    aiCoachEnabled: Boolean,
 ) {
     var completed by remember(session.id) { mutableStateOf(db.completedExercises(session.id)) }
     val today = LocalDate.now().toString()
@@ -937,10 +948,12 @@ private fun SessionCard(
                         // Offline-first: runs the shared deterministic coach (no provider
                         // in the client → always the fallback, #4/#5). The server is the
                         // only LLM path; the live transport is a documented follow-up.
+                    if (aiCoachEnabled) {
                         OutlinedButton(
                             onClick = { explainFor = a.exerciseId },
                             modifier = Modifier.fillMaxWidth(),
                         ) { Text(CoachStrings.ASK_AI) }
+                    }
                         ReferencesCard(name = name, refs = refs, exerciseMedia = exerciseMedia)
                         // M8-B ([DRE-78](/DRE/issues/DRE-78)): free-text note per exercise
                         // in the execution log ("что вышло / что нет / боль"), persisted
@@ -978,25 +991,27 @@ private fun SessionCard(
             // preserved). All safety-gated: a red flag surfaces as a block, not a plan.
             // DRE-175: dispatched off the main thread — the user's LLM call is a
             // network op Android forbids on main; reportLoading gates re-entry.
-            OutlinedButton(
-                enabled = !reportLoading,
-                onClick = {
-                    reportLoading = true
-                    scope.launch(kotlinx.coroutines.Dispatchers.IO) {
-                        val r = coachReportForSession(
-                            profile = profile,
-                            notes = coachNotesFromRows(db.sessionExerciseNotes(session.id)),
-                            symptoms = db.recentSymptoms(),
-                            progress = db.recentProgress(),
-                            today = today,
-                            userCoach = coachForUserCreds(coachCredStore.load()),
-                        )
-                        report = r
-                        reportLoading = false
-                    }
-                },
-                modifier = Modifier.fillMaxWidth(),
-            ) { Text(if (reportLoading) CoachStrings.REPORT_WORKING else CoachStrings.REPORT_CTA) }
+            if (aiCoachEnabled) {
+                OutlinedButton(
+                    enabled = !reportLoading,
+                    onClick = {
+                        reportLoading = true
+                        scope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                            val r = coachReportForSession(
+                                profile = profile,
+                                notes = coachNotesFromRows(db.sessionExerciseNotes(session.id)),
+                                symptoms = db.recentSymptoms(),
+                                progress = db.recentProgress(),
+                                today = today,
+                                userCoach = coachForUserCreds(coachCredStore.load()),
+                            )
+                            report = r
+                            reportLoading = false
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                ) { Text(if (reportLoading) CoachStrings.REPORT_WORKING else CoachStrings.REPORT_CTA) }
+            }
         }
         }
     }
@@ -1233,7 +1248,7 @@ private fun ProgressScreen(modifier: Modifier, db: LocalDatabase, onBack: () -> 
  * the screen lets the user *configure* a tool, it makes no medical claim.
  */
 @Composable
-private fun SettingsScreen(modifier: Modifier, coachCredStore: CoachCredentialStore) {
+private fun SettingsScreen(modifier: Modifier, coachCredStore: CoachCredentialStore, aiCoachEnabled: Boolean, onToggleAiCoach: (Boolean) -> Unit) {
     val saved = remember { coachCredStore.load() }
     var baseUrl by remember { mutableStateOf(saved?.baseUrl ?: SettingsStrings.DEFAULT_URL) }
     var token by remember { mutableStateOf(saved?.token ?: "") }
@@ -1242,6 +1257,20 @@ private fun SettingsScreen(modifier: Modifier, coachCredStore: CoachCredentialSt
     LazyColumn(modifier = modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         item { Text(SettingsStrings.TITLE, fontWeight = FontWeight.Bold) }
         item { Text(SettingsStrings.HINT, fontWeight = FontWeight.Light) }
+        item {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(Modifier.weight(1f).padding(end = 12.dp)) {
+                    Text(SettingsStrings.COACH_TOGGLE_TITLE, fontWeight = FontWeight.Bold)
+                    Text(SettingsStrings.COACH_TOGGLE_HINT, fontWeight = FontWeight.Light, style = MaterialTheme.typography.bodySmall)
+                }
+                Switch(checked = aiCoachEnabled, onCheckedChange = onToggleAiCoach)
+            }
+        }
+        if (aiCoachEnabled) {
         item {
             OutlinedTextField(
                 value = baseUrl,
@@ -1290,6 +1319,7 @@ private fun SettingsScreen(modifier: Modifier, coachCredStore: CoachCredentialSt
             }
         }
         message?.let { m -> item { Text(m, fontWeight = FontWeight.Light) } }
+        }
     }
 }
 
@@ -1309,6 +1339,8 @@ internal object SettingsStrings {
     const val CLEAR = "Сбросить"
     const val SAVED = "Сохранено. Ключ хранится зашифрованным на устройстве."
     const val CLEARED = "Ключ сброшен. AI использует офлайн-план."
+    const val COACH_TOGGLE_TITLE = "AI-коуч"
+    const val COACH_TOGGLE_HINT = "Выключен по умолчанию. Включите и укажите данные API, чтобы «Спросить у AI» и «Отправить коучу» вызывали вашу модель. Без включения приложение строит план офлайн. Приложение поддерживает, не заменяет врача."
     // Default base URL = Z.AI's OpenAI-compatible endpoint (server-confirmed); the
     // user can change it for any compatible provider. Default model = glm-4.6
     // (the server's working thinking flagship; "glm-5.2" / Max think is the spec
@@ -1317,6 +1349,6 @@ internal object SettingsStrings {
     const val DEFAULT_MODEL = "glm-4.6"
 
     val all: List<String> = listOf(
-        TITLE, HINT, URL_LABEL, TOKEN_LABEL, MODEL_LABEL, SAVE, CLEAR, SAVED, CLEARED, DEFAULT_URL, DEFAULT_MODEL,
+        TITLE, HINT, COACH_TOGGLE_TITLE, COACH_TOGGLE_HINT, URL_LABEL, TOKEN_LABEL, MODEL_LABEL, SAVE, CLEAR, SAVED, CLEARED, DEFAULT_URL, DEFAULT_MODEL,
     )
 }
