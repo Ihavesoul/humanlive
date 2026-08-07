@@ -1271,6 +1271,7 @@ private fun CoachReportDialog(
  * flag is recorded/exported only — it never drives a plan change here (the gated
  * M9-D owns adaptation). Tapping a selected chip clears it.
  */
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
 private fun ExerciseNoteField(
     note: String,
@@ -1281,7 +1282,7 @@ private fun ExerciseNoteField(
 ) {
     Column(Modifier.fillMaxWidth().padding(start = Spacing.xxl, top = Spacing.tightGap), verticalArrangement = Arrangement.spacedBy(Spacing.tightGap)) {
         Text(ExerciseNoteStrings.OUTCOME_LABEL, style = androidx.compose.material3.MaterialTheme.typography.labelSmall)
-        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), modifier = Modifier.fillMaxWidth()) {
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), verticalArrangement = Arrangement.spacedBy(Spacing.sm), modifier = Modifier.fillMaxWidth()) {
             ExerciseNoteOutcome.entries.forEach { o ->
                 FilterChip(
                     selected = outcome == o,
