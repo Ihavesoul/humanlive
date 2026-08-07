@@ -13,7 +13,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.font.FontStyle
-import androidx.compose.ui.unit.dp
+import dreamteam.app.ui.Spacing
 
 /**
  * M6-D (stretch) ([DRE-66](/DRE/issues/DRE-66)): the read-only "evidence
@@ -98,7 +98,7 @@ internal object EvidenceSourcesStrings {
 @Composable
 internal fun EvidenceSourcesScreen(modifier: Modifier, resolver: EvidenceResolver, onBack: () -> Unit) {
     val view = remember { evidenceSourcesView(resolver) }
-    LazyColumn(modifier = modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    LazyColumn(modifier = modifier.fillMaxSize().padding(Spacing.screen), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         item { Text(EvidenceSourcesStrings.TITLE, fontWeight = FontWeight.Bold) }
         item { Text(EvidenceSourcesStrings.DISCLAIMER, fontWeight = FontWeight.Light, fontStyle = FontStyle.Italic) }
         items(view.rows) { row -> EvidenceCitationCard(row) }

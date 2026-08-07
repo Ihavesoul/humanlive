@@ -46,6 +46,9 @@ class ExerciseMediaResolverTest {
         image.url.isNotBlank() shouldBe true
         image.license.shouldBeInstanceOf<String>()
         image.credit.shouldBeInstanceOf<String>()
+        // YouTube video URL from exercise_media.json video block (36/36 exercises).
+        media.videoUrl.shouldBeInstanceOf<String>()
+        media.videoUrl.startsWith("https://www.youtube.com/") shouldBe true
     }
 
     @Test

@@ -426,7 +426,7 @@ private fun OnboardingScreen(modifier: Modifier, onPlanReady: (Profile) -> Unit)
     var scoliosis by remember { mutableStateOf(true) }
     var redFlag by remember { mutableStateOf(false) }
 
-    LazyColumn(modifier = modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    LazyColumn(modifier = modifier.fillMaxSize().padding(Spacing.screen), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         item {
             Text(
                 // DRE-193: aligned to the app-wide scan-clean support framing
@@ -479,7 +479,7 @@ private fun OnboardingScreen(modifier: Modifier, onPlanReady: (Profile) -> Unit)
 @Composable
 private fun PlanScreen(modifier: Modifier, db: LocalDatabase, profile: Profile?, resolver: EvidenceResolver, exerciseLibrary: ExerciseLibraryResolver, exerciseMedia: ExerciseMediaResolver, coachCredStore: CoachCredentialStore, aiCoachEnabled: Boolean, onSymptoms: () -> Unit, onProgress: () -> Unit) {
     val p = profile ?: run {
-        Column(modifier.fillMaxSize().padding(16.dp)) { Text("Профиль не найден."); Button(onClick = {}) {} }
+        Column(modifier.fillMaxSize().padding(Spacing.screen)) { Text("Профиль не найден."); Button(onClick = {}) {} }
         return
     }
     // Local, offline-first read; cheap SQLite query, no network. Keying the plan
@@ -490,7 +490,7 @@ private fun PlanScreen(modifier: Modifier, db: LocalDatabase, profile: Profile?,
     val progress = db.recentProgress()
     val result = remember(p, symptoms, progress) { generateLocalPlan(p, LocalDate.now().toString(), symptoms, progress) }
 
-    LazyColumn(modifier = modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    LazyColumn(modifier = modifier.fillMaxSize().padding(Spacing.screen), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         when (result) {
             is PlanResult.Blocked -> item { BlockCard(result, resolver) }
             is PlanResult.Ok -> {
@@ -533,7 +533,7 @@ private fun PlanScreen(modifier: Modifier, db: LocalDatabase, profile: Profile?,
                             // Support-framed only: "объём снижен" + the domain reason; no
                             // diagnosis/claim. On AdaptationSignal.None → null → nothing.
                             adaptationNote(result.signal)?.let { note ->
-                                Spacer(Modifier.height(4.dp))
+                                Spacer(Modifier.height(Spacing.xs))
                                 Text(note.indicator, fontWeight = FontWeight.SemiBold)
                                 Text(note.reason, fontWeight = FontWeight.Light)
                             }
@@ -586,7 +586,7 @@ private fun TodayScreen(
     onProgress: () -> Unit,
 ) {
     val p = profile ?: run {
-        Column(modifier.fillMaxSize().padding(16.dp)) { Text("Профиль не найден."); Button(onClick = {}) {} }
+        Column(modifier.fillMaxSize().padding(Spacing.screen)) { Text("Профиль не найден."); Button(onClick = {}) {} }
         return
     }
     // M7-B (DRE-73): the export handoff needs an Android Context (file write +
@@ -601,7 +601,7 @@ private fun TodayScreen(
     val today = LocalDate.now()
     val result = remember(p, symptoms, progress) { generateLocalPlan(p, today.toString(), symptoms, progress) }
 
-    LazyColumn(modifier = modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    LazyColumn(modifier = modifier.fillMaxSize().padding(Spacing.screen), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         when (result) {
             is PlanResult.Blocked -> item { BlockCard(result, resolver) }
             is PlanResult.Ok -> {
@@ -617,7 +617,7 @@ private fun TodayScreen(
                 // layout tightening, no new state, no new screen.
                 item { Text(todayDateLine(session), style = androidx.compose.material3.MaterialTheme.typography.titleLarge) }
                 item {
-                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(Spacing.tightGap)) {
                         Text(TodayStrings.TRAINING, style = androidx.compose.material3.MaterialTheme.typography.labelMedium)
                         session?.let { s ->
                             // Redesign v2 ([DRE-211](/DRE/issues/DRE-211), founder p.6):
@@ -630,7 +630,7 @@ private fun TodayScreen(
                 }
                 result.nutritionPlan?.let { plan ->
                     item {
-                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Column(verticalArrangement = Arrangement.spacedBy(Spacing.tightGap)) {
                             Text(TodayStrings.NUTRITION, style = androidx.compose.material3.MaterialTheme.typography.labelMedium)
                             val view = remember(plan) { nutritionPlanView(plan, resolver) }
                             Card(modifier = Modifier.fillMaxWidth()) {
@@ -648,7 +648,7 @@ private fun TodayScreen(
                 // On AdaptationSignal.None → null → nothing (baseline shows as today).
                 adaptationNote(result.signal)?.let { note ->
                     item {
-                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Column(verticalArrangement = Arrangement.spacedBy(Spacing.tightGap)) {
                             Text(TodayStrings.ADAPTATION, style = androidx.compose.material3.MaterialTheme.typography.labelMedium)
                             Card(modifier = Modifier.fillMaxWidth()) {
                                 Column(Modifier.padding(Spacing.card)) {
@@ -706,7 +706,7 @@ private fun HistoryScreen(modifier: Modifier, db: LocalDatabase, onBack: () -> U
     val symptoms = db.recentSymptoms()
     val view = remember(progress) { progressHistoryView(progress) }
     val symptomLines = remember(symptoms) { symptomHistoryView(symptoms) }
-    LazyColumn(modifier = modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    LazyColumn(modifier = modifier.fillMaxSize().padding(Spacing.screen), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         item { Text(HistoryStrings.TITLE, fontWeight = FontWeight.Bold) }
         item { Text(HistoryStrings.SUPPORT, fontWeight = FontWeight.Light) }
         item { Text(view.trendLine, fontWeight = FontWeight.SemiBold) }
@@ -798,8 +798,8 @@ private fun MetaTag(label: String, modifier: Modifier = Modifier) {
     ) {
         Text(
             label,
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
-            style = MaterialTheme.typography.labelSmall,
+            modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.tightGap),
+            style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
@@ -923,11 +923,11 @@ private fun SessionCard(
                                 if (checked) { db.logWorkout(session.id, a.exerciseId, today); completed = completed + a.exerciseId }
                             },
                         )
-                        Column(Modifier.weight(1f).padding(start = 4.dp)) {
+                        Column(Modifier.weight(1f).padding(start = Spacing.xs)) {
                             Text(name, style = androidx.compose.material3.MaterialTheme.typography.titleMedium)
                             FlowRow(
-                                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                verticalArrangement = Arrangement.spacedBy(4.dp),
+                                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                                verticalArrangement = Arrangement.spacedBy(Spacing.xs),
                             ) {
                                 exerciseDensityChips(a.sets, a.repScheme, a.rir, refs.equipment, refs.evidenceLevels)
                                     .forEach { chip -> MetaTag(chip.label) }
@@ -951,10 +951,91 @@ private fun SessionCard(
                     if (aiCoachEnabled) {
                         OutlinedButton(
                             onClick = { explainFor = a.exerciseId },
-                            modifier = Modifier.fillMaxWidth(),
                         ) { Text(CoachStrings.ASK_AI) }
                     }
-                        ReferencesCard(name = name, refs = refs, exerciseMedia = exerciseMedia)
+                        // Redesign v3: flattened references — no double-toggle.
+                        // The card image, AI summary, how-to steps, and video/media
+                        // buttons render directly in the detail body. Citations sit
+                        // behind a secondary "Источники (N)" toggle.
+                        val detailMedia = remember(a.exerciseId) {
+                            resolveExerciseMedia(a.exerciseId, exerciseMedia)
+                        }
+                        ExerciseMediaSlot(name = name, media = detailMedia)
+                        detailMedia.cardImage?.let { img ->
+                            val attribution = listOfNotNull(img.credit, img.license)
+                                .joinToString(" · ")
+                                .takeUnless { it.isBlank() }
+                            if (attribution != null) {
+                                Text(
+                                    "${ReferencesCardStrings.IMAGE_CREDIT}: $attribution",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        }
+                        Text(ReferencesCardStrings.WHY, fontWeight = FontWeight.Light)
+                        detailMedia.summary?.let { summary ->
+                            Text(summary, style = MaterialTheme.typography.bodyMedium)
+                        }
+                        if (refs.howToStepsRu.isNotEmpty()) {
+                            Text(ReferencesCardStrings.HOW_TO, fontWeight = FontWeight.Medium)
+                            refs.howToStepsRu.forEachIndexed { i, step ->
+                                Text("${i + 1}. $step")
+                            }
+                        }
+                        // Video + image link buttons (FlowRow, compact).
+                        // Prefer YouTube URL from exercise_media.json (36/36 exercises);
+                        // fall back to legacy exercises.json webm URL.
+                        val videoUrl = detailMedia.videoUrl ?: refs.videoUrl
+                        val mediaButtons = buildList {
+                            videoUrl?.takeUnless { it.isBlank() }?.let { url ->
+                                add(url to ReferencesCardStrings.VIDEO)
+                            }
+                            refs.imageRefs.filter { it.isNotBlank() }.forEach { ref ->
+                                add(ref to ReferencesCardStrings.IMAGE)
+                            }
+                        }
+                        if (mediaButtons.isNotEmpty()) {
+                            val ctx = LocalContext.current
+                            FlowRow(
+                                horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+                                verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                mediaButtons.forEach { (url, label) ->
+                                    OutlinedButton(onClick = { openUrl(ctx, url) }) { Text(label) }
+                                }
+                            }
+                        }
+                        // Citations: secondary toggle to keep the detail compact.
+                        if (refs.citations.isNotEmpty()) {
+                            var citationsOpen by remember(a.exerciseId) {
+                                mutableStateOf(false)
+                            }
+                            Row(
+                                modifier = Modifier.fillMaxWidth().clickable {
+                                    citationsOpen = !citationsOpen
+                                },
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Text(
+                                    "${ReferencesCardStrings.EVIDENCE} (${refs.citations.size})",
+                                    fontWeight = FontWeight.SemiBold,
+                                )
+                                Text(
+                                    if (citationsOpen) ReferencesCardStrings.HIDE
+                                    else ReferencesCardStrings.SHOW,
+                                    fontWeight = FontWeight.Light,
+                                )
+                            }
+                            if (citationsOpen) {
+                                refs.citations.forEach { c -> EvidenceCitationCard(c) }
+                            }
+                        }
+                        if (!refs.hasMedia) {
+                            Text(ReferencesCardStrings.MEDIA_PENDING, fontWeight = FontWeight.Light)
+                        }
                         // M8-B ([DRE-78](/DRE/issues/DRE-78)): free-text note per exercise
                         // in the execution log ("что вышло / что нет / боль"), persisted
                         // like the symptom/progress logs and read back by the coach
@@ -975,7 +1056,7 @@ private fun SessionCard(
                 }
                 }
             }
-            Spacer(Modifier.height(4.dp))
+            Spacer(Modifier.height(Spacing.xs))
             Text("Сделано: ${completed.size}/${session.assignments.size}", style = androidx.compose.material3.MaterialTheme.typography.bodySmall, color = androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant)
             // M8-C: inline feedback for the last original-vs-adaptation choice.
             adaptationChoice?.let { applied ->
@@ -1116,7 +1197,7 @@ private fun CoachReportDialog(
                 dismissButton = { TextButton(onClick = { onChoose(false) }) { Text(CoachStrings.KEEP_ORIGINAL) } },
                 title = { Text(CoachStrings.REPORT_TITLE) },
                 text = {
-                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                         Text(view.summaryRu)
                         view.corrections.forEach { c -> Text("• ${c.exerciseName}: ${c.noteRu}", fontWeight = FontWeight.Light) }
                         Text(CoachStrings.ADAPTATION_DEFAULT_HINT, fontWeight = FontWeight.Medium)
@@ -1160,9 +1241,9 @@ private fun ExerciseNoteField(
     onOutcomeChange: (ExerciseNoteOutcome?) -> Unit,
     onSave: () -> Unit,
 ) {
-    Column(Modifier.fillMaxWidth().padding(start = 32.dp, top = 2.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+    Column(Modifier.fillMaxWidth().padding(start = Spacing.xxl, top = Spacing.tightGap), verticalArrangement = Arrangement.spacedBy(Spacing.tightGap)) {
         Text(ExerciseNoteStrings.OUTCOME_LABEL, style = androidx.compose.material3.MaterialTheme.typography.labelSmall)
-        Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
+        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), modifier = Modifier.fillMaxWidth()) {
             ExerciseNoteOutcome.entries.forEach { o ->
                 FilterChip(
                     selected = outcome == o,
@@ -1187,7 +1268,7 @@ private fun ExerciseNoteField(
 private fun SymptomsScreen(modifier: Modifier, db: LocalDatabase, onBack: () -> Unit) {
     var text by remember { mutableStateOf("") }
     var symptoms by remember { mutableStateOf(db.recentSymptoms()) }
-    Column(modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Column(modifier.fillMaxSize().padding(Spacing.screen), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         OutlinedTextField(value = text, onValueChange = { text = it }, label = { Text("Как вы себя чувствуете?") }, modifier = Modifier.fillMaxWidth())
         Button(onClick = {
             if (text.isNotBlank()) { db.appendSymptom(text.trim(), LocalDate.now().toString()); text = ""; symptoms = db.recentSymptoms() }
@@ -1210,7 +1291,7 @@ private fun SymptomsScreen(modifier: Modifier, db: LocalDatabase, onBack: () -> 
 private fun ProgressScreen(modifier: Modifier, db: LocalDatabase, onBack: () -> Unit) {
     var weight by remember { mutableStateOf("") }
     var rows by remember { mutableStateOf(db.recentProgress()) }
-    Column(modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Column(modifier.fillMaxSize().padding(Spacing.screen), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         Text(
             // DRE-193: aligned to the app-wide scan-clean support framing
             // ("поддерживает, а не заменяет врача"); the prior copy used the
@@ -1254,7 +1335,7 @@ private fun SettingsScreen(modifier: Modifier, coachCredStore: CoachCredentialSt
     var token by remember { mutableStateOf(saved?.token ?: "") }
     var model by remember { mutableStateOf(saved?.model ?: SettingsStrings.DEFAULT_MODEL) }
     var message by remember { mutableStateOf<String?>(null) }
-    LazyColumn(modifier = modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    LazyColumn(modifier = modifier.fillMaxSize().padding(Spacing.screen), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         item { Text(SettingsStrings.TITLE, fontWeight = FontWeight.Bold) }
         item { Text(SettingsStrings.HINT, fontWeight = FontWeight.Light) }
         item {
@@ -1263,7 +1344,7 @@ private fun SettingsScreen(modifier: Modifier, coachCredStore: CoachCredentialSt
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Column(Modifier.weight(1f).padding(end = 12.dp)) {
+                Column(Modifier.weight(1f).padding(end = Spacing.md)) {
                     Text(SettingsStrings.COACH_TOGGLE_TITLE, fontWeight = FontWeight.Bold)
                     Text(SettingsStrings.COACH_TOGGLE_HINT, fontWeight = FontWeight.Light, style = MaterialTheme.typography.bodySmall)
                 }
@@ -1300,7 +1381,7 @@ private fun SettingsScreen(modifier: Modifier, coachCredStore: CoachCredentialSt
             )
         }
         item {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), modifier = Modifier.fillMaxWidth()) {
                 Button(
                     onClick = {
                         coachCredStore.save(CoachCredentials(baseUrl.trim(), token.trim(), model.trim()))

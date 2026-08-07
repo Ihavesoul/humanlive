@@ -56,12 +56,24 @@ internal data class ExerciseImageSeed(
 )
 
 /**
+ * The snake_case load shape of the `data/exercise_media.json` `video` object.
+ * The 36 YouTube how-to videos live here. Only `url` is surfaced to the UI;
+ * `title`/`channel` are kept for potential future display but not rendered today.
+ * `source`/`access`/`verified`/`verification` are dropped by `ignoreUnknownKeys`.
+ */
+@Serializable
+internal data class ExerciseVideoSeed(
+    val url: String? = null,
+    val title: String? = null,
+    val channel: String? = null,
+)
+/**
  * The snake_case load shape of one `data/exercise_media.json` entry. Read-only
- * seed decoded with `ignoreUnknownKeys` (via [evidenceJson]); the catalog also
- * carries a `video` block, but video is already surfaced by [ExerciseLibraryResolver]
- * off `data/exercises.json` — decoding it here would be a second source. This
- * resolver owns the card IMAGE + the readable summary, the two things the
- * references library does not carry.
+ * seed decoded with `ignoreUnknownKeys` (via [evidenceJson]); carries the card
+ * IMAGE, readable SUMMARY, and YouTube VIDEO from the media catalog. The `video`
+ * block is decoded here (not via ExerciseLibraryResolver) because
+ * `exercise_media.json` has 36/36 YouTube URLs vs only 2 old Wikimedia webm
+ * URLs in `exercises.json`.
  */
 @Serializable
 internal data class ExerciseMediaEntry(
@@ -69,6 +81,7 @@ internal data class ExerciseMediaEntry(
     @SerialName("name_ru") val nameRu: String,
     @SerialName("ai_summary_ru") val aiSummaryRu: String? = null,
     val image: ExerciseImageSeed? = null,
+    val video: ExerciseVideoSeed? = null,
 )
 
 /**
@@ -123,15 +136,18 @@ internal data class CardImage(
 
 /**
  * What the card slot renders for one exercise: the license-clean [cardImage]
- * (null until the catalog sources one) and the readable RU [summary] (null when
- * the catalog carries none). Pure over [ExerciseMediaEntry]; only already-sourced
- * data, never a fabricated image or summary. [hasCardImage] is the single
- * render-time gate the UI checks before it attempts to load an image.
+ * (null until the catalog sources one), the readable RU [summary] (null when
+ * the catalog carries none), and the YouTube [videoUrl] (null when absent).
+ * Pure over [ExerciseMediaEntry]; only already-sourced data, never fabricated.
+ * [hasCardImage] is the single render-time gate the UI checks before loading
+ * an image. [videoUrl] prefers the YouTube URL from `exercise_media.json` (36/36
+ * exercises) over the legacy `exercises.json` webm URLs.
  */
 internal data class ResolvedExerciseMedia(
     val exerciseId: ExerciseId,
     val cardImage: CardImage?,
     val summary: String?,
+    val videoUrl: String? = null,
 ) {
     val hasCardImage: Boolean get() = cardImage != null
 }
@@ -140,13 +156,15 @@ internal data class ResolvedExerciseMedia(
  * Build the card-media view for one exercise. Pure (no Android, no I/O): the
  * image resolves only when the catalog entry is `sourced` with a non-blank URL
  * (a `media_pending` entry yields `null` — the card keeps its placeholder, never
- * a bare/unattributed image); the summary is surfaced verbatim when present.
+ * a bare/unattributed image); the summary and YouTube video URL are surfaced
+ * verbatim when present.
  */
 internal fun resolveExerciseMedia(exerciseId: ExerciseId, resolver: ExerciseMediaResolver): ResolvedExerciseMedia {
-    val entry = resolver.resolve(exerciseId) ?: return ResolvedExerciseMedia(exerciseId, null, null)
+    val entry = resolver.resolve(exerciseId) ?: return ResolvedExerciseMedia(exerciseId, null, null, null)
     val cardImage = entry.image
         ?.takeIf { it.status == "sourced" && !it.url.isNullOrBlank() }
         ?.let { CardImage(it.url!!, it.license, it.credit) }
     val summary = entry.aiSummaryRu?.takeUnless { it.isBlank() }
-    return ResolvedExerciseMedia(exerciseId, cardImage, summary)
+    val videoUrl = entry.video?.url?.takeUnless { it.isBlank() }
+    return ResolvedExerciseMedia(exerciseId, cardImage, summary, videoUrl)
 }
