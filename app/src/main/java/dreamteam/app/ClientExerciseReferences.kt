@@ -29,6 +29,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import coil.compose.AsyncImage
@@ -437,10 +438,18 @@ private fun ExerciseMediaSlot(name: String, media: ResolvedExerciseMedia, modifi
             .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f)),
         contentAlignment = Alignment.Center,
     ) {
+        // The exercise name is always rendered as the fallback label, so the slot
+        // never reads as an empty box: it shows while the image loads AND on a
+        // cache-miss / network error (offline-first — a remote image is the only
+        // network call in the app). When the image paints it covers the label.
+        Text(
+            name,
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onPrimaryContainer,
+            fontWeight = FontWeight.SemiBold,
+            textAlign = TextAlign.Center,
+        )
         if (loadUrl != null) {
-            // A renderable direct image (the catalog link-out URL adapted by
-            // [cardImageUrl]). Coil's disk cache keeps it available offline once
-            // loaded; a miss / error falls back through to the placeholder below.
             AsyncImage(
                 model = ImageRequest.Builder(LocalContext.current)
                     .data(loadUrl)
@@ -449,13 +458,6 @@ private fun ExerciseMediaSlot(name: String, media: ResolvedExerciseMedia, modifi
                 contentDescription = name,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize(),
-            )
-        } else {
-            Text(
-                name,
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onPrimaryContainer,
-                fontWeight = FontWeight.SemiBold,
             )
         }
     }
