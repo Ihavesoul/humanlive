@@ -1,6 +1,8 @@
 package dreamteam.app
 
+import dreamteam.app.ui.BreathSound
 import dreamteam.app.ui.BreathingStrings
+import dreamteam.app.ui.PHASES
 import dreamteam.app.ui.PlayStrings
 import io.kotest.matchers.shouldBe
 import org.junit.jupiter.api.Test
@@ -46,5 +48,12 @@ class PlayAndBreathingStringsTest {
             val lower = text.lowercase()
             banned.forEach { b -> (b !in lower) shouldBe true }
         }
+    }
+
+    @Test
+    fun `box-breathing phases map to the expected sound cues`() {
+        PHASES.map { it.sound } shouldBe listOf(
+            BreathSound.IN, BreathSound.HOLD, BreathSound.OUT, BreathSound.HOLD,
+        )
     }
 }

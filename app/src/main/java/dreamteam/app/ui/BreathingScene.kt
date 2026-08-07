@@ -1,5 +1,7 @@
 package dreamteam.app.ui
 
+import android.media.AudioAttributes
+import android.media.SoundPool
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -15,9 +17,11 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -28,9 +32,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import dreamteam.app.BreathingSettings
+import dreamteam.app.R
 import kotlinx.coroutines.delay
 
 /**
@@ -57,12 +64,53 @@ internal fun BreathingScene(modifier: Modifier = Modifier, onBack: () -> Unit) {
     var remaining by remember { mutableIntStateOf(PHASE_SECONDS) }
     // Completed full cycles, surfaced as gentle feedback (not a goal/streak).
     var cycles by remember { mutableIntStateOf(0) }
+    // DRE-235 — elapsed session time in seconds (counts while running).
+    var elapsed by remember { mutableIntStateOf(0) }
+
+    // --- DRE-235: SoundPool playback ------------------------------------------
+    val context = LocalContext.current
+    val soundOn = remember { mutableStateOf(BreathingSettings(context).isSoundEnabled()) }
+
+    val soundPool = remember {
+        SoundPool.Builder()
+            .setMaxStreams(1)
+            .setAudioAttributes(
+                AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_ASSISTANCE_SONIFICATION)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                    .build(),
+            )
+            .build()
+    }
+
+    val soundIds = remember { mutableStateOf<Map<BreathSound, Int>>(emptyMap()) }
+    LaunchedEffect(Unit) {
+        soundIds.value = mapOf(
+            BreathSound.IN to soundPool.load(context, R.raw.breath_in, 1),
+            BreathSound.HOLD to soundPool.load(context, R.raw.breath_hold, 1),
+            BreathSound.OUT to soundPool.load(context, R.raw.breath_out, 1),
+        )
+    }
+
+    DisposableEffect(soundPool) {
+        onDispose { soundPool.release() }
+    }
+
+    /** DRE-235 — play the phase cue if sound is on and the asset is loaded. */
+    fun cue(p: BreathPhase) {
+        if (!soundOn.value) return
+        val id = soundIds.value[p.sound] ?: return
+        soundPool.play(id, 0.7f, 0.7f, 1, 0, 1f)
+    }
 
     // The pacer clock: a 1s tick that counts the current phase down and advances.
     // LaunchedEffect keys on `running` so pausing cancels the tick cleanly.
     LaunchedEffect(running) {
+        // DRE-235 — play cue immediately on Start / resume for instant feedback.
+        if (running) cue(PHASES[phase])
         while (running) {
             delay(1_000)
+            elapsed += 1
             val next = remaining - 1
             if (next > 0) {
                 remaining = next
@@ -72,8 +120,7 @@ internal fun BreathingScene(modifier: Modifier = Modifier, onBack: () -> Unit) {
                 if (advanced == 0) cycles += 1
                 phase = advanced
                 remaining = PHASE_SECONDS
-                // ponytail: sound hook — when a soft tone asset is bundled, play it
-                // here on each phase transition. Silent until then (graceful).
+                cue(PHASES[advanced])
             }
         }
     }
@@ -90,7 +137,15 @@ internal fun BreathingScene(modifier: Modifier = Modifier, onBack: () -> Unit) {
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(BreathingStrings.TITLE, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                Text(BreathingStrings.TITLE, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                // DRE-235 — sound toggle: contextual on the breathing screen.
+                Text(BreathingStrings.SOUND, style = MaterialTheme.typography.bodyMedium)
+                Switch(
+                    checked = soundOn.value,
+                    onCheckedChange = { soundOn.value = it; BreathingSettings(context).setSoundEnabled(it) },
+                )
+            }
             TextButton(onClick = { running = false; onBack() }) { Text(BreathingStrings.BACK) }
         }
 
@@ -111,6 +166,12 @@ internal fun BreathingScene(modifier: Modifier = Modifier, onBack: () -> Unit) {
             )
             Text(
                 BreathingStrings.cyclesLine(cycles),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            // DRE-235 — elapsed session time (the breathing timer).
+            Text(
+                BreathingStrings.elapsedLine(elapsed),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -168,15 +229,19 @@ private fun BreathingPacer(phase: Int, running: Boolean) {
 /** Seconds each box-breathing phase lasts (4-4-4-4 ⇒ 16s cycle). */
 private const val PHASE_SECONDS = 4
 
-/** The four box-breathing phases, in cycle order, each with its RU cue label. */
-private enum class BreathPhase(val label: String) {
-    INHALE("Вдох"),
-    HOLD_IN("Задержка"),
-    EXHALE("Выдох"),
-    HOLD_OUT("Задержка"),
+/** DRE-235 — sound cue kind, decoupled from Android R for JVM testability. */
+internal enum class BreathSound { IN, HOLD, OUT }
+
+/** The four box-breathing phases, in cycle order, each with its RU cue label + sound. */
+internal enum class BreathPhase(val label: String, val sound: BreathSound) {
+    INHALE("Вдох", BreathSound.IN),
+    HOLD_IN("Задержка", BreathSound.HOLD),
+    EXHALE("Выдох", BreathSound.OUT),
+    HOLD_OUT("Задержка", BreathSound.HOLD),
 }
 
-private val PHASES = BreathPhase.entries
+/** Cycle-ordered phases; internal so the phase→sound mapping is JVM-testable. */
+internal val PHASES = BreathPhase.entries
 
 /** Authored copy for the breathing scene. Support framing — calm focus, no claim. */
 internal object BreathingStrings {
@@ -186,5 +251,9 @@ internal object BreathingStrings {
     const val START = "Начать"
     const val PAUSE = "Пауза"
     fun cyclesLine(n: Int) = "Циклов: $n"
-    val all: List<String> = listOf(TITLE, BACK, HINT, START, PAUSE, cyclesLine(0))
+    /** DRE-235 — elapsed session time, formatted mm:ss. */
+    fun elapsedLine(s: Int) = "%02d:%02d".format(s / 60, s % 60)
+    /** DRE-235 — sound toggle label. */
+    const val SOUND = "Звук"
+    val all: List<String> = listOf(TITLE, BACK, HINT, START, PAUSE, cyclesLine(0), elapsedLine(0), SOUND)
 }
