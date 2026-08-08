@@ -1,5 +1,10 @@
 package dreamteam.app
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -52,6 +57,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import dreamteam.app.data.LocalDatabase
 import dreamteam.app.ui.Spacing
+import dreamteam.app.ui.Motion
 import dreamteam.app.ui.PlayScene
 import dreamteam.app.ui.BreathingScene
 import kotlinx.coroutines.launch
@@ -300,7 +306,21 @@ fun DreamTeamApp(db: LocalDatabase) {
             }
         },
     ) { padding ->
-        when (screen) {
+        // ZEN v3 §7 Motion ([DRE-237](/DRE/issues/DRE-237), spec §7): a soft 400ms
+        // fade-through between screens so navigation never "snaps" — the calm-motion
+        // rule ("ничто не щёлкает"). Uses the system's `Motion` tokens (mediumMs +
+        // Emphasized) as the single source of screen-change motion. contentKey = the
+        // Screen so a branch is identity-keyed; the `when` body keeps its own state.
+        AnimatedContent(
+            targetState = screen,
+            transitionSpec = {
+                fadeIn(tween(Motion.mediumMs, easing = Motion.Emphasized)) togetherWith
+                    fadeOut(tween(Motion.mediumMs, easing = Motion.Emphasized))
+            },
+            contentKey = { it },
+            label = "screen",
+        ) { target ->
+        when (target) {
             Screen.Onboarding -> OnboardingScreen(
                 modifier = Modifier.padding(padding),
                 onPlanReady = { p ->
@@ -418,6 +438,7 @@ fun DreamTeamApp(db: LocalDatabase) {
             // Redesign v2 ([DRE-211](/DRE/issues/DRE-211), founder p.7): the breathing
             // scene — a calm box-breathing pacer. Full-screen (no bottom bar).
             Screen.Breathing -> BreathingScene(modifier = Modifier.padding(padding), onBack = { screen = Screen.Today })
+        }
         }
     }
 }
