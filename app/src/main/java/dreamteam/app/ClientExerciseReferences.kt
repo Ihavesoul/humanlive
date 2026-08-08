@@ -218,7 +218,9 @@ internal fun resolveExerciseReferences(
  * the redirect chain. A direct image URL (e.g. `upload.wikimedia.org`) passes
  * through unchanged. Flickr photo pages and other link-out pages have no stable
  * direct-image transform and yield `null` — the card then keeps its branded
- * placeholder and the link-out button still opens the source page.
+ * placeholder and the link-out button still opens the source page. Bundled CC0
+ * art ([DRE-246](/DRE/issues/DRE-246)) uses an `asset://` pseudo-scheme that maps
+ * to `file:///android_asset/` — no network, served by Coil's AssetUriFetcher.
  *
  * This is a presentation-layer adaptation of the catalog's link-out URL, NOT data
  * authorship: if the Evidence Analyst later sources direct image URLs
@@ -226,6 +228,14 @@ internal fun resolveExerciseReferences(
  */
 internal fun cardImageUrl(rawUrl: String?): String? {
     if (rawUrl.isNullOrBlank()) return null
+    // Bundled CC0 art ([DRE-246](/DRE/issues/DRE-246)): original exercise diagrams
+    // shipped in `assets/exercise_art/`. The `asset://` pseudo-scheme keeps the data
+    // platform-agnostic; here it becomes the Coil-loadable `file:///android_asset/` URI
+    // that Coil's built-in AssetUriFetcher serves with no network round-trip (offline-first).
+    if (rawUrl.startsWith("asset://")) {
+        val path = rawUrl.removePrefix("asset://")
+        return "file:///android_asset/$path"
+    }
     // Wikimedia `File:` description page → the documented direct-image endpoint.
     if ("commons.wikimedia.org/wiki/File:" in rawUrl) {
         val name = rawUrl.substringAfter("commons.wikimedia.org/wiki/File:")

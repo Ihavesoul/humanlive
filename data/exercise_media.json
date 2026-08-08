@@ -2,7 +2,7 @@
   "schema_version": "1.0",
   "source_issue": "DRE-207",
   "generated": "2026-08-05",
-  "method": "YouTube how-to via youtube.com/results ytInitialData parse (title+channel verified, relevance-gated). Card images reuse the DRE-79/103/126 vetted Wikimedia Commons / Flickr CC provenance. 7 rehab-specific gaps stay media_pending.",
+  "method": "YouTube how-to via youtube.com/results ytInitialData parse (title+channel verified, relevance-gated). Card images reuse the DRE-79/103/126 vetted Wikimedia Commons / Flickr CC provenance. 7 rehab-specific gaps stay media_pending.. DRE-246: 8 media_pending exercises resolved with commissioned CC0 line-art diagrams bundled in assets/exercise_art/ (no network needed — Coil loads via file:///android_asset/).",
   "license_note": "App links out (never reproduces inline), so PD/CC0/CC BY/CC BY-SA and Flickr CC BY refs remain license-defensible. If the UI ever renders images inline, surface {url,license,credit} per ref (per DRE-86 promotion note).",
   "exercises": [
     {
@@ -44,13 +44,13 @@
         "verification": "title+channel parsed from youtube.com/results ytInitialData; relevance-gated"
       },
       "image": {
-        "url": null,
+        "url": "asset://exercise_art/wall_axial_elongation.png",
         "source_page": null,
-        "license": null,
-        "credit": null,
-        "access": "link_out",
-        "status": "media_pending",
-        "note": "No license-clean, verifiable-relevance depiction found (DRE-126 sweep confirmed). YouTube how-to video covers visual guidance. Recommends commissioned CC0 art."
+        "license": "CC0 1.0",
+        "credit": "humanlive — original CC0 art (DRE-246)",
+        "access": "inline",
+        "status": "sourced",
+        "source": "commissioned_cc0"
       }
     },
     {
@@ -116,13 +116,13 @@
         "verification": "title+channel parsed from youtube.com/results ytInitialData; relevance-gated"
       },
       "image": {
-        "url": null,
+        "url": "asset://exercise_art/goblet_squat.png",
         "source_page": null,
-        "license": null,
-        "credit": null,
-        "access": "link_out",
-        "status": "media_pending",
-        "note": "No license-clean, verifiable-relevance depiction found (DRE-126 sweep confirmed). YouTube how-to video covers visual guidance. Recommends commissioned CC0 art."
+        "license": "CC0 1.0",
+        "credit": "humanlive — original CC0 art (DRE-246)",
+        "access": "inline",
+        "status": "sourced",
+        "source": "commissioned_cc0"
       }
     },
     {
@@ -356,13 +356,13 @@
         "verification": "title+channel parsed from youtube.com/results ytInitialData; relevance-gated"
       },
       "image": {
-        "url": null,
+        "url": "asset://exercise_art/prone_ytw.png",
         "source_page": null,
-        "license": null,
-        "credit": null,
-        "access": "link_out",
-        "status": "media_pending",
-        "note": "No license-clean, verifiable-relevance depiction found (DRE-126 sweep confirmed). YouTube how-to video covers visual guidance. Recommends commissioned CC0 art."
+        "license": "CC0 1.0",
+        "credit": "humanlive — original CC0 art (DRE-246)",
+        "access": "inline",
+        "status": "sourced",
+        "source": "commissioned_cc0"
       }
     },
     {
@@ -404,13 +404,13 @@
         "verification": "title+channel parsed from youtube.com/results ytInitialData; relevance-gated"
       },
       "image": {
-        "url": null,
+        "url": "asset://exercise_art/dead_bug.png",
         "source_page": null,
-        "license": null,
-        "credit": null,
-        "access": "link_out",
-        "status": "media_pending",
-        "note": "No license-clean, verifiable-relevance depiction found (DRE-126 sweep confirmed). YouTube how-to video covers visual guidance. Recommends commissioned CC0 art."
+        "license": "CC0 1.0",
+        "credit": "humanlive — original CC0 art (DRE-246)",
+        "access": "inline",
+        "status": "sourced",
+        "source": "commissioned_cc0"
       }
     },
     {
@@ -524,13 +524,13 @@
         "verification": "title+channel parsed from youtube.com/results ytInitialData; relevance-gated"
       },
       "image": {
-        "url": null,
+        "url": "asset://exercise_art/wall_slide.png",
         "source_page": null,
-        "license": null,
-        "credit": null,
-        "access": "link_out",
-        "status": "media_pending",
-        "note": "No license-clean, verifiable-relevance depiction found (DRE-126 sweep confirmed). YouTube how-to video covers visual guidance. Recommends commissioned CC0 art."
+        "license": "CC0 1.0",
+        "credit": "humanlive — original CC0 art (DRE-246)",
+        "access": "inline",
+        "status": "sourced",
+        "source": "commissioned_cc0"
       }
     },
     {
@@ -764,13 +764,13 @@
         "verification": "title+channel parsed from youtube.com/results ytInitialData; relevance-gated"
       },
       "image": {
-        "url": null,
+        "url": "asset://exercise_art/cable_woodchop.png",
         "source_page": null,
-        "license": null,
-        "credit": null,
-        "access": "link_out",
-        "status": "media_pending",
-        "note": "No license-clean, verifiable-relevance depiction found (DRE-126 sweep confirmed). YouTube how-to video covers visual guidance. Recommends commissioned CC0 art."
+        "license": "CC0 1.0",
+        "credit": "humanlive — original CC0 art (DRE-246)",
+        "access": "inline",
+        "status": "sourced",
+        "source": "commissioned_cc0"
       }
     },
     {
@@ -788,13 +788,13 @@
         "verification": "title+channel parsed from youtube.com/results ytInitialData; relevance-gated"
       },
       "image": {
-        "url": null,
+        "url": "asset://exercise_art/landmine_rotation.png",
         "source_page": null,
-        "license": null,
-        "credit": null,
-        "access": "link_out",
-        "status": "media_pending",
-        "note": "No license-clean, verifiable-relevance depiction found (DRE-126 sweep confirmed). YouTube how-to video covers visual guidance. Recommends commissioned CC0 art."
+        "license": "CC0 1.0",
+        "credit": "humanlive — original CC0 art (DRE-246)",
+        "access": "inline",
+        "status": "sourced",
+        "source": "commissioned_cc0"
       }
     },
     {
@@ -860,13 +860,13 @@
         "verification": "title+channel parsed from youtube.com/results ytInitialData; relevance-gated"
       },
       "image": {
-        "url": null,
+        "url": "asset://exercise_art/loaded_good_morning_rotation.png",
         "source_page": null,
-        "license": null,
-        "credit": null,
-        "access": "link_out",
-        "status": "media_pending",
-        "note": "No license-clean, verifiable-relevance depiction found (DRE-126 sweep confirmed). YouTube how-to video covers visual guidance. Recommends commissioned CC0 art."
+        "license": "CC0 1.0",
+        "credit": "humanlive — original CC0 art (DRE-246)",
+        "access": "inline",
+        "status": "sourced",
+        "source": "commissioned_cc0"
       }
     }
   ]

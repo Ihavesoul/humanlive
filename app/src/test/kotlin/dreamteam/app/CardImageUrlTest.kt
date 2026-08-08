@@ -35,6 +35,18 @@ class CardImageUrlTest {
     }
 
     @Test
+    fun `an asset pseudo-scheme becomes the Coil-loadable android_asset URI`() {
+        cardImageUrl("asset://exercise_art/goblet_squat.png") shouldBe
+            "file:///android_asset/exercise_art/goblet_squat.png"
+    }
+
+    @Test
+    fun `asset with subdirectory path resolves correctly`() {
+        cardImageUrl("asset://exercise_art/sub/deep.png") shouldBe
+            "file:///android_asset/exercise_art/sub/deep.png"
+    }
+
+    @Test
     fun `a Flickr photo page yields null - not handed to the image loader as HTML`() {
         cardImageUrl("https://www.flickr.com/photos/121183998@N08/42990005625") shouldBe null
     }
@@ -57,11 +69,13 @@ class CardImageUrlTest {
         ids.forEach { id ->
             val loadUrl = cardImageUrl(resolveExerciseMedia(id, resolver).cardImage?.url)
             if (loadUrl != null) {
-                // A renderable URL is either the Special:FilePath endpoint or a direct
-                // upload URL — never a /wiki/File: page or a flickr.com/photos page.
+                // A renderable URL is the Special:FilePath endpoint, a direct upload
+                // URL, or a bundled asset URI — never a /wiki/File: page or a flickr
+                // photo page (those serve HTML, not image bytes).
                 ("commons.wikimedia.org/wiki/File:" in loadUrl) shouldBe false
                 ("commons.wikimedia.org/wiki/Special:FilePath/" in loadUrl ||
-                    loadUrl.startsWith("https://upload.wikimedia.org/")) shouldBe true
+                    loadUrl.startsWith("https://upload.wikimedia.org/") ||
+                    loadUrl.startsWith("file:///android_asset/")) shouldBe true
             }
         }
     }
