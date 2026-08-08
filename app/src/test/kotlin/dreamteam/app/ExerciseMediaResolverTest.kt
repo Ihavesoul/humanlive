@@ -92,4 +92,37 @@ class ExerciseMediaResolverTest {
             .mapNotNull { it.cardImage }
         sourced.map { it.url } shouldBe sourced.map { it.url }.distinct()
     }
+
+    @Test
+    fun `every exercise carries a why summary and none contains a banned medical-claim phrase`() {
+        // DRE-240: the 36 ai_summary_ru render verbatim to the user under the "Почему это
+        // упражнение" heading (DreamTeamApp.kt). They are catalog DATA, not a *.all list, so the
+        // app-wide banned-phrase scan never covered them. This closes that gate: full coverage +
+        // the same banned morphemes every authored surface carries, plus the scoliosis/curvature
+        // overclaim stems (board overclaim check, commit 685a119).
+        val ids = dreamteam.domain.training.BaselineProgram.exerciseIds
+        val summaries = ids.mapNotNull { resolver.resolve(it)?.aiSummaryRu?.takeUnless { s -> s.isBlank() } }
+        // Coverage: every preset must carry a non-blank WHY summary.
+        summaries.size shouldBe ids.size
+
+        val banned = listOf(
+            "диагноз", "диагности",
+            "лечит", "лечение", "лечим", "вылеч", "излеч", "исцела", "исцели",
+            "болезнь",
+            "у вас", "вы больн", "вы здоровы", "ваш диагноз",
+            "предписываю", "назначаю", "прописываю",
+            "diagnos", "treat", "cure", "heal", "disease", "you have", "you are", "prescribe",
+            // DRE-240 scoliosis/curvature overclaim stems.
+            "исправля", "выправля", "избавля",
+        )
+        // "коррекция/корректирует … кривизны" = the curvature-correction overclaim. Bare "коррекци"
+        // is intentionally NOT banned: legit disclaimers use it («не структурная коррекция»).
+        val curvatureCorrection = Regex("коррек(?:ци|тир)\\w*\\s+(?:\\w+\\s+){0,3}кривизн")
+
+        summaries.forEach { summary ->
+            val lower = summary.lowercase()
+            banned.forEach { b -> (b !in lower) shouldBe true }
+            (curvatureCorrection.containsMatchIn(lower)) shouldBe false
+        }
+    }
 }
