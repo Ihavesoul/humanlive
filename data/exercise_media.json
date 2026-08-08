@@ -140,13 +140,13 @@
         "verification": "title+channel parsed from youtube.com/results ytInitialData; relevance-gated"
       },
       "image": {
-        "url": "https://www.flickr.com/photos/121183998@N08/42990005625",
-        "source_page": "https://www.flickr.com/photos/121183998@N08/42990005625",
-        "license": "CC BY 2.0",
-        "credit": "Eric Astrauskas, www.PTinTO.com",
+        "url": "https://commons.wikimedia.org/wiki/File:SETAF-AF_conducts_sergeant%E2%80%99s_time_circuit_training_(9082703).jpg",
+        "source_page": "https://commons.wikimedia.org/wiki/File:SETAF-AF_conducts_sergeant%E2%80%99s_time_circuit_training_(9082703).jpg",
+        "license": "Public domain",
+        "credit": "Sgt. Kylejian Francia, U.S. Army",
         "access": "link_out",
         "status": "sourced",
-        "source": "flickr_cc"
+        "source": "wikimedia_commons"
       }
     },
     {
@@ -740,13 +740,13 @@
         "verification": "title+channel parsed from youtube.com/results ytInitialData; relevance-gated"
       },
       "image": {
-        "url": "https://www.flickr.com/photos/121183998@N08/30283139408",
-        "source_page": "https://www.flickr.com/photos/121183998@N08/30283139408",
-        "license": "CC BY 2.0",
-        "credit": "Eric Astrauskas, www.PTinTO.com",
+        "url": "https://commons.wikimedia.org/wiki/File:USMC-120724-M-3042W-002.jpg",
+        "source_page": "https://commons.wikimedia.org/wiki/File:USMC-120724-M-3042W-002.jpg",
+        "license": "Public domain",
+        "credit": "Lance Cpl. Sarah Wolff-Diaz, U.S. Marine Corps",
         "access": "link_out",
         "status": "sourced",
-        "source": "flickr_cc"
+        "source": "wikimedia_commons"
       }
     },
     {
