@@ -53,8 +53,20 @@ class ExerciseMediaResolverTest {
 
     @Test
     fun `a media_pending entry resolves to a null card image - never a fabricated url`() {
-        // wall_axial_elongation carries image.status == media_pending in the catalog.
-        val media = resolveExerciseMedia("wall_axial_elongation", resolver)
+        // The resolver must never fabricate a URL for a media_pending entry. The bundled
+        // catalog (post DRE-246, which commissioned CC0 art for all 8 former-pending
+        // presets) carries no media_pending entry to pin, so verify the guarantee against a
+        // synthetic resolver built from a single pending entry — not a catalog fixture.
+        val pending = ExerciseMediaResolver(
+            listOf(
+                ExerciseMediaEntry(
+                    exerciseId = "pending_fixture",
+                    nameRu = "заглушка",
+                    image = ExerciseImageSeed(url = null, status = "media_pending"),
+                )
+            )
+        )
+        val media = resolveExerciseMedia("pending_fixture", pending)
         media.hasCardImage shouldBe false
         media.cardImage.shouldBeNull()
     }
