@@ -16,6 +16,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.material3.Icon
+import androidx.compose.ui.res.painterResource
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.Checkbox
@@ -1024,6 +1028,8 @@ private fun SessionCard(
                                         onClick = { explainFor = a.exerciseId },
                                         modifier = Modifier.weight(1f).heightIn(min = Spacing.touchTarget),
                                     ) {
+                                        Icon(painterResource(R.drawable.zen_ic_ai), contentDescription = null, modifier = Modifier.size(18.dp))
+                                        Spacer(Modifier.width(Spacing.xs))
                                         Text(
                                             CoachStrings.ASK_AI,
                                             maxLines = 2,
@@ -1032,10 +1038,13 @@ private fun SessionCard(
                                     }
                                 }
                                 mediaButtons.take(2).forEach { (url, label) ->
+                                    val mediaIcon = if (label == ReferencesCardStrings.VIDEO) R.drawable.zen_ic_video else R.drawable.zen_ic_camera
                                     OutlinedButton(
                                         onClick = { openUrl(ctx, url) },
                                         modifier = Modifier.weight(1f).heightIn(min = Spacing.touchTarget),
                                     ) {
+                                        Icon(painterResource(mediaIcon), contentDescription = null, modifier = Modifier.size(18.dp))
+                                        Spacer(Modifier.width(Spacing.xs))
                                         Text(
                                             label,
                                             maxLines = 2,

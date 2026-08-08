@@ -1,17 +1,11 @@
 package dreamteam.app
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.List
-import androidx.compose.material.icons.rounded.DateRange
-import androidx.compose.material.icons.rounded.Home
-import androidx.compose.material.icons.rounded.Info
-import androidx.compose.material.icons.rounded.Settings
-
+import androidx.annotation.DrawableRes
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.painterResource
 
 /**
  * M8-D ([DRE-90](/DRE/issues/DRE-90)): the app's bottom navigation bar. This is
@@ -20,8 +14,8 @@ import androidx.compose.ui.graphics.vector.ImageVector
  * `OutlinedButton`s glued to the bottom of a scroll, which read as a markdown
  * link list. A bottom [NavigationBar] is the production-app nav pattern: the
  * four read/main destinations sit one tap away, always visible, never scrolled
- * off. Icons ship in the core `material-icons-core` artifact (transitive on
- * Material 3) — **no new dependency**.
+ * off. Icons are ZEN thin line icons (Lucide v1.30, ISC) traced to vector XML in
+ * `res/drawable` ([DRE-237](/DRE/issues/DRE-237), ZEN v3 §4) — **no new dependency**.
  *
  * Logging actions (progress / symptom) are NOT here: they stay contextual to the
  * Today screen (compact buttons in its header), because they are *writes*, not
@@ -30,14 +24,14 @@ import androidx.compose.ui.graphics.vector.ImageVector
  */
 
 /** The nav destinations shown in the bottom bar (read/main screens only). */
-private data class NavDestination(val screen: Screen, val label: String, val icon: ImageVector)
+private data class NavDestination(val screen: Screen, val label: String, @DrawableRes val icon: Int)
 
 private val NAV_DESTINATIONS = listOf(
-    NavDestination(Screen.Today, UiStrings.NAV_TODAY, Icons.Rounded.Home),
-    NavDestination(Screen.Plan, UiStrings.NAV_PLAN, Icons.AutoMirrored.Rounded.List),
-    NavDestination(Screen.History, UiStrings.NAV_HISTORY, Icons.Rounded.DateRange),
-    NavDestination(Screen.EvidenceSources, UiStrings.NAV_SOURCES, Icons.Rounded.Info),
-    NavDestination(Screen.Settings, UiStrings.NAV_SETTINGS, Icons.Rounded.Settings),
+    NavDestination(Screen.Today, UiStrings.NAV_TODAY, R.drawable.zen_ic_today),
+    NavDestination(Screen.Plan, UiStrings.NAV_PLAN, R.drawable.zen_ic_plan),
+    NavDestination(Screen.History, UiStrings.NAV_HISTORY, R.drawable.zen_ic_history),
+    NavDestination(Screen.EvidenceSources, UiStrings.NAV_SOURCES, R.drawable.zen_ic_sources),
+    NavDestination(Screen.Settings, UiStrings.NAV_SETTINGS, R.drawable.zen_ic_settings),
 )
 
 /**
@@ -52,7 +46,7 @@ internal fun AppNavigationBar(current: Screen, onNavigate: (Screen) -> Unit) {
             NavigationBarItem(
                 selected = current == dest.screen,
                 onClick = { onNavigate(dest.screen) },
-                icon = { Icon(dest.icon, contentDescription = dest.label) },
+                icon = { Icon(painterResource(dest.icon), contentDescription = dest.label) },
                 label = { Text(dest.label) },
             )
         }

@@ -9,6 +9,7 @@ import androidx.compose.animation.core.TweenSpec
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Shapes
 import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
@@ -134,19 +135,40 @@ private val Mulish = FontFamily(
 )
 
 /**
- * ZEN type scale — Mulish family, raised floors + generous line-height for
- * readability on phones (especially RU text with long exercise descriptions).
+ * Lora — bundled display serif ([DRE-237](/DRE/issues/DRE-237), ZEN v3 §3). Applied
+ * *only* to `headlineMedium`/`titleLarge` (screen + section headings): a single
+ * serif/sans pairing is the move from "generic app" to "calm journal", and the
+ * old-style humanist Lora is warm, not stiff. Crucially Lora ships **full
+ * Cyrillic** (Cyreal/Lora-Cyrillic) — this app is Russian, so a Latin-only serif
+ * like Fraunces was rejected here (its Cyrillic headings would fall back to sans
+ * and look broken). Variable TTF covers Normal → Bold via the `wght` axis; one
+ * file, ~207KB. OFL retained alongside the TTF in `res/font`.
+ */
+private val Display = FontFamily(
+    Font(R.font.lora_variable, FontWeight.Normal),
+    Font(R.font.lora_variable, FontWeight.Medium),
+    Font(R.font.lora_variable, FontWeight.SemiBold),
+    Font(R.font.lora_variable, FontWeight.Bold),
+)
+
+/**
+ * ZEN type scale ([DRE-237](/DRE/issues/DRE-237), ZEN v3 §3) — a **serif/sans
+ * pairing**: Lora `Display` for the two heading roles (headlineMedium /
+ * titleLarge), Mulish for everything else (titles, body, labels). Raised floors
+ * + generous line-height for readability on phones (especially RU text with long
+ * exercise descriptions). Lora is chosen over Fraunces because it ships full
+ * Cyrillic (see [Display]).
  */
 private val AppTypography = Typography(
     headlineMedium = TextStyle(
-        fontFamily = Mulish,
+        fontFamily = Display,
         fontWeight = FontWeight.Bold,
         fontSize = 28.sp,
         lineHeight = 34.sp,
         letterSpacing = (-0.5).sp,
     ),
     titleLarge = TextStyle(
-        fontFamily = Mulish,
+        fontFamily = Display,
         fontWeight = FontWeight.Bold,
         fontSize = 22.sp,
         lineHeight = 28.sp,
@@ -259,6 +281,18 @@ internal object ZenShape {
     val pill = RoundedCornerShape(50)
 }
 
+/**
+ * ZEN v3 shapes wired into [MaterialTheme.shapes] ([DRE-237](/DRE/issues/DRE-237),
+ * ZEN v3 §6) so every `Card`/`Surface` picks up the soft 24dp/28dp radii without
+ * each call site passing a shape. `medium` (the role `Card` reads) and `large`
+ * are raised to the ZEN card vocabulary; `small`/`extraSmall` are left at the M3
+ * defaults so chips and buttons keep their pill forms.
+ */
+private val AppShapes = Shapes(
+    medium = ZenShape.card,
+    large = ZenShape.cardLarge,
+)
+
 // ── Elevation ──────────────────────────────────────────────────────────────
 
 /**
@@ -334,5 +368,5 @@ fun DreamTeamTheme(
     content: @Composable () -> Unit,
 ) {
     val colors = if (forceDark || isSystemInDarkTheme()) DarkColors else LightColors
-    MaterialTheme(colorScheme = colors, typography = AppTypography, content = content)
+    MaterialTheme(colorScheme = colors, typography = AppTypography, shapes = AppShapes, content = content)
 }
