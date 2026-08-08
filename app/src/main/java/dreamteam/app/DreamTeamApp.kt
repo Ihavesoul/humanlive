@@ -497,7 +497,7 @@ private fun PlanScreen(modifier: Modifier, db: LocalDatabase, profile: Profile?,
     val progress = db.recentProgress()
     val result = remember(p, symptoms, progress) { generateLocalPlan(p, LocalDate.now().toString(), symptoms, progress) }
 
-    LazyColumn(modifier = modifier.fillMaxSize().padding(Spacing.screen), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+    LazyColumn(modifier = modifier.fillMaxSize().padding(Spacing.screen), verticalArrangement = Arrangement.spacedBy(Spacing.lg)) {
         when (result) {
             is PlanResult.Blocked -> item { BlockCard(result, resolver) }
             is PlanResult.Ok -> {
@@ -608,7 +608,7 @@ private fun TodayScreen(
     val today = LocalDate.now()
     val result = remember(p, symptoms, progress) { generateLocalPlan(p, today.toString(), symptoms, progress) }
 
-    LazyColumn(modifier = modifier.fillMaxSize().padding(Spacing.screen), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+    LazyColumn(modifier = modifier.fillMaxSize().padding(Spacing.screen), verticalArrangement = Arrangement.spacedBy(Spacing.lg)) {
         when (result) {
             is PlanResult.Blocked -> item { BlockCard(result, resolver) }
             is PlanResult.Ok -> {
@@ -713,7 +713,7 @@ private fun HistoryScreen(modifier: Modifier, db: LocalDatabase, onBack: () -> U
     val symptoms = db.recentSymptoms()
     val view = remember(progress) { progressHistoryView(progress) }
     val symptomLines = remember(symptoms) { symptomHistoryView(symptoms) }
-    LazyColumn(modifier = modifier.fillMaxSize().padding(Spacing.screen), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+    LazyColumn(modifier = modifier.fillMaxSize().padding(Spacing.screen), verticalArrangement = Arrangement.spacedBy(Spacing.lg)) {
         item { Text(HistoryStrings.TITLE, fontWeight = FontWeight.Bold) }
         item { Text(HistoryStrings.SUPPORT, fontWeight = FontWeight.Light) }
         item { Text(view.trendLine, fontWeight = FontWeight.SemiBold) }
@@ -1383,7 +1383,7 @@ private fun SettingsScreen(modifier: Modifier, coachCredStore: CoachCredentialSt
     var token by remember { mutableStateOf(saved?.token ?: "") }
     var model by remember { mutableStateOf(saved?.model ?: SettingsStrings.DEFAULT_MODEL) }
     var message by remember { mutableStateOf<String?>(null) }
-    LazyColumn(modifier = modifier.fillMaxSize().padding(Spacing.screen), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+    LazyColumn(modifier = modifier.fillMaxSize().padding(Spacing.screen), verticalArrangement = Arrangement.spacedBy(Spacing.lg)) {
         item { Text(SettingsStrings.TITLE, fontWeight = FontWeight.Bold) }
         item { Text(SettingsStrings.HINT, fontWeight = FontWeight.Light) }
         item {

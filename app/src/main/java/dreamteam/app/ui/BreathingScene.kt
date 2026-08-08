@@ -31,6 +31,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -209,19 +210,35 @@ private fun BreathingPacer(phase: Int, running: Boolean) {
             .graphicsLayer { alpha = if (running) 1f else 0.5f },
         contentAlignment = Alignment.Center,
     ) {
-        // Outer halo.
+        // ZEN v3 ([DRE-237](/DRE/issues/DRE-237), §8): a soft sage glow — the halo
+        // fades to transparent (the glow), the orb carries a luminous radial
+        // gradient (primaryContainer → primary) for depth instead of a flat fill.
+        // Outer glow halo.
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .scale(scale)
-                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.18f), CircleShape),
+                .background(
+                    Brush.radialGradient(
+                        0.55f to MaterialTheme.colorScheme.primary.copy(alpha = 0.30f),
+                        1.0f to MaterialTheme.colorScheme.primary.copy(alpha = 0f),
+                    ),
+                    CircleShape,
+                ),
         )
-        // Inner solid dot.
+        // Inner orb — luminous sage radial gradient.
         Box(
             modifier = Modifier
                 .size(120.dp)
                 .scale(scale)
-                .background(MaterialTheme.colorScheme.primary, CircleShape),
+                .background(
+                    Brush.radialGradient(
+                        0f to MaterialTheme.colorScheme.primaryContainer,
+                        0.7f to MaterialTheme.colorScheme.primary,
+                        1.0f to MaterialTheme.colorScheme.primary,
+                    ),
+                    CircleShape,
+                ),
         )
     }
 }
