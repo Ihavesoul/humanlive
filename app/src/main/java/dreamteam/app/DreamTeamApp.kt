@@ -1390,98 +1390,145 @@ private fun ProgressScreen(modifier: Modifier, db: LocalDatabase, onBack: () -> 
 }
 
 /**
- * DRE-175 — the user-facing AI-coach credential screen. Three fields (URL, токен,
- * модель) persisted encrypted-at-rest via [CoachCredentialStore] (Android Keystore
- * AES-GCM, not plaintext SharedPreferences). With creds saved, "Спросить у AI" /
- * "Сообщить коучу" call the user's LLM directly; with none, the app behaves exactly
- * as before (deterministic fallback) — it never crashes. Support framing only:
- * the screen lets the user *configure* a tool, it makes no medical claim.
+ * DRE-175/DRE-238 — the user-facing Settings screen: ALL user options in ONE
+ * ZEN-styled screen, grouped into ZEN Cards ([DRE-238](/DRE/issues/DRE-238),
+ * ZEN v3 §6/§8). Two sections:
+ *  - **AI-коуч**: the enable/disable toggle (default OFF, [DRE-209]) + the
+ *    encrypted credential fields (URL/token/model) shown only when enabled.
+ *  - **Дыхание**: the breathing sound-cue toggle (DRE-235).
+ *
+ * Cards use the system `Card` shape (24dp == [AppCardShape]); sections are
+ * separated by `Spacing.section` (32dp) — the calm ZEN rhythm. With creds saved
+ * and the coach on, "Спросить у AI" calls the user's LLM directly; with it off,
+ * the app runs the deterministic plan alone — it never crashes. Support framing
+ * only: the screen configures tools, it makes no medical claim.
  */
 @Composable
 private fun SettingsScreen(modifier: Modifier, coachCredStore: CoachCredentialStore, aiCoachEnabled: Boolean, onToggleAiCoach: (Boolean) -> Unit) {
+    val context = LocalContext.current
     val saved = remember { coachCredStore.load() }
     var baseUrl by remember { mutableStateOf(saved?.baseUrl ?: SettingsStrings.DEFAULT_URL) }
     var token by remember { mutableStateOf(saved?.token ?: "") }
     var model by remember { mutableStateOf(saved?.model ?: SettingsStrings.DEFAULT_MODEL) }
     var message by remember { mutableStateOf<String?>(null) }
-    LazyColumn(modifier = modifier.fillMaxSize().padding(Spacing.screen), verticalArrangement = Arrangement.spacedBy(Spacing.lg)) {
-        item { Text(SettingsStrings.TITLE, fontWeight = FontWeight.Bold) }
-        item { Text(SettingsStrings.HINT, fontWeight = FontWeight.Light) }
+    // DRE-238 — the breathing sound-cue toggle, surfaced here (all options in one
+    // screen) alongside the AI-coach settings. Reads/writes the same
+    // [BreathingSettings] store the breathing scene uses, so the two stay in sync.
+    val breathingSettings = remember { BreathingSettings(context) }
+    var soundEnabled by remember { mutableStateOf(breathingSettings.isSoundEnabled()) }
+    LazyColumn(modifier = modifier.fillMaxSize().padding(Spacing.screen), verticalArrangement = Arrangement.spacedBy(Spacing.section)) {
+        // Screen header.
         item {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Column(Modifier.weight(1f).padding(end = Spacing.md)) {
-                    Text(SettingsStrings.COACH_TOGGLE_TITLE, fontWeight = FontWeight.Bold)
-                    Text(SettingsStrings.COACH_TOGGLE_HINT, fontWeight = FontWeight.Light, style = MaterialTheme.typography.bodySmall)
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                Text(SettingsStrings.TITLE, style = MaterialTheme.typography.headlineMedium)
+                Text(SettingsStrings.HINT, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+        // Card 1 — AI-коуч.
+        item {
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(Spacing.lg), verticalArrangement = Arrangement.spacedBy(Spacing.lg)) {
+                    Text(SettingsStrings.SECTION_COACH, style = MaterialTheme.typography.titleMedium)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            SettingsStrings.COACH_TOGGLE_HINT,
+                            modifier = Modifier.weight(1f).padding(end = Spacing.md),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Switch(checked = aiCoachEnabled, onCheckedChange = onToggleAiCoach)
+                    }
+                    if (aiCoachEnabled) {
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                        OutlinedTextField(
+                            value = baseUrl,
+                            onValueChange = { baseUrl = it },
+                            label = { Text(SettingsStrings.URL_LABEL) },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                        OutlinedTextField(
+                            value = token,
+                            onValueChange = { token = it },
+                            label = { Text(SettingsStrings.TOKEN_LABEL) },
+                            singleLine = true,
+                            visualTransformation = PasswordVisualTransformation(),
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                        OutlinedTextField(
+                            value = model,
+                            onValueChange = { model = it },
+                            label = { Text(SettingsStrings.MODEL_LABEL) },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), modifier = Modifier.fillMaxWidth()) {
+                            Button(
+                                onClick = {
+                                    coachCredStore.save(CoachCredentials(baseUrl.trim(), token.trim(), model.trim()))
+                                    message = if (token.isBlank()) SettingsStrings.CLEARED else SettingsStrings.SAVED
+                                },
+                                modifier = Modifier.weight(1f),
+                            ) { Text(SettingsStrings.SAVE) }
+                            OutlinedButton(
+                                onClick = {
+                                    coachCredStore.clear()
+                                    token = ""; baseUrl = SettingsStrings.DEFAULT_URL; model = SettingsStrings.DEFAULT_MODEL
+                                    message = SettingsStrings.CLEARED
+                                },
+                                modifier = Modifier.weight(1f),
+                            ) { Text(SettingsStrings.CLEAR) }
+                        }
+                        message?.let { m -> Text(m, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                    }
                 }
-                Switch(checked = aiCoachEnabled, onCheckedChange = onToggleAiCoach)
             }
         }
-        if (aiCoachEnabled) {
+        // Card 2 — Дыхание (sound cues).
         item {
-            OutlinedTextField(
-                value = baseUrl,
-                onValueChange = { baseUrl = it },
-                label = { Text(SettingsStrings.URL_LABEL) },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-            )
-        }
-        item {
-            OutlinedTextField(
-                value = token,
-                onValueChange = { token = it },
-                label = { Text(SettingsStrings.TOKEN_LABEL) },
-                singleLine = true,
-                visualTransformation = PasswordVisualTransformation(),
-                modifier = Modifier.fillMaxWidth(),
-            )
-        }
-        item {
-            OutlinedTextField(
-                value = model,
-                onValueChange = { model = it },
-                label = { Text(SettingsStrings.MODEL_LABEL) },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-            )
-        }
-        item {
-            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), modifier = Modifier.fillMaxWidth()) {
-                Button(
-                    onClick = {
-                        coachCredStore.save(CoachCredentials(baseUrl.trim(), token.trim(), model.trim()))
-                        message = if (token.isBlank()) SettingsStrings.CLEARED else SettingsStrings.SAVED
-                    },
-                    modifier = Modifier.weight(1f),
-                ) { Text(SettingsStrings.SAVE) }
-                OutlinedButton(
-                    onClick = {
-                        coachCredStore.clear()
-                        token = ""; baseUrl = SettingsStrings.DEFAULT_URL; model = SettingsStrings.DEFAULT_MODEL
-                        message = SettingsStrings.CLEARED
-                    },
-                    modifier = Modifier.weight(1f),
-                ) { Text(SettingsStrings.CLEAR) }
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(Spacing.lg), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+                    Text(SettingsStrings.SECTION_BREATHING, style = MaterialTheme.typography.titleMedium)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Column(Modifier.weight(1f).padding(end = Spacing.md)) {
+                            Text(SettingsStrings.SOUND_TITLE, style = MaterialTheme.typography.bodyLarge)
+                            Text(SettingsStrings.SOUND_HINT, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        Switch(
+                            checked = soundEnabled,
+                            onCheckedChange = { soundEnabled = it; breathingSettings.setSoundEnabled(it) },
+                        )
+                    }
+                }
             }
-        }
-        message?.let { m -> item { Text(m, fontWeight = FontWeight.Light) } }
         }
     }
 }
 
 /**
- * DRE-175 — the authored strings the Settings screen renders. Gathered as
+ * DRE-175/DRE-238 — the authored strings the Settings screen renders. Gathered as
  * [all] so a JVM test snapshots them against the banned medical-claim phrase
  * list (mirrors [UiStrings] / [CoachStrings]). Support framing only: the screen
- * configures a tool — no diagnosis, no treatment claim.
+ * configures tools — no diagnosis, no treatment claim.
+ *
+ * DRE-238: the screen title is now the general "Настройки" (all user options in
+ * ONE screen), not the AI-coach-only title; settings are grouped into ZEN Cards
+ * (section titles [SECTION_COACH] / [SECTION_BREATHING]).
  */
 internal object SettingsStrings {
-    const val TITLE = "Настройки AI-коуча"
-    const val HINT = "Укажите ссылку API и токен, чтобы «Спросить у AI» вызывал вашу модель напрямую. Без них приложение работает как раньше. Приложение поддерживает, не заменяет врача."
+    const val TITLE = "Настройки"
+    const val HINT = "Все параметры приложения в одном месте. Приложение поддерживает, не заменяет врача."
+    const val SECTION_COACH = "AI-коуч"
+    const val SECTION_BREATHING = "Дыхание"
+    const val COACH_TOGGLE_HINT = "Выключен по умолчанию. Включите и укажите данные API, чтобы «Спросить у AI» и «Отправить коучу» вызывали вашу модель. Без данных приложение строит план офлайн. Приложение поддерживает, не заменяет врача."
     const val URL_LABEL = "URL API (ссылка)"
     const val TOKEN_LABEL = "Токен"
     const val MODEL_LABEL = "Модель"
@@ -1489,8 +1536,8 @@ internal object SettingsStrings {
     const val CLEAR = "Сбросить"
     const val SAVED = "Сохранено. Ключ хранится зашифрованным на устройстве."
     const val CLEARED = "Ключ сброшен. AI использует офлайн-план."
-    const val COACH_TOGGLE_TITLE = "AI-коуч"
-    const val COACH_TOGGLE_HINT = "Включён по умолчанию. Укажите данные API, чтобы «Спросить у AI» и «Отправить коучу» вызывали вашу модель. Без данных приложение строит план офлайн. Приложение поддерживает, не заменяет врача."
+    const val SOUND_TITLE = "Звук дыхания"
+    const val SOUND_HINT = "Мягкие звуковые сигналы при смене фазы дыхания."
     // Default base URL = Z.AI's OpenAI-compatible endpoint (server-confirmed); the
     // user can change it for any compatible provider. Default model = glm-4.6
     // (the server's working thinking flagship; "glm-5.2" / Max think is the spec
@@ -1499,6 +1546,8 @@ internal object SettingsStrings {
     const val DEFAULT_MODEL = "glm-4.6"
 
     val all: List<String> = listOf(
-        TITLE, HINT, COACH_TOGGLE_TITLE, COACH_TOGGLE_HINT, URL_LABEL, TOKEN_LABEL, MODEL_LABEL, SAVE, CLEAR, SAVED, CLEARED, DEFAULT_URL, DEFAULT_MODEL,
+        TITLE, HINT, SECTION_COACH, SECTION_BREATHING, COACH_TOGGLE_HINT,
+        URL_LABEL, TOKEN_LABEL, MODEL_LABEL, SAVE, CLEAR, SAVED, CLEARED,
+        SOUND_TITLE, SOUND_HINT, DEFAULT_URL, DEFAULT_MODEL,
     )
 }

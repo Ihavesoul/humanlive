@@ -2,9 +2,7 @@ package dreamteam.app.ui
 
 import android.media.AudioAttributes
 import android.media.SoundPool
-import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -157,14 +155,9 @@ internal fun BreathingScene(modifier: Modifier = Modifier, onBack: () -> Unit) {
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
 
-        BreathingPacer(phase = phase, running = running)
+        BreathingPacer(phase = phase, remaining = remaining, running = running)
 
         Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            Text(
-                "${PHASES[phase].label} · $remaining",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.SemiBold,
-            )
             Text(
                 BreathingStrings.cyclesLine(cycles),
                 style = MaterialTheme.typography.bodySmall,
@@ -187,11 +180,16 @@ internal fun BreathingScene(modifier: Modifier = Modifier, onBack: () -> Unit) {
 
 /**
  * The visual pacer: a circle that grows on inhale, holds, shrinks on exhale,
- * holds — synced to the active [phase]. Scale is animated so the motion reads as
- * breathing, not a step change.
+ * holds — synced to the active [phase]. Scale is animated via [Motion.breath]
+ * (ZEN v3 §7, 4000ms linear) so the motion reads as breathing, not a step change.
+ *
+ * DRE-239 (ZEN v3 §8): the active phase label + its countdown are centered ON the
+ * orb — "большой спокойный тип, фаза по центру". The label is rendered ABOVE the
+ * scaling layers and is itself unscaled, so it stays fully legible while the orb
+ * breathes around it (the Calm/Headspace pattern: fixed text, breathing halo).
  */
 @Composable
-private fun BreathingPacer(phase: Int, running: Boolean) {
+private fun BreathingPacer(phase: Int, remaining: Int, running: Boolean) {
     // Target scale per phase: inhale grows to 1.0, exhale shrinks to 0.6.
     val target = when (phase) {
         0 -> 1.0f   // inhale → full
@@ -201,12 +199,12 @@ private fun BreathingPacer(phase: Int, running: Boolean) {
     }
     val scale by animateFloatAsState(
         targetValue = target,
-        animationSpec = tween(durationMillis = PHASE_SECONDS * 1000, easing = LinearEasing),
+        animationSpec = Motion.breath,
         label = "breathScale",
     )
     Box(
         modifier = Modifier
-            .size(220.dp)
+            .size(280.dp)
             .graphicsLayer { alpha = if (running) 1f else 0.5f },
         contentAlignment = Alignment.Center,
     ) {
@@ -229,7 +227,7 @@ private fun BreathingPacer(phase: Int, running: Boolean) {
         // Inner orb — luminous sage radial gradient.
         Box(
             modifier = Modifier
-                .size(120.dp)
+                .size(160.dp)
                 .scale(scale)
                 .background(
                     Brush.radialGradient(
@@ -240,6 +238,25 @@ private fun BreathingPacer(phase: Int, running: Boolean) {
                     CircleShape,
                 ),
         )
+        // Phase label + countdown — centered, NOT scaled (stays legible as the orb
+        // breathes). White on the opaque sage orb for contrast.
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+        ) {
+            Text(
+                PHASES[phase].label,
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onPrimary,
+            )
+            Text(
+                "$remaining",
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.85f),
+            )
+        }
     }
 }
 
