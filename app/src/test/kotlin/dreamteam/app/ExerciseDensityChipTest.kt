@@ -1,6 +1,5 @@
 package dreamteam.app
 
-import dreamteam.domain.ExerciseId
 import dreamteam.domain.safety.ContraindicationStubs
 import dreamteam.domain.safety.SafetyGuardedGateway
 import dreamteam.domain.safety.ScreeningContext
@@ -9,39 +8,20 @@ import dreamteam.domain.training.BaselineProgram
 import dreamteam.domain.training.DeterministicPlanGenerator
 import dreamteam.domain.training.ExerciseAssignment
 import dreamteam.domain.training.GeneratedPlan
-import io.kotest.matchers.collections.shouldContain
 import io.kotest.matchers.collections.shouldNotBeEmpty
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.string.shouldContain
+import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.types.shouldBeInstanceOf
 import org.junit.jupiter.api.Test
 
 /**
- * M9-C ([DRE-120](/DRE/issues/DRE-120)) — pins the guarantees of the denser
- * exercise-card metadata chips ([exerciseDensityChips] → [DensityChip]) that
- * [SessionCard] renders, plus the [ResolvedReferences] fields it reads
- * ([equipment], [evidenceLevels]). Mirrors the M9-B test shape
- * ([ExerciseReferencesCardTest]): the chips come from the SAME deterministic
- * generators + bundled data the client surfaces, read off the test classpath.
- *
- * Guarantees (the smallest thing that fails if M9-C breaks):
- * 1. [exerciseDensityChips] is a pure, deterministic render of its inputs —
- *    sets + reps always present, RIR only when non-null, equipment only when the
- *    catalog carries a non-blank / non-"none" value, one tag per distinct
- *    evidence level. Same inputs → same chips (rendering determinism).
- * 2. Every surfaced training assignment resolves a non-empty chip list (sets is
- *    always there), AND every surfaced id resolves its equipment + at least one
- *    evidence level off the bundled library/catalog — so the denser card has the
- *    same data parity as the M8-A references card (no regression).
- * 3. The authored chip strings carry NO banned medical-claim phrase.
- *
- * Claim guard: only the app-authored [DensityChipStrings] are scanned; the
- * verbatim catalog-vocab tag VALUES (equipment / evidenceLevel) are NOT — they
- * are the Evidence & Research Analyst's controlled vocabulary, not app copy
- * (same stance as the M6-B citation-row claim guard).
+ * Iter 2 ([DRE-260](/DRE/issues/DRE-260)): pins the contract of [exerciseDensityChips]
+ * (single prescription chip) + [exerciseMetaChips] (detail-only equipment/evidence
+ * chips). Pure JVM — no Android, no device needed.
  */
 class ExerciseDensityChipTest {
 
-    /** The bundled catalog + library, as a JVM test reads them (classpath). */
     private fun bundledResolver(): EvidenceResolver =
         EvidenceResolver.fromJson(
             ExerciseDensityChipTest::class.java.getResourceAsStream("/evidence_catalog.json")!!
@@ -58,53 +38,69 @@ class ExerciseDensityChipTest {
     private val library: ExerciseLibraryResolver by lazy { bundledLibrary() }
 
     @Test
-    fun `chips are a deterministic render of inputs - sets and reps always, rir and equipment conditional`() {
-        // sets + reps always; RIR present; non-none equipment present.
-        val chips = exerciseDensityChips(
+    fun `exerciseDensityChips emits a single prescription chip`() {
+        // Full case: sets + repScheme + RIR → "3×8-12 @2 RIR"
+        val full = exerciseDensityChips(
             sets = 3,
             repScheme = "8-12",
             rir = 2,
-            equipment = "dumbbell",
-            evidenceLevels = listOf("moderate"),
         )
-        chips.map { it.label } shouldBe listOf(
-            "3 ${DensityChipStrings.SETS}",
-            "8-12 ${DensityChipStrings.REPS}",
-            "${DensityChipStrings.RIR} 2",
-            "dumbbell",
-            "moderate",
-        )
+        full.label shouldBe "3×8-12 @2 RIR"
 
-        // Null RIR + blank/none equipment + empty evidence levels → sets + reps only.
-        val minimal = exerciseDensityChips(
-            sets = 1,
-            repScheme = "20-40 мин",
-            rir = null,
-            equipment = null,
-            evidenceLevels = emptyList(),
-        )
-        minimal.map { it.label } shouldBe listOf(
-            "1 ${DensityChipStrings.SETS}",
-            "20-40 мин ${DensityChipStrings.REPS}",
-        )
+        // No RIR: "1×20-40 мин"
+        val noRir = exerciseDensityChips(1, "20-40 мин", null)
+        noRir.label shouldBe "1×20-40 мин"
 
-        // "none" equipment is the one value suppressed (no-equipment movements
-        // render no equipment tag rather than a "none" chip).
-        val noneEquipped = exerciseDensityChips(1, "5-8", null, "none", emptyList())
-        noneEquipped.map { it.label } shouldContain "1 ${DensityChipStrings.SETS}"
-        noneEquipped.any { it.label == "none" } shouldBe false
+        // Blank repScheme → omit ×repScheme segment: "3 @2 RIR"
+        val blankReps = exerciseDensityChips(3, "", 2)
+        blankReps.label shouldBe "3 @2 RIR"
 
-        // Same inputs → same chips (pure / rendering determinism).
-        exerciseDensityChips(3, "8-12", 2, "dumbbell", listOf("moderate")) shouldBe chips
+        // Blank repScheme + no RIR → sets only: "3"
+        val setsOnly = exerciseDensityChips(3, "", null)
+        setsOnly.label shouldBe "3"
+
+        // Determinism: same inputs → same chip
+        exerciseDensityChips(3, "8-12", 2) shouldBe full
     }
 
     @Test
-    fun `one evidence-level tag per distinct resolved level, deduped`() {
-        val chips = exerciseDensityChips(3, "8-12", 2, "mat", listOf("moderate", "high", "moderate"))
-        // "moderate" appears once even though cited twice — a label of what is
-        // there, not a count/appraisal.
-        chips.filter { it.label == "moderate" }.size shouldBe 1
-        chips.map { it.label } shouldContain "high"
+    fun `exerciseMetaChips surfaces equipment and evidence levels, suppressed when blank or none`() {
+        // Equipment + evidence present
+        val meta = exerciseMetaChips("dumbbell", listOf("moderate", "high", "moderate"))
+        meta.map { it.label } shouldBe listOf("dumbbell", "moderate", "high")
+
+        // null equipment → omitted; empty evidence → omitted
+        val minimal = exerciseMetaChips(null, emptyList())
+        minimal shouldBe emptyList()
+
+        // "none" equipment suppressed
+        val noneEq = exerciseMetaChips("none", emptyList())
+        noneEq shouldBe emptyList()
+
+        // Blank equipment suppressed, evidence levels kept
+        val blankEq = exerciseMetaChips("  ", listOf("moderate"))
+        blankEq.map { it.label } shouldBe listOf("moderate")
+    }
+
+    @Test
+    fun `every surfaced exercise resolves a non-empty prescription chip and meta chips`() {
+        val assignments = surfacedTrainingAssignments()
+        assignments.shouldNotBeEmpty()
+
+        assignments.forEach { a ->
+            val refs = resolveExerciseReferences(a.exerciseId, a.evidenceRefs, library, resolver)
+            val chip = exerciseDensityChips(a.sets, a.repScheme, a.rir)
+            // Prescription chip always non-empty (at minimum the sets number).
+            chip.label.isNotBlank() shouldBe true
+            chip.label shouldContain "${a.sets}"
+            // Evidence-linked (DRE-6): every surfaced exercise resolves ≥1 level.
+            refs.evidenceLevels.shouldNotBeEmpty()
+            (refs.equipment != null) shouldBe true
+        }
+
+        // Pushup resolves real equipment.
+        val pushupRefs = resolveExerciseReferences("pushup", listOf("KIKUCHI-PUSHUP-2017"), library, resolver)
+        pushupRefs.equipment shouldBe "floor/table/blocks"
     }
 
     /**
@@ -125,34 +121,6 @@ class ExerciseDensityChipTest {
             .shouldBeInstanceOf<GeneratedPlan.Ok>()
             .plan
         return plan.weeks.flatMap { it.sessions }.flatMap { it.assignments }
-    }
-
-    @Test
-    fun `every surfaced exercise resolves a non-empty chip list and its equipment + evidence levels`() {
-        // Data parity with M8-A: the denser card surfaces the same data the
-        // references card does. Sets is always present → chips never empty; every
-        // surfaced id resolves equipment (library) + at least one evidence level
-        // (catalog) so the tags are populated, not blank.
-        val assignments = surfacedTrainingAssignments()
-        assignments.shouldNotBeEmpty()
-
-        assignments.forEach { a ->
-            val refs = resolveExerciseReferences(a.exerciseId, a.evidenceRefs, library, resolver)
-            val chips = exerciseDensityChips(a.sets, a.repScheme, a.rir, refs.equipment, refs.evidenceLevels)
-            chips.shouldNotBeEmpty()
-            // Sets is the one always-present chip.
-            chips.map { it.label } shouldContain "${a.sets} ${DensityChipStrings.SETS}"
-            // Evidence-linked (DRE-6): every surfaced exercise resolves ≥1 level.
-            refs.evidenceLevels.shouldNotBeEmpty()
-            // The library carries an equipment vocab for every surfaced id
-            // (data/exercises.json has `equipment` on every entry).
-            (refs.equipment != null) shouldBe true
-        }
-
-        // A known surfaced id resolves its real catalog equipment (pushup →
-        // floor/table/blocks) — pins the library→refs wiring didn't silently drop.
-        val pushupRefs = resolveExerciseReferences("pushup", listOf("KIKUCHI-PUSHUP-2017"), library, resolver)
-        pushupRefs.equipment shouldBe "floor/table/blocks"
     }
 
     // Banned substrings (lowercased) — same list as the M3-C/M4-C/M9-B surface

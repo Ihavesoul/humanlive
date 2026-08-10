@@ -137,7 +137,7 @@ internal fun BreathingScene(modifier: Modifier = Modifier, onBack: () -> Unit) {
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                Text(BreathingStrings.TITLE, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                Text(BreathingStrings.TITLE, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
                 // DRE-235 — sound toggle: contextual on the breathing screen.
                 Text(BreathingStrings.SOUND, style = MaterialTheme.typography.bodyMedium)
                 Switch(

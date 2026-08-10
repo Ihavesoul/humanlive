@@ -1,6 +1,9 @@
 package dreamteam.app
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
@@ -454,34 +457,44 @@ private fun OnboardingScreen(modifier: Modifier, onPlanReady: (Profile) -> Unit)
     var scoliosis by remember { mutableStateOf(true) }
     var redFlag by remember { mutableStateOf(false) }
 
-    LazyColumn(modifier = modifier.fillMaxSize().padding(Spacing.screen), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+    LazyColumn(modifier = modifier.fillMaxSize().padding(Spacing.screen), verticalArrangement = Arrangement.spacedBy(Spacing.section)) {
+        // Header: screen title + support disclaimer.
         item {
-            Text(
-                // DRE-193: aligned to the app-wide scan-clean support framing
-                // ("поддерживает, а не заменяет врача"); the prior copy used the
-                // banned morphemes "диагности"/"лечит" even in negation — every
-                // other surface avoids them (cf. HistoryStrings.SUPPORT).
-                "Профиль (базовый PoC). Это приложение поддерживает тренировки и не заменяет врача.",
-                fontWeight = FontWeight.Medium,
-            )
-        }
-        item { OutlinedTextField(value = sex, onValueChange = { sex = it }, label = { Text("Пол для уравнений (male/female)") }, modifier = Modifier.fillMaxWidth()) }
-        item { OutlinedTextField(value = age, onValueChange = { age = it }, label = { Text("Возраст") }, modifier = Modifier.fillMaxWidth()) }
-        item { OutlinedTextField(value = height, onValueChange = { height = it }, label = { Text("Рост, см") }, modifier = Modifier.fillMaxWidth()) }
-        item { OutlinedTextField(value = weight, onValueChange = { weight = it }, label = { Text("Вес, кг") }, modifier = Modifier.fillMaxWidth()) }
-        item { OutlinedTextField(value = bodyFat, onValueChange = { bodyFat = it }, label = { Text("Жир, % (BIA, необязательно)") }, modifier = Modifier.fillMaxWidth()) }
-        item {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Checkbox(checked = scoliosis, onCheckedChange = { scoliosis = it })
-                Text("Сколиоз (по самооценке)")
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                Text(OnboardingStrings.TITLE, style = MaterialTheme.typography.headlineMedium)
+                Text(OnboardingStrings.SUBTITLE, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
+        // Body fields.
         item {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Checkbox(checked = redFlag, onCheckedChange = { redFlag = it })
-                Text("Есть красный флаг (см. оценку врача)")
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                OutlinedTextField(value = sex, onValueChange = { sex = it }, label = { Text("Пол для уравнений (male/female)") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = age, onValueChange = { age = it }, label = { Text("Возраст") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = height, onValueChange = { height = it }, label = { Text("Рост, см") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = weight, onValueChange = { weight = it }, label = { Text("Вес, кг") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = bodyFat, onValueChange = { bodyFat = it }, label = { Text("Жир, % (BIA, необязательно)") }, modifier = Modifier.fillMaxWidth())
             }
         }
+        // Checkboxes — 48dp touch targets with labeled toggle rows.
+        item {
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().heightIn(min = Spacing.touchTarget).clickable { scoliosis = !scoliosis },
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Checkbox(checked = scoliosis, onCheckedChange = { scoliosis = it })
+                    Text("Сколиоз (по самооценке)")
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth().heightIn(min = Spacing.touchTarget).clickable { redFlag = !redFlag },
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Checkbox(checked = redFlag, onCheckedChange = { redFlag = it })
+                    Text("Есть красный флаг (см. оценку врача)")
+                }
+            }
+        }
+        // Submit.
         item {
             Button(
                 onClick = {
@@ -498,6 +511,7 @@ private fun OnboardingScreen(modifier: Modifier, onPlanReady: (Profile) -> Unit)
                         ),
                     )
                 },
+                modifier = Modifier.fillMaxWidth(),
             ) { Text("Создать план") }
         }
     }
@@ -518,64 +532,53 @@ private fun PlanScreen(modifier: Modifier, db: LocalDatabase, profile: Profile?,
     val progress = db.recentProgress()
     val result = remember(p, symptoms, progress) { generateLocalPlan(p, LocalDate.now().toString(), symptoms, progress) }
 
-    LazyColumn(modifier = modifier.fillMaxSize().padding(Spacing.screen), verticalArrangement = Arrangement.spacedBy(Spacing.lg)) {
+    LazyColumn(modifier = modifier.fillMaxSize().padding(Spacing.screen), verticalArrangement = Arrangement.spacedBy(Spacing.section)) {
         when (result) {
             is PlanResult.Blocked -> item { BlockCard(result, resolver) }
             is PlanResult.Ok -> {
+                // Week title — the screen's dominant element.
                 item {
-                    Card(modifier = Modifier.fillMaxWidth()) {
-                        Column(Modifier.padding(Spacing.card)) {
-                            // M9-C density pass ([DRE-181](/DRE/issues/DRE-181)): the
-                            // week title carries week # + phase in ONE scannable line.
-                            // The chip row DRE-120 added here duplicated those exact
-                            // [PlanWeek] fields verbatim — pure redundancy, removed.
-                            // (Exercise cards KEEP their chips: sets/reps/RIR/equipment/
-                            // evidence are distinct facts that read well as tags; the week
-                            // header had only these two, already in the title.) Same data,
-                            // same gate; no new claim, no new state.
-                            Text("Неделя ${result.week.weekNumber} · ${result.week.phase}", style = androidx.compose.material3.MaterialTheme.typography.titleLarge)
-                            // M4-C ([DRE-57](/DRE/issues/DRE-57)): render the full surfaced
-                            // NutritionPlan via the pure [nutritionPlanView] (extracted so its
-                            // strings are banned-phrase-tested, [NutritionPlanViewTest]): target +
-                            // deterministic meal structure + the cataloged evidence ids + an
-                            // explicit support-not-treatment disclaimer. No diagnosis / prescription /
-                            // claim. null (gate-blocked) renders nothing for nutrition. Offline-first:
-                            // produced locally from the profile, no network to view it.
-                            result.nutritionPlan?.let { plan ->
-                                val view = remember(plan) { nutritionPlanView(plan, resolver) }
-                                Text(view.targetLine, fontWeight = FontWeight.SemiBold)
-                                view.meals.forEach { m -> Text("${m.label}: ${m.line}", fontWeight = FontWeight.Light) }
-                                // M6-B: render READABLE citations (author/year + keyFinding +
-                                // evidenceLevel) per ref, not raw ids; a ghost id renders the
-                                // blocked-until-sourced placeholder.
-                                view.evidenceRows.forEach { c -> Text("• ${c.line}", fontWeight = FontWeight.Light) }
-                                Text(view.disclaimer, fontWeight = FontWeight.Light, fontStyle = FontStyle.Italic)
-                            }
-                            if (result.safety.warnings.isNotEmpty()) Text(result.safety.warnings.joinToString(" "))
-                            // M3-C: surface a de-load as a plain "объём снижен" indicator + the
-                            // support-framed reason (authored in M3-A). No diagnosis, no "у вас …",
-                            // no medical framing — only that the week's volume was reduced and why.
-                            // On AdaptationSignal.None nothing extra is rendered (baseline as today).
-                            // M3-C: surface a de-load via the pure adaptationNote(signal)
-                            // (extracted so its strings are banned-phrase-tested, DRE-53).
-                            // Support-framed only: "объём снижен" + the domain reason; no
-                            // diagnosis/claim. On AdaptationSignal.None → null → nothing.
-                            adaptationNote(result.signal)?.let { note ->
-                                Spacer(Modifier.height(Spacing.xs))
-                                Text(note.indicator, fontWeight = FontWeight.SemiBold)
-                                Text(note.reason, fontWeight = FontWeight.Light)
+                    Text("Неделя ${result.week.weekNumber} · ${result.week.phase}", style = MaterialTheme.typography.headlineMedium)
+                }
+                // Nutrition labeled section (M4-C).
+                result.nutritionPlan?.let { plan ->
+                    item {
+                        val view = remember(plan) { nutritionPlanView(plan, resolver) }
+                        Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+                            Text(PlanStrings.NUTRITION, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                                Text(view.targetLine, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                                view.meals.forEach { m -> Text("${m.label}: ${m.line}", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Light) }
+                                // M6-B: evidence citations (C6.1 — muted).
+                                view.evidenceRows.forEach { c -> Text("• ${c.line}", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Light, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                                Text(view.disclaimer, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Light, fontStyle = FontStyle.Italic, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                         }
                     }
                 }
+                // Safety warnings (plain body text).
+                if (result.safety.warnings.isNotEmpty()) {
+                    item { Text(result.safety.warnings.joinToString(" "), style = MaterialTheme.typography.bodyMedium) }
+                }
+                // Adaptation labeled section (M3-C).
+                adaptationNote(result.signal)?.let { note ->
+                    item {
+                        Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+                            Text(PlanStrings.ADAPTATION, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                                Text(note.indicator, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                                Text(note.reason, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Light, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
+                    }
+                }
+                // Sessions (Iter-2-clean, lazy because N can be large).
                 items(result.week.sessions) { session ->
                     SessionCard(db = db, session = session, resolver = resolver, exerciseLibrary = exerciseLibrary, exerciseMedia = exerciseMedia, coachCredStore = coachCredStore, aiCoachEnabled = aiCoachEnabled, profile = p)
                 }
             }
         }
-        // M8-D ([DRE-90](/DRE/issues/DRE-90)): compact quick-actions row
-        // (matching Today) instead of a stacked link pair — same writes, less
-        // MD-viewer feel. The bottom nav carries the read destinations.
+        // M8-D ([DRE-90](/DRE/issues/DRE-90)): compact quick-actions row.
         item {
             QuickLogActions(onProgress = onProgress, onSymptoms = onSymptoms)
         }
@@ -745,40 +748,103 @@ private fun HistoryScreen(modifier: Modifier, db: LocalDatabase, onBack: () -> U
     val symptoms = db.recentSymptoms()
     val view = remember(progress) { progressHistoryView(progress) }
     val symptomLines = remember(symptoms) { symptomHistoryView(symptoms) }
-    LazyColumn(modifier = modifier.fillMaxSize().padding(Spacing.screen), verticalArrangement = Arrangement.spacedBy(Spacing.lg)) {
-        item { Text(HistoryStrings.TITLE, fontWeight = FontWeight.Bold) }
-        item { Text(HistoryStrings.SUPPORT, fontWeight = FontWeight.Light) }
-        item { Text(view.trendLine, fontWeight = FontWeight.SemiBold) }
-        item { Text(HistoryStrings.WEIGHT_SECTION, fontWeight = FontWeight.SemiBold) }
-        items(view.points) { p -> Text("• ${p.date}: ${p.weightKg} кг") }
-        item { Text(HistoryStrings.SYMPTOMS_SECTION, fontWeight = FontWeight.SemiBold) }
-        items(symptomLines) { Text(it) }
+    LazyColumn(modifier = modifier.fillMaxSize().padding(Spacing.screen), verticalArrangement = Arrangement.spacedBy(Spacing.section)) {
+        // Screen header.
+        item {
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                Text(HistoryStrings.TITLE, style = MaterialTheme.typography.headlineMedium)
+                Text(HistoryStrings.SUPPORT, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+        // Trend summary.
+        item { Text(view.trendLine, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold) }
+        // Weight history — labeled section.
+        item {
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+                Text(HistoryStrings.WEIGHT_SECTION, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                    view.points.forEach { p -> Text("• ${p.date}: ${p.weightKg} кг", style = MaterialTheme.typography.bodyMedium) }
+                }
+            }
+        }
+        // Symptoms — labeled section.
+        item {
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+                Text(HistoryStrings.SYMPTOMS_SECTION, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                    symptomLines.forEach { Text(it, style = MaterialTheme.typography.bodyMedium) }
+                }
+            }
+        }
+        // Back.
         item { OutlinedButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) { Text(HistoryStrings.BACK) } }
     }
 }
 
 /**
- * M9-C ([DRE-120](/DRE/issues/DRE-120)): the authored strings the denser exercise
- * card renders — the metadata-tag prefixes + the collapsible-detail toggle.
- * Gathered as one list ([all]) so a JVM test can snapshot them against the
- * banned medical-claim phrase list (mirrors [ReferencesCardStrings] /
- * [TodayStrings]). Support framing only: no diagnosis, no treatment/cure claim.
- * Catalog-vocab tag VALUES (equipment / evidenceLevel) are rendered VERBATIM and
- * are NOT in [all] — they are the Evidence & Research Analyst's controlled
- * vocabulary, not app-authored copy (same stance as the M6-B citation rows).
+ * M9-C / Iter 2 ([DRE-260](/DRE/issues/DRE-260)): the authored strings the exercise
+ * card renders — the RIR suffix on the prescription chip + the collapsible-detail
+ * toggle affordances. Gathered as one list ([all]) so a JVM test can snapshot them
+ * against the banned medical-claim phrase list. Support framing only: no diagnosis,
+ * no treatment/cure claim.
  */
 internal object DensityChipStrings {
-    /** Suffix on the sets tag ("3 подх."). */
-    const val SETS = "подх."
-    /** Suffix on the reps tag ("8–12 повт."). */
-    const val REPS = "повт."
-    /** Prefix on the RIR tag ("RIR 2"). */
+    /** Suffix on the @RIR value in the single prescription chip ("@2 RIR"). */
     const val RIR = "RIR"
-    /** Collapsible-detail toggle affordances (always-visible header). */
+    /** Detail-body toggle affordance (real TextButton label). */
     const val DETAILS = "Подробнее"
     const val HIDE = "Скрыть"
+    val all: List<String> = listOf(RIR, DETAILS, HIDE)
+}
 
-    val all: List<String> = listOf(SETS, REPS, RIR, DETAILS, HIDE)
+/**
+ * Iter 3 (DRE-258, DRE-254 Step E): authored strings for the Onboarding surface.
+ * Gathered as [all] so a JVM test snapshots them against the banned medical-claim
+ * phrase list (mirrors [SettingsStrings] / [DensityChipStrings]). Support framing
+ * only: no diagnosis, no treatment claim.
+ */
+internal object OnboardingStrings {
+    const val TITLE = "Профиль"
+    const val SUBTITLE = "Базовый профиль PoC. Приложение поддерживает тренировки и не заменяет врача."
+    val all: List<String> = listOf(TITLE, SUBTITLE)
+}
+
+/**
+ * Iter 3 (DRE-258, DRE-254 Step E): authored strings for the Plan surface's
+ * de-carded labeled sections (nutrition / adaptation). Gathered as [all] for the
+ * banned-phrase gate (G3).
+ */
+internal object PlanStrings {
+    const val NUTRITION = "Питание"
+    const val ADAPTATION = "Адаптация"
+    val all: List<String> = listOf(NUTRITION, ADAPTATION)
+}
+
+/**
+ * Iter 3 (DRE-258, DRE-254 Step E): authored strings for the Symptoms surface.
+ * Gathered as [all] for the banned-phrase gate (G3).
+ */
+internal object SymptomStrings {
+    const val TITLE = "Симптомы"
+    const val PROMPT = "Как вы себя чувствуете?"
+    const val SAVE = "Записать"
+    const val RECENT_LABEL = "Недавние записи:"
+    const val BACK = "Назад к плану"
+    val all: List<String> = listOf(TITLE, PROMPT, SAVE, RECENT_LABEL, BACK)
+}
+
+/**
+ * Iter 3 (DRE-258, DRE-254 Step E): authored strings for the Progress surface.
+ * Gathered as [all] for the banned-phrase gate (G3).
+ */
+internal object ProgressStrings {
+    const val TITLE = "Запись веса"
+    const val SUPPORT = "Запишите вес (кг). Тренд — не одна точка — влияет на объём тренировок. Приложение поддерживает, а не заменяет врача."
+    const val WEIGHT_LABEL = "Вес, кг"
+    const val SAVE = "Записать"
+    const val RECENT_LABEL = "Недавние записи:"
+    const val BACK = "Назад к плану"
+    val all: List<String> = listOf(TITLE, SUPPORT, WEIGHT_LABEL, SAVE, RECENT_LABEL, BACK)
 }
 
 /**
@@ -790,30 +856,38 @@ internal object DensityChipStrings {
 internal data class DensityChip(val label: String)
 
 /**
- * M9-C: the deterministic, pure list of metadata tags for one exercise
- * assignment. Replaces the single dull "${sets}×${reps} @RIR" text line with
- * scannable chips: sets, reps, RIR (when present), equipment (when the catalog
- * carries one and it is not "none"), and one tag per distinct resolved evidence
- * level. Pure over already-resolved inputs (no Android, no I/O) so a JVM test
- * pins the determinism + content guarantees without a device — same inputs →
- * same chips (rendering determinism, mirrors [referencesHeaderLine]).
- *
- * The tag VALUES for equipment / evidenceLevel are the catalog's raw controlled
- * vocab, rendered VERBATIM — a label, not an appraisal (RU translation of
- * catalog vocab is an Evidence & Research Analyst task, never an app-side map
- * that could drift; same stance as the M6-B `(уровень: …)` render).
+ * Iter 2 ([DRE-260](/DRE/issues/DRE-260), DRE-254 Step C): the SINGLE prescription
+ * chip for one exercise assignment — "{sets}×{repScheme} @{RIR} RIR" (DESIGN.md
+ * "Exercise row"). Equipment + evidence-level no longer crowd the row; they live in
+ * [exerciseMetaChips] behind the detail toggle. Pure over already-resolved inputs
+ * (no Android, no I/O); same inputs → same chip. Rep-values/equipment are the
+ * catalog's verbatim vocab, rendered as-is (no app-side map that could drift).
  */
 internal fun exerciseDensityChips(
     sets: Int,
     repScheme: String,
     rir: Int?,
+): DensityChip {
+    val label = buildString {
+        append(sets)
+        if (repScheme.isNotBlank()) { append('×'); append(repScheme) }
+        rir?.let { append(" @"); append(it); append(' '); append(DensityChipStrings.RIR) }
+    }
+    return DensityChip(label)
+}
+
+/**
+ * Iter 2 ([DRE-260](/DRE/issues/DRE-260)): the detail-only metadata chips —
+ * equipment (when the catalog carries a non-blank / non-"none" value) + one chip
+ * per distinct resolved evidence level. These do NOT appear in the collapsed row;
+ * they render inside the expanded detail so the prescription row stays a single
+ * chip (DESIGN.md "Exercise row"). Pure over already-resolved inputs.
+ */
+internal fun exerciseMetaChips(
     equipment: String?,
     evidenceLevels: List<String>,
 ): List<DensityChip> {
     val chips = mutableListOf<DensityChip>()
-    chips += DensityChip("$sets ${DensityChipStrings.SETS}")
-    if (repScheme.isNotBlank()) chips += DensityChip("$repScheme ${DensityChipStrings.REPS}")
-    rir?.let { chips += DensityChip("${DensityChipStrings.RIR} $it") }
     equipment
         ?.takeUnless { it.isBlank() || it.trim().equals("none", ignoreCase = true) }
         ?.let { chips += DensityChip(it) }
@@ -963,25 +1037,20 @@ private fun SessionCard(
                             },
                         )
                         Column(Modifier.weight(1f).padding(start = Spacing.xs)) {
-                            Text(name, style = androidx.compose.material3.MaterialTheme.typography.titleMedium)
-                            FlowRow(
-                                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-                                verticalArrangement = Arrangement.spacedBy(Spacing.xs),
-                            ) {
-                                exerciseDensityChips(a.sets, a.repScheme, a.rir, refs.equipment, refs.evidenceLevels)
-                                    .forEach { chip -> MetaTag(chip.label) }
-                            }
+                            Text(name, style = MaterialTheme.typography.titleMedium)
+                            MetaTag(exerciseDensityChips(a.sets, a.repScheme, a.rir).label)
                         }
-                        // Collapsible-detail toggle — separate tappable so the
-                        // checkbox only toggles completion (no dual semantics).
-                        Text(
-                            if (detailOpen) DensityChipStrings.HIDE else DensityChipStrings.DETAILS,
-                            modifier = Modifier.clickable { detailOpen = !detailOpen },
-                            style = androidx.compose.material3.MaterialTheme.typography.labelMedium,
-                            color = androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
+                        TextButton(onClick = { detailOpen = !detailOpen }) {
+                            Text(if (detailOpen) DensityChipStrings.HIDE else DensityChipStrings.DETAILS)
+                        }
                     }
-                    if (detailOpen) {
+                    AnimatedVisibility(
+                        visible = detailOpen,
+                        enter = fadeIn(tween(Motion.largeMs, easing = Motion.Emphasized)) +
+                            expandVertically(tween(Motion.largeMs, easing = Motion.Emphasized)),
+                        exit = fadeOut(tween(Motion.largeMs, easing = Motion.Emphasized)) +
+                            shrinkVertically(tween(Motion.largeMs, easing = Motion.Emphasized)),
+                    ) {
                         // Redesign v3: flattened references — card image, AI summary,
                         // how-to steps, and video/media buttons render directly.
                         // Citations sit behind a secondary "Источники (N)" toggle.
@@ -1086,34 +1155,45 @@ private fun SessionCard(
                                 }
                             }
                         }
+                        // Iter 2: detail-only metadata chips (equipment + evidence levels).
+                        val metaChips = exerciseMetaChips(refs.equipment, refs.evidenceLevels)
+                        if (metaChips.isNotEmpty()) {
+                            FlowRow(
+                                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                                verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+                            ) {
+                                metaChips.forEach { chip -> MetaTag(chip.label) }
+                            }
+                        }
                         // Citations: secondary toggle to keep the detail compact.
                         if (refs.citations.isNotEmpty()) {
                             var citationsOpen by remember(a.exerciseId) {
                                 mutableStateOf(false)
                             }
-                            Row(
-                                modifier = Modifier.fillMaxWidth().clickable {
-                                    citationsOpen = !citationsOpen
-                                },
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
+                            TextButton(onClick = { citationsOpen = !citationsOpen }) {
                                 Text(
                                     "${ReferencesCardStrings.EVIDENCE} (${refs.citations.size})",
-                                    fontWeight = FontWeight.SemiBold,
-                                )
-                                Text(
-                                    if (citationsOpen) ReferencesCardStrings.HIDE
-                                    else ReferencesCardStrings.SHOW,
-                                    fontWeight = FontWeight.Light,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                             }
-                            if (citationsOpen) {
-                                refs.citations.forEach { c -> EvidenceCitationCard(c) }
+                            AnimatedVisibility(
+                                visible = citationsOpen,
+                                enter = fadeIn(tween(Motion.largeMs, easing = Motion.Emphasized)) +
+                                    expandVertically(tween(Motion.largeMs, easing = Motion.Emphasized)),
+                                exit = fadeOut(tween(Motion.largeMs, easing = Motion.Emphasized)) +
+                                    shrinkVertically(tween(Motion.largeMs, easing = Motion.Emphasized)),
+                            ) {
+                                Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                                    refs.citations.forEach { c -> EvidenceCitationCard(c) }
+                                }
                             }
                         }
                         if (!refs.hasMedia) {
-                            Text(ReferencesCardStrings.MEDIA_PENDING, fontWeight = FontWeight.Light)
+                            Text(
+                                ReferencesCardStrings.MEDIA_PENDING,
+                                fontWeight = FontWeight.Light,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
                         }
                         // M8-B ([DRE-78](/DRE/issues/DRE-78)): free-text note per exercise
                         // in the execution log ("что вышло / что нет / боль"), persisted
@@ -1348,14 +1428,29 @@ private fun ExerciseNoteField(
 private fun SymptomsScreen(modifier: Modifier, db: LocalDatabase, onBack: () -> Unit) {
     var text by remember { mutableStateOf("") }
     var symptoms by remember { mutableStateOf(db.recentSymptoms()) }
-    Column(modifier.fillMaxSize().padding(Spacing.screen), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-        OutlinedTextField(value = text, onValueChange = { text = it }, label = { Text("Как вы себя чувствуете?") }, modifier = Modifier.fillMaxWidth())
-        Button(onClick = {
-            if (text.isNotBlank()) { db.appendSymptom(text.trim(), LocalDate.now().toString()); text = ""; symptoms = db.recentSymptoms() }
-        }) { Text("Записать") }
-        OutlinedButton(onClick = onBack) { Text("Назад к плану") }
-        Text("Недавние записи:", fontWeight = FontWeight.SemiBold)
-        symptoms.forEach { s: SymptomEntry -> Text("• ${s.recordedOn}: ${s.text}") }
+    LazyColumn(modifier = modifier.fillMaxSize().padding(Spacing.screen), verticalArrangement = Arrangement.spacedBy(Spacing.section)) {
+        // Screen header.
+        item { Text(SymptomStrings.TITLE, style = MaterialTheme.typography.headlineMedium) }
+        // Input.
+        item {
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                OutlinedTextField(value = text, onValueChange = { text = it }, label = { Text(SymptomStrings.PROMPT) }, modifier = Modifier.fillMaxWidth())
+                Button(onClick = {
+                    if (text.isNotBlank()) { db.appendSymptom(text.trim(), LocalDate.now().toString()); text = ""; symptoms = db.recentSymptoms() }
+                }, modifier = Modifier.fillMaxWidth()) { Text(SymptomStrings.SAVE) }
+            }
+        }
+        // Recent entries — labeled section.
+        item {
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+                Text(SymptomStrings.RECENT_LABEL, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                    symptoms.forEach { s: SymptomEntry -> Text("• ${s.recordedOn}: ${s.text}", style = MaterialTheme.typography.bodyMedium) }
+                }
+            }
+        }
+        // Back.
+        item { OutlinedButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) { Text(SymptomStrings.BACK) } }
     }
 }
 
@@ -1371,45 +1466,55 @@ private fun SymptomsScreen(modifier: Modifier, db: LocalDatabase, onBack: () -> 
 private fun ProgressScreen(modifier: Modifier, db: LocalDatabase, onBack: () -> Unit) {
     var weight by remember { mutableStateOf("") }
     var rows by remember { mutableStateOf(db.recentProgress()) }
-    Column(modifier.fillMaxSize().padding(Spacing.screen), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-        Text(
-            // DRE-193: aligned to the app-wide scan-clean support framing
-            // ("поддерживает, а не заменяет врача"); the prior copy used the
-            // banned morpheme "диагности" even in negation.
-            "Запишите вес (кг). Тренд — не одна точка — влияет на объём тренировок. " +
-                "Приложение поддерживает, а не заменяет врача.",
-            fontWeight = FontWeight.Medium,
-        )
-        OutlinedTextField(
-            value = weight,
-            onValueChange = { weight = it },
-            label = { Text("Вес, кг") },
-            modifier = Modifier.fillMaxWidth(),
-        )
-        Button(onClick = {
-            val kg = weight.trim().replace(',', '.').toDoubleOrNull()
-            if (kg != null && kg > 0.0) {
-                db.appendProgress(kg, LocalDate.now().toString())
-                weight = ""
-                rows = db.recentProgress()
+    LazyColumn(modifier = modifier.fillMaxSize().padding(Spacing.screen), verticalArrangement = Arrangement.spacedBy(Spacing.section)) {
+        // Screen header + support framing.
+        item {
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                Text(ProgressStrings.TITLE, style = MaterialTheme.typography.headlineMedium)
+                Text(ProgressStrings.SUPPORT, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-        }) { Text("Записать") }
-        OutlinedButton(onClick = onBack) { Text("Назад к плану") }
-        Text("Недавние записи:", fontWeight = FontWeight.SemiBold)
-        rows.forEach { r: ProgressRow -> Text("• ${r.recordedOn}: ${r.weightKg} кг") }
+        }
+        // Input.
+        item {
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                OutlinedTextField(
+                    value = weight,
+                    onValueChange = { weight = it },
+                    label = { Text(ProgressStrings.WEIGHT_LABEL) },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Button(onClick = {
+                    val kg = weight.trim().replace(',', '.').toDoubleOrNull()
+                    if (kg != null && kg > 0.0) {
+                        db.appendProgress(kg, LocalDate.now().toString())
+                        weight = ""
+                        rows = db.recentProgress()
+                    }
+                }, modifier = Modifier.fillMaxWidth()) { Text(ProgressStrings.SAVE) }
+            }
+        }
+        // Recent entries — labeled section.
+        item {
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+                Text(ProgressStrings.RECENT_LABEL, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                    rows.forEach { r: ProgressRow -> Text("• ${r.recordedOn}: ${r.weightKg} кг", style = MaterialTheme.typography.bodyMedium) }
+                }
+            }
+        }
+        // Back.
+        item { OutlinedButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) { Text(ProgressStrings.BACK) } }
     }
 }
 
 /**
  * DRE-175/DRE-238 — the user-facing Settings screen: ALL user options in ONE
- * ZEN-styled screen, grouped into ZEN Cards ([DRE-238](/DRE/issues/DRE-238),
- * ZEN v3 §6/§8). Two sections:
+ * screen, grouped into labeled sections (DRE-254 C2.2). Two sections:
  *  - **AI-коуч**: the enable/disable toggle (default OFF, [DRE-209]) + the
  *    encrypted credential fields (URL/token/model) shown only when enabled.
  *  - **Дыхание**: the breathing sound-cue toggle (DRE-235).
  *
- * Cards use the system `Card` shape (24dp == [AppCardShape]); sections are
- * separated by `Spacing.section` (32dp) — the calm ZEN rhythm. With creds saved
+ * Sections are separated by `Spacing.section` (32dp) — the calm rhythm. With creds saved
  * and the coach on, "Спросить у AI" calls the user's LLM directly; with it off,
  * the app runs the deterministic plan alone — it never crashes. Support framing
  * only: the screen configures tools, it makes no medical claim.
@@ -1422,9 +1527,6 @@ private fun SettingsScreen(modifier: Modifier, coachCredStore: CoachCredentialSt
     var token by remember { mutableStateOf(saved?.token ?: "") }
     var model by remember { mutableStateOf(saved?.model ?: SettingsStrings.DEFAULT_MODEL) }
     var message by remember { mutableStateOf<String?>(null) }
-    // DRE-238 — the breathing sound-cue toggle, surfaced here (all options in one
-    // screen) alongside the AI-coach settings. Reads/writes the same
-    // [BreathingSettings] store the breathing scene uses, so the two stay in sync.
     val breathingSettings = remember { BreathingSettings(context) }
     var soundEnabled by remember { mutableStateOf(breathingSettings.isSoundEnabled()) }
     LazyColumn(modifier = modifier.fillMaxSize().padding(Spacing.screen), verticalArrangement = Arrangement.spacedBy(Spacing.section)) {
@@ -1435,11 +1537,11 @@ private fun SettingsScreen(modifier: Modifier, coachCredStore: CoachCredentialSt
                 Text(SettingsStrings.HINT, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
-        // Card 1 — AI-коуч.
+        // AI-coach section — labeled section (C2.2).
         item {
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Column(Modifier.padding(Spacing.lg), verticalArrangement = Arrangement.spacedBy(Spacing.lg)) {
-                    Text(SettingsStrings.SECTION_COACH, style = MaterialTheme.typography.titleMedium)
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+                Text(SettingsStrings.SECTION_COACH, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -1499,11 +1601,11 @@ private fun SettingsScreen(modifier: Modifier, coachCredStore: CoachCredentialSt
                 }
             }
         }
-        // Card 2 — Дыхание (sound cues).
+        // Breathing section — labeled section (C2.2).
         item {
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Column(Modifier.padding(Spacing.lg), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
-                    Text(SettingsStrings.SECTION_BREATHING, style = MaterialTheme.typography.titleMedium)
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+                Text(SettingsStrings.SECTION_BREATHING, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,

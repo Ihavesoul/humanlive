@@ -1,18 +1,20 @@
 package dreamteam.app
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontWeight
 import dreamteam.app.ui.Spacing
 
 /**
@@ -92,15 +94,19 @@ internal object EvidenceSourcesStrings {
  * The read-only evidence-sources screen — renders [evidenceSourcesView] (pure)
  * so there is no logic in the tree; Android I/O only at the edge. Framed as pure
  * transparency: each catalog entry as citation + `evidenceLevel` + `keyFinding`,
- * no interpretation, with the support/transparency disclaimer. Nav wiring is
  * deferred (see file KDoc / DRE-70).
  */
 @Composable
 internal fun EvidenceSourcesScreen(modifier: Modifier, resolver: EvidenceResolver, onBack: () -> Unit) {
     val view = remember { evidenceSourcesView(resolver) }
-    LazyColumn(modifier = modifier.fillMaxSize().padding(Spacing.screen), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-        item { Text(EvidenceSourcesStrings.TITLE, fontWeight = FontWeight.Bold) }
-        item { Text(EvidenceSourcesStrings.DISCLAIMER, fontWeight = FontWeight.Light, fontStyle = FontStyle.Italic) }
+    LazyColumn(modifier = modifier.fillMaxSize().padding(Spacing.screen), verticalArrangement = Arrangement.spacedBy(Spacing.section)) {
+        // Screen header.
+        item {
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                Text(EvidenceSourcesStrings.TITLE, style = MaterialTheme.typography.headlineMedium)
+                Text(EvidenceSourcesStrings.DISCLAIMER, style = MaterialTheme.typography.bodySmall, fontStyle = FontStyle.Italic, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
         items(view.rows) { row -> EvidenceCitationCard(row) }
         item { OutlinedButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) { Text(EvidenceSourcesStrings.BACK) } }
     }
