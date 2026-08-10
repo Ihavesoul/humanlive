@@ -629,46 +629,33 @@ private fun TodayScreen(
     val today = LocalDate.now()
     val result = remember(p, symptoms, progress) { generateLocalPlan(p, today.toString(), symptoms, progress) }
 
-    LazyColumn(modifier = modifier.fillMaxSize().padding(Spacing.screen), verticalArrangement = Arrangement.spacedBy(Spacing.lg)) {
+    // Iter 1 ([DRE-257](/DRE/issues/DRE-257), DRE-254 Step C): the LazyColumn now
+    // breathes at Spacing.section (32dp) between top-level groups — killing the
+    // monotonous Spacing.lg (16dp) wall the DESIGN.md flagged. The session block
+    // is a compact SessionSummaryCard (no inline SessionCard); nutrition +
+    // adaptation are de-carded labeled sections; the quick-log/export tail is
+    // bundled into one grouped item so the 32dp break only falls between sections.
+    LazyColumn(modifier = modifier.fillMaxSize().padding(Spacing.screen), verticalArrangement = Arrangement.spacedBy(Spacing.section)) {
         when (result) {
             is PlanResult.Blocked -> item { BlockCard(result, resolver) }
             is PlanResult.Ok -> {
                 // Today's session is a pure pick from the SAME week PlanScreen
                 // renders — no second source of truth.
                 val session = todaySession(result.week, today)
-                // M9-C density pass ([DRE-181](/DRE/issues/DRE-181)): demote the date
-                // line headlineMedium→titleLarge (headline was tall sprawl at the top),
-                // and fold each section label + its content into ONE item so the label
-                // sits 2dp above its card — a grouped scannable block instead of a
-                // loose label floating 8dp above its card (the MD-outline feel). Same
-                // strings ([TodayStrings.all] unchanged), same data, same writes; pure
-                // layout tightening, no new state, no new screen.
-                item { Text(todayDateLine(session), style = androidx.compose.material3.MaterialTheme.typography.titleLarge) }
-                item {
-                    Column(verticalArrangement = Arrangement.spacedBy(Spacing.tightGap)) {
-                        Text(TodayStrings.TRAINING, style = androidx.compose.material3.MaterialTheme.typography.labelMedium)
-                        session?.let { s ->
-                            // Redesign v2 ([DRE-211](/DRE/issues/DRE-211), founder p.6):
-                            // the global Play CTA — a prominent full-width primary button
-                            // that opens today's workout in the dedicated Play scene.
-                            Button(onClick = { onPlay(s) }, modifier = Modifier.fillMaxWidth()) { Text(TodayStrings.PLAY) }
-                            SessionCard(db = db, session = s, resolver = resolver, exerciseLibrary = exerciseLibrary, exerciseMedia = exerciseMedia, coachCredStore = coachCredStore, aiCoachEnabled = aiCoachEnabled, profile = p)
-                        }
-                    }
-                }
+                item { SessionSummaryCard(session = session, db = db, onPlay = onPlay) }
                 result.nutritionPlan?.let { plan ->
+                    // De-carded (C2.2): a labeled section — labelMedium label +
+                    // content, NO Card border. Dividers and Spacing do the chunking.
                     item {
-                        Column(verticalArrangement = Arrangement.spacedBy(Spacing.tightGap)) {
-                            Text(TodayStrings.NUTRITION, style = androidx.compose.material3.MaterialTheme.typography.labelMedium)
+                        Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+                            Text(TodayStrings.NUTRITION, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             val view = remember(plan) { nutritionPlanView(plan, resolver) }
-                            Card(modifier = Modifier.fillMaxWidth()) {
-                                Column(Modifier.padding(Spacing.card)) {
-                                    Text(view.targetLine, fontWeight = FontWeight.SemiBold)
-                                    view.meals.forEach { m -> Text("${m.label}: ${m.line}", fontWeight = FontWeight.Light) }
-                                    // M6-B: READABLE citations per ref, not raw ids.
-                                    view.evidenceRows.forEach { c -> Text("• ${c.line}", fontWeight = FontWeight.Light) }
-                                    Text(view.disclaimer, fontWeight = FontWeight.Light, fontStyle = FontStyle.Italic)
-                                }
+                            Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                                Text(view.targetLine, fontWeight = FontWeight.SemiBold)
+                                view.meals.forEach { m -> Text("${m.label}: ${m.line}", fontWeight = FontWeight.Light) }
+                                // M6-B: READABLE citations per ref, not raw ids.
+                                view.evidenceRows.forEach { c -> Text("• ${c.line}", fontWeight = FontWeight.Light) }
+                                Text(view.disclaimer, fontWeight = FontWeight.Light, fontStyle = FontStyle.Italic)
                             }
                         }
                     }
@@ -676,45 +663,69 @@ private fun TodayScreen(
                 // On AdaptationSignal.None → null → nothing (baseline shows as today).
                 adaptationNote(result.signal)?.let { note ->
                     item {
-                        Column(verticalArrangement = Arrangement.spacedBy(Spacing.tightGap)) {
-                            Text(TodayStrings.ADAPTATION, style = androidx.compose.material3.MaterialTheme.typography.labelMedium)
-                            Card(modifier = Modifier.fillMaxWidth()) {
-                                Column(Modifier.padding(Spacing.card)) {
-                                    Text(note.indicator, fontWeight = FontWeight.SemiBold)
-                                    Text(note.reason, fontWeight = FontWeight.Light)
-                                }
+                        Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+                            Text(TodayStrings.ADAPTATION, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                                Text(note.indicator, fontWeight = FontWeight.SemiBold)
+                                Text(note.reason, fontWeight = FontWeight.Light)
                             }
                         }
                     }
                 }
             }
         }
-        // M8-D ([DRE-90](/DRE/issues/DRE-90)): the read destinations (Plan /
-        // Journal / Sources) moved to the bottom [AppNavigationBar], so this tail
-        // now holds only the *writes* (progress / symptom) as a compact
-        // quick-actions row, plus the data-export handoff as a quieter text
-        // action. Fewer stacked link-buttons → less of the MD-viewer feel. The
-        // plan/logic is unchanged: a logged write still recomputes the
-        // deterministic plan on return (same snapshot keys as PlanScreen).
-        item { Text(TodayStrings.LOG_HINT, style = androidx.compose.material3.MaterialTheme.typography.bodySmall) }
+        // The quick-log + export tail, bundled into one grouped item so the
+        // Spacing.section break falls between this block and the sections above,
+        // not between each tiny sub-row (the monotonous-spacing anti-pattern).
         item {
-            QuickLogActions(onProgress = onProgress, onSymptoms = onSymptoms)
-        }
-        item { Text(ExportUiStrings.CAPTION, style = androidx.compose.material3.MaterialTheme.typography.bodySmall, fontStyle = FontStyle.Italic) }
-        // Redesign v2 ([DRE-211](/DRE/issues/DRE-211), founder p.3): the export +
-        // diagnostics handoffs used to be two stacked full-width TextButtons — a
-        // vertical "столбик". They now split the row side-by-side (weight 1f each)
-        // so two actions never collapse into a column that fills the screen.
-        item {
-            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), modifier = Modifier.fillMaxWidth()) {
-                TextButton(onClick = { launchDataExport(shareContext, db) }, modifier = Modifier.weight(1f)) { Text(ExportUiStrings.BUTTON) }
-                TextButton(onClick = { launchDiagnosticsExport(shareContext, db) }, modifier = Modifier.weight(1f)) { Text(DiagnosticsUiStrings.BUTTON) }
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                Text(TodayStrings.LOG_HINT, style = MaterialTheme.typography.bodySmall)
+                QuickLogActions(onProgress = onProgress, onSymptoms = onSymptoms)
+                Text(ExportUiStrings.CAPTION, style = MaterialTheme.typography.bodySmall, fontStyle = FontStyle.Italic)
+                // Redesign v2 ([DRE-211](/DRE/issues/DRE-211), founder p.3): the export +
+                // diagnostics handoffs split the row side-by-side (weight 1f each)
+                // so two actions never collapse into a column that fills the screen.
+                Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), modifier = Modifier.fillMaxWidth()) {
+                    TextButton(onClick = { launchDataExport(shareContext, db) }, modifier = Modifier.weight(1f)) { Text(ExportUiStrings.BUTTON) }
+                    TextButton(onClick = { launchDiagnosticsExport(shareContext, db) }, modifier = Modifier.weight(1f)) { Text(DiagnosticsUiStrings.BUTTON) }
+                }
+                Text(DiagnosticsUiStrings.CAPTION, style = MaterialTheme.typography.bodySmall, fontStyle = FontStyle.Italic)
             }
         }
-        // M10-D ([DRE-191](/DRE/issues/DRE-191)): the diagnostics handoff — a lean
-        // support bundle (version, data volume, gate decisions; NO user free-text)
-        // reusing the SAME share edge as export.
-        item { Text(DiagnosticsUiStrings.CAPTION, style = androidx.compose.material3.MaterialTheme.typography.bodySmall, fontStyle = FontStyle.Italic) }
+    }
+}
+
+/**
+ * Iter 1 ([DRE-257](/DRE/issues/DRE-257), DRE-254 Step C): the compact session
+ * summary that REPLACES the full inline [SessionCard] on Today. Founder complaint:
+ * Today stacked a Play button AND the entire dense exercise list (SessionCard) —
+ * duplication plus a wall. This summary shows the day/label line, exercise count,
+ * progress done/total (reuses [LocalDatabase.completedExercises]), and ONE primary
+ * Play CTA. The full per-exercise detail lives in [PlayScene] via [onPlay].
+ *
+ * A labeled section (no Card border) per C2.2 — dividers and whitespace do the
+ * chunking, not a card wall. Rest day (session == null): the [todayDateLine]
+ * REST_DAY line, nothing else.
+ */
+@Composable
+private fun SessionSummaryCard(
+    session: dreamteam.domain.training.PlanSession?,
+    db: LocalDatabase,
+    onPlay: (dreamteam.domain.training.PlanSession) -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+        // The date line is the screen title (titleLarge display) — the largest
+        // element on Today per C1.2.
+        Text(todayDateLine(session), style = MaterialTheme.typography.titleLarge)
+        session?.let { s ->
+            Text(TodayStrings.TRAINING, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            val completed = remember(s.id) { db.completedExercises(s.id) }
+            val total = s.assignments.size
+            val done = s.assignments.count { it.exerciseId in completed }
+            Text("$total ${TodayStrings.EXERCISE_COUNT}", style = MaterialTheme.typography.titleMedium)
+            Text("${TodayStrings.DONE}: $done/$total", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Button(onClick = { onPlay(s) }, modifier = Modifier.fillMaxWidth()) { Text(TodayStrings.PLAY) }
+        }
     }
 }
 
