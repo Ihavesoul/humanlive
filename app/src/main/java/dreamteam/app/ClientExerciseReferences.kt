@@ -1,6 +1,8 @@
 package dreamteam.app
 
 import android.content.Context
+import androidx.compose.animation.AnimatedVisibility
+import dreamteam.app.ui.Motion
 import android.content.Intent
 import android.content.res.AssetManager
 import androidx.compose.foundation.background
@@ -340,7 +342,11 @@ internal fun EvidenceCitationCard(citation: ResolvedCitation, modifier: Modifier
                 Text("уровень: ${citation.evidenceLevel}", fontWeight = FontWeight.Light)
                 Text(citation.keyFinding.orEmpty(), fontWeight = FontWeight.Light)
             }
-            if (expanded) {
+            AnimatedVisibility(
+                visible = expanded,
+                enter = Motion.calmExpand,
+                exit = Motion.calmCollapse,
+            ) {
                 citation.design?.let { Text("${EvidenceCitationStrings.DESIGN}: $it", fontWeight = FontWeight.Light) }
                 citation.application?.let { Text("${EvidenceCitationStrings.APPLICATION}: $it", fontWeight = FontWeight.Light) }
                 citation.limitations?.let { Text("${EvidenceCitationStrings.LIMITATIONS}: $it", fontWeight = FontWeight.Light) }

@@ -6,6 +6,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.MaterialTheme
@@ -89,6 +91,7 @@ internal fun PlayScene(
     Column(
         modifier = modifier
             .fillMaxSize()
+            .verticalScroll(rememberScrollState())
             .padding(horizontal = Spacing.screen, vertical = Spacing.xl),
         verticalArrangement = Arrangement.SpaceBetween,
     ) {
@@ -101,6 +104,7 @@ internal fun PlayScene(
         ) {
             Text(
                 PlayStrings.progressLine(position.currentIndex + 1, assignments.size, position.doneCount),
+                modifier = Modifier.weight(1f),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -110,36 +114,55 @@ internal fun PlayScene(
             Text(PlayStrings.BREATHING)
         }
 
-        // The current exercise, large and legible — the whole point of the scene.
-        // Note: a plain Column, not a LazyColumn — nesting a vertically-scrollable
-        // in an unbounded-height parent (this Column) crashes at runtime; the body
-        // is one block, so a Column is the correct + smaller choice.
-        Column(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-        ) {
+        // Workout body: show completion confirmation when all exercises are done,
+        // otherwise the current exercise large and legible.
+        if (allDone) {
             Column(
+                modifier = Modifier.fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+                verticalArrangement = Arrangement.spacedBy(Spacing.sm),
             ) {
                 Text(
-                    PlayStrings.currentOf(position.currentIndex + 1, assignments.size),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Text(
-                    name,
+                    PlayStrings.COMPLETE,
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold,
                     textAlign = TextAlign.Center,
                 )
                 Text(
-                    PlayStrings.prescription(current.sets, current.repScheme, current.rir),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.SemiBold,
+                    PlayStrings.progressLine(assignments.size, assignments.size, assignments.size),
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
                 )
+            }
+        } else {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+                ) {
+                    Text(
+                        PlayStrings.currentOf(position.currentIndex + 1, assignments.size),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Text(
+                        name,
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center,
+                    )
+                    Text(
+                        PlayStrings.prescription(current.sets, current.repScheme, current.rir),
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
             }
         }
 
@@ -164,11 +187,12 @@ internal object PlayStrings {
     const val BREATHING = "Дыхание"
     const val DONE_NEXT = "Готово · далее"
     const val FINISH = "Завершить тренировку"
+    const val COMPLETE = "Тренировка завершена!"
     const val EMPTY = "На сегодня упражнений нет."
     fun sessionTitle(session: PlanSession) = "Тренировка · ${session.label}"
     fun progressLine(current: Int, total: Int, done: Int) = "Упражнение $current из $total · выполнено $done"
     fun currentOf(current: Int, total: Int) = "$current / $total"
     fun prescription(sets: Int, repScheme: String, rir: Int?) =
         if (rir != null) "$sets × $repScheme · RIR $rir" else "$sets × $repScheme"
-    val all: List<String> = listOf(BACK, BREATHING, DONE_NEXT, FINISH, EMPTY)
+    val all: List<String> = listOf(BACK, BREATHING, DONE_NEXT, FINISH, COMPLETE, EMPTY)
 }

@@ -6,6 +6,13 @@ import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.SpringSpec
 import androidx.compose.animation.core.TweenSpec
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
@@ -354,6 +361,14 @@ internal object Motion {
     val breath = TweenSpec<Float>(durationMillis = 4000, easing = LinearEasing)
     /** Soft spring for interactive elements (buttons, the breathing orb). */
     val softSpring: SpringSpec<Float> = spring(dampingRatio = 0.8f, stiffness = Spring.StiffnessMediumLow)
+
+    // ── Reusable transitions ──
+    /** Calm expand — fade-in + vertical expand for card/section reveals. */
+    val calmExpand: EnterTransition = fadeIn(tween(largeMs, easing = Emphasized)) +
+        expandVertically(tween(largeMs, easing = Emphasized))
+    /** Calm collapse — fade-out + vertical shrink for card/section hides. */
+    val calmCollapse: ExitTransition = fadeOut(tween(largeMs, easing = Emphasized)) +
+        shrinkVertically(tween(largeMs, easing = Emphasized))
 }
 
 // ── Theme wrapper ──────────────────────────────────────────────────────────

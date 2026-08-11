@@ -38,6 +38,7 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Switch
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -317,8 +318,8 @@ fun DreamTeamApp(db: LocalDatabase) {
         AnimatedContent(
             targetState = screen,
             transitionSpec = {
-                fadeIn(tween(Motion.mediumMs, easing = Motion.Emphasized)) togetherWith
-                    fadeOut(tween(Motion.mediumMs, easing = Motion.Emphasized))
+                fadeIn(tween(Motion.largeMs, easing = Motion.Emphasized)) togetherWith
+                    fadeOut(tween(Motion.largeMs, easing = Motion.Emphasized))
             },
             contentKey = { it },
             label = "screen",
@@ -1040,16 +1041,14 @@ private fun SessionCard(
                             Text(name, style = MaterialTheme.typography.titleMedium)
                             MetaTag(exerciseDensityChips(a.sets, a.repScheme, a.rir).label)
                         }
-                        TextButton(onClick = { detailOpen = !detailOpen }) {
+                        TextButton(onClick = { detailOpen = !detailOpen }, modifier = Modifier.heightIn(min = Spacing.touchTarget)) {
                             Text(if (detailOpen) DensityChipStrings.HIDE else DensityChipStrings.DETAILS)
                         }
                     }
                     AnimatedVisibility(
                         visible = detailOpen,
-                        enter = fadeIn(tween(Motion.largeMs, easing = Motion.Emphasized)) +
-                            expandVertically(tween(Motion.largeMs, easing = Motion.Emphasized)),
-                        exit = fadeOut(tween(Motion.largeMs, easing = Motion.Emphasized)) +
-                            shrinkVertically(tween(Motion.largeMs, easing = Motion.Emphasized)),
+                        enter = Motion.calmExpand,
+                        exit = Motion.calmCollapse,
                     ) {
                         // Redesign v3: flattened references — card image, AI summary,
                         // how-to steps, and video/media buttons render directly.
@@ -1170,7 +1169,7 @@ private fun SessionCard(
                             var citationsOpen by remember(a.exerciseId) {
                                 mutableStateOf(false)
                             }
-                            TextButton(onClick = { citationsOpen = !citationsOpen }) {
+                            TextButton(onClick = { citationsOpen = !citationsOpen }, modifier = Modifier.heightIn(min = Spacing.touchTarget)) {
                                 Text(
                                     "${ReferencesCardStrings.EVIDENCE} (${refs.citations.size})",
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -1178,10 +1177,8 @@ private fun SessionCard(
                             }
                             AnimatedVisibility(
                                 visible = citationsOpen,
-                                enter = fadeIn(tween(Motion.largeMs, easing = Motion.Emphasized)) +
-                                    expandVertically(tween(Motion.largeMs, easing = Motion.Emphasized)),
-                                exit = fadeOut(tween(Motion.largeMs, easing = Motion.Emphasized)) +
-                                    shrinkVertically(tween(Motion.largeMs, easing = Motion.Emphasized)),
+                                enter = Motion.calmExpand,
+                                exit = Motion.calmCollapse,
                             ) {
                                 Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                                     refs.citations.forEach { c -> EvidenceCitationCard(c) }
@@ -1250,7 +1247,20 @@ private fun SessionCard(
                         }
                     },
                     modifier = Modifier.fillMaxWidth(),
-                ) { Text(if (reportLoading) CoachStrings.REPORT_WORKING else CoachStrings.REPORT_CTA) }
+                ) {
+                    if (reportLoading) {
+                        Row(horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(16.dp),
+                                strokeWidth = 2.dp,
+                            )
+                            Spacer(Modifier.width(Spacing.sm))
+                            Text(CoachStrings.REPORT_WORKING)
+                        }
+                    } else {
+                        Text(CoachStrings.REPORT_CTA)
+                    }
+                }
             }
         }
         }
@@ -1301,19 +1311,31 @@ private fun ExerciseCoachDialog(
         }
     }
     val resolved = result
-    val body = when (resolved) {
-        null -> CoachStrings.EXPLAIN_WORKING
-        is dreamteam.domain.coach.CoachExplain.Ok -> {
-            val v = coachExplainView(resolved)
-            "${v.summaryRu}\n(${v.sourceLabel})"
-        }
-        is dreamteam.domain.coach.CoachExplain.Blocked -> CoachStrings.REDFLAG_BLOCK
-    }
     AlertDialog(
         onDismissRequest = onDismiss,
         confirmButton = { TextButton(onClick = onDismiss) { Text("Закрыть") } },
         title = { Text(CoachStrings.EXPLAIN_TITLE) },
-        text = { Text(body) },
+        text = {
+            if (resolved == null) {
+                Row(horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(16.dp),
+                        strokeWidth = 2.dp,
+                    )
+                    Spacer(Modifier.width(Spacing.sm))
+                    Text(CoachStrings.EXPLAIN_WORKING)
+                }
+            } else {
+                val body = when (resolved) {
+                    is dreamteam.domain.coach.CoachExplain.Ok -> {
+                        val v = coachExplainView(resolved)
+                        "${v.summaryRu}\n(${v.sourceLabel})"
+                    }
+                    is dreamteam.domain.coach.CoachExplain.Blocked -> CoachStrings.REDFLAG_BLOCK
+                }
+                Text(body)
+            }
+        },
     )
 }
 
